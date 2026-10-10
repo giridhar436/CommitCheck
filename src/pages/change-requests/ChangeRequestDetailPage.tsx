@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
-  GitPullRequestDraft,
+  FilePenLine,
   Clock,
   FileText,
   FileCheck2,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  HelpCircle,
-  Sparkles,
+  TriangleAlert,
+  CircleCheck,
+  CircleX,
+  CircleHelp,
   ExternalLink,
-  ShieldCheck,
+  Check,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -213,7 +213,7 @@ export function ChangeRequestDetailPage() {
                 className="gap-1 text-xs"
                 onClick={() => setClarificationModalOpen(true)}
               >
-                <HelpCircle className="h-3.5 w-3.5" />
+                <CircleHelp className="h-3.5 w-3.5" strokeWidth={1.8} />
                 <span>Clarification</span>
               </Button>
               <Button
@@ -222,7 +222,7 @@ export function ChangeRequestDetailPage() {
                 className="gap-1 text-xs text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/10"
                 onClick={() => setRejectionModalOpen(true)}
               >
-                <XCircle className="h-3.5 w-3.5" />
+                <CircleX className="h-3.5 w-3.5" strokeWidth={1.8} />
                 <span>Reject</span>
               </Button>
               <StatusButton
@@ -231,7 +231,7 @@ export function ChangeRequestDetailPage() {
                 onClick={handleApprove}
                 className="gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
               >
-                <CheckCircle2 className="h-4 w-4" />
+                <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
                 <span>Approve Change Request</span>
               </StatusButton>
             </div>
@@ -251,7 +251,7 @@ export function ChangeRequestDetailPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <GitPullRequestDraft className="h-4 w-4 text-primary" />
+                  <FilePenLine className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   Feature Specification & Scope
                 </CardTitle>
                 <Badge variant="outline" className="text-[11px] font-mono">
@@ -279,7 +279,7 @@ export function ChangeRequestDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                 <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3.5 space-y-1.5">
                   <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <FileCheck2 className="h-3.5 w-3.5" />
+                    <FileCheck2 className="h-3.5 w-3.5" strokeWidth={1.8} />
                     Original Scope Baseline
                   </span>
                   <p className="text-xs font-medium text-foreground leading-relaxed">
@@ -289,7 +289,7 @@ export function ChangeRequestDetailPage() {
 
                 <div className="rounded-xl border border-violet-500/25 bg-violet-500/5 p-3.5 space-y-1.5">
                   <span className="text-[11px] font-bold text-violet-700 dark:text-violet-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5" />
+                    <FilePenLine className="h-3.5 w-3.5" strokeWidth={1.8} />
                     Proposed Change Addendum
                   </span>
                   <p className="text-xs font-medium text-foreground leading-relaxed">
@@ -304,7 +304,7 @@ export function ChangeRequestDetailPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <TriangleAlert className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
                 Technical & Delivery Impact Analysis
               </CardTitle>
               <CardDescription className="text-xs">
@@ -394,7 +394,7 @@ export function ChangeRequestDetailPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-primary" />
+                <CircleCheck className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 Client Approval Sign-Off
               </CardTitle>
               <CardDescription className="text-xs">
@@ -405,20 +405,21 @@ export function ChangeRequestDetailPage() {
               {isApproved ? (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-2 text-xs">
                   <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <CircleCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" strokeWidth={1.8} />
                     <span>Change Request Approved</span>
                   </div>
                   <p className="text-muted-foreground leading-relaxed">
                     Authorized by <strong className="text-foreground">{changeRequest.approvedBy || 'Marcus Vance (Client VP)'}</strong> on {formatDate(changeRequest.approvedAt || changeRequest.updatedAt)}.
                   </p>
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-1">
-                    ✓ Scope baseline updated. Team is authorized to proceed with implementation.
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-1 flex items-center gap-1">
+                    <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+                    <span>Scope baseline updated. Team is authorized to proceed with implementation.</span>
                   </p>
                 </div>
               ) : isRejected ? (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 space-y-2 text-xs">
                   <div className="flex items-center gap-2 text-red-700 dark:text-red-300 font-bold text-sm">
-                    <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                    <CircleX className="h-5 w-5 text-red-600 dark:text-red-400" strokeWidth={1.8} />
                     <span>Change Request Rejected</span>
                   </div>
                   <p className="text-muted-foreground leading-relaxed">
@@ -427,8 +428,9 @@ export function ChangeRequestDetailPage() {
                   <p className="italic text-foreground bg-muted/40 p-2 rounded-lg border border-border/70">
                     "{changeRequest.rejectionReason || 'Scope postponed to Phase 2 roadmap'}"
                   </p>
-                  <p className="text-[11px] text-red-600 dark:text-red-400 font-medium pt-1">
-                    ✕ Work will not be executed. Scope creep successfully deflected.
+                  <p className="text-[11px] text-red-600 dark:text-red-400 font-medium pt-1 flex items-center gap-1">
+                    <X className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+                    <span>Work will not be executed. Scope creep successfully deflected.</span>
                   </p>
                 </div>
               ) : (
@@ -436,7 +438,7 @@ export function ChangeRequestDetailPage() {
                 <div className="space-y-3">
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 space-y-1">
                     <p className="font-bold flex items-center gap-1.5">
-                      <Clock className="h-4 w-4" /> Awaiting Client Signature
+                      <Clock className="h-4 w-4" strokeWidth={1.8} /> Awaiting Client Signature
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       Client approval is required before developers commence task implementation.
@@ -449,7 +451,7 @@ export function ChangeRequestDetailPage() {
                     onClick={handleApprove}
                     className="w-full justify-center gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                   >
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
                     <span>Sign & Approve Change Request</span>
                   </StatusButton>
 
@@ -458,7 +460,7 @@ export function ChangeRequestDetailPage() {
                     className="w-full justify-center gap-2 text-xs"
                     onClick={() => setClarificationModalOpen(true)}
                   >
-                    <HelpCircle className="h-4 w-4" />
+                    <CircleHelp className="h-4 w-4" strokeWidth={1.8} />
                     <span>Request Client Clarification</span>
                   </Button>
 

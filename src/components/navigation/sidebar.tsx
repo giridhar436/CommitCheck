@@ -2,14 +2,15 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
-  ShieldAlert,
-  GitPullRequestDraft,
-  Calendar,
-  FileCheck,
-  FileText,
+  ClipboardCheck,
+  FilePenLine,
+  Video,
+  FileCheck2,
+  Files,
   Settings,
   ChevronLeft,
   ChevronRight,
+  ShieldAlert,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ProjectSwitcher } from './project-switcher'
@@ -47,33 +48,33 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
     {
       title: 'Commitments',
       href: `/projects/${currentProjectId}/commitments`,
-      icon: ShieldAlert,
+      icon: ClipboardCheck,
       badge: '2',
       badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400 font-bold',
     },
     {
       title: 'Change Requests',
       href: `/projects/${currentProjectId}/change-requests`,
-      icon: GitPullRequestDraft,
+      icon: FilePenLine,
       badge: '1',
       badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     },
     {
       title: 'Meeting Analysis',
       href: `/projects/${currentProjectId}/meetings`,
-      icon: Calendar,
+      icon: Video,
       badge: undefined,
     },
     {
       title: 'Approved Scope',
       href: `/projects/${currentProjectId}/scope`,
-      icon: FileCheck,
+      icon: FileCheck2,
       badge: '5',
     },
     {
       title: 'Scope Documents',
       href: `/projects/${currentProjectId}/documents`,
-      icon: FileText,
+      icon: Files,
       badge: undefined,
     },
   ]
@@ -97,7 +98,7 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
         {!collapsed && (
           <Link to="/dashboard" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-              <ShieldAlert className="h-4 w-4" />
+              <ShieldAlert className="h-4 w-4" strokeWidth={1.8} />
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-tight text-sidebar-foreground leading-none">
@@ -112,23 +113,38 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
 
         {collapsed && (
           <Link to="/dashboard" className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ShieldAlert className="h-4 w-4" />
+            <ShieldAlert className="h-4 w-4" strokeWidth={1.8} />
           </Link>
         )}
 
-        {/* Collapse button */}
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className={cn(
-            'flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer',
-            collapsed && 'hidden',
-          )}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
-        </button>
+        {/* Collapse/Expand toggle button — always visible */}
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer"
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
+          </button>
+        )}
       </div>
+
+      {/* Expand button — always visible when collapsed */}
+      {collapsed && (
+        <div className="flex justify-center border-b border-border/60 py-2">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer"
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
+          </button>
+        </div>
+      )}
 
       {/* Project Switcher section */}
       {!collapsed && (
@@ -165,7 +181,7 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
                 {active && (
                   <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
                 )}
-                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} />
+                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} strokeWidth={1.8} />
                 {!collapsed && <span className="truncate flex-1">{item.title}</span>}
                 {!collapsed && item.badge && (
                   <span className="rounded-full bg-muted px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
@@ -203,7 +219,7 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
                 {active && (
                   <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
                 )}
-                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} />
+                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} strokeWidth={1.8} />
                 {!collapsed && <span className="truncate flex-1">{item.title}</span>}
                 {!collapsed && item.badge && (
                   <span
@@ -232,7 +248,7 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
           )}
           title={collapsed ? 'Settings' : undefined}
         >
-          <Settings className="h-4 w-4 shrink-0" />
+          <Settings className="h-4 w-4 shrink-0" strokeWidth={1.8} />
           {!collapsed && <span className="truncate">Settings</span>}
         </Link>
 

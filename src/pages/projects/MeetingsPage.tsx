@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Calendar,
+  Video,
   Sparkles,
+  Play,
+  ClipboardCheck,
   Users,
   Upload,
   Image as ImageIcon,
-  ShieldAlert,
   Clock,
   ArrowRight,
   Eye,
@@ -34,7 +35,7 @@ import { meetingService } from '@/services/meetings'
 import { formatDate } from '@/lib/utils'
 import type { Project, Meeting, MeetingAnalysisState } from '@/types'
 
-// Hackathon Demo Scenario pre-fill data
+// Demo Scenario pre-fill data
 const DEMO_MEETING_DATA = {
   title: 'Sprint 3 Check-in & Checkout Flow Review',
   date: new Date().toISOString().split('T')[0],
@@ -259,7 +260,7 @@ export function MeetingsPage() {
             onClick={handleLoadDemoMeeting}
             className="gap-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary font-medium text-xs shadow-2xs"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <Play className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>Load Demo Sprint 3 Meeting</span>
           </Button>
         </div>
@@ -297,7 +298,7 @@ export function MeetingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
+                    <Sparkles className="h-4 w-4 text-primary" strokeWidth={1.8} />
                     Analyze a Client Meeting
                   </CardTitle>
                   <CardDescription className="text-xs mt-0.5">
@@ -503,7 +504,7 @@ export function MeetingsPage() {
                   disabled={!title.trim() || (!summary.trim() && !transcript.trim())}
                   className="gap-2 shadow-sm font-semibold"
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" strokeWidth={1.8} />
                   <span>Analyze Meeting</span>
                 </Button>
               </div>
@@ -515,7 +516,7 @@ export function MeetingsPage() {
         <div className="lg:col-span-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
+              <Video className="h-4 w-4 text-primary" strokeWidth={1.8} />
               Analyzed Meetings ({meetings.length})
             </h2>
             <Badge variant="outline" className="text-[10px] font-mono">
@@ -601,7 +602,7 @@ export function MeetingsPage() {
           {/* Direct link to Commitments Table */}
           <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-2">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-primary" />
+              <ClipboardCheck className="h-4 w-4 text-primary" strokeWidth={1.8} />
               <h4 className="text-xs font-bold text-foreground">Project Commitments Hub</h4>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -614,7 +615,7 @@ export function MeetingsPage() {
               onClick={() => navigate(`/projects/${project.id}/commitments`)}
             >
               <span>View All Detected Commitments</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
             </Button>
           </div>
         </div>

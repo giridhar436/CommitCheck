@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  Sparkles,
+  Play,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
   Minimize2,
   Maximize2,
-  Play,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -63,7 +62,7 @@ export function HackathonDemoBar() {
     resetHackathonDemoScenario()
     setCurrentStepIndex(0)
     navigate(HACKATHON_DEMO_STEPS[0].path)
-    toast.success('Hackathon demo scenario reset to initial baseline!')
+    toast.success('Demo scenario reset to initial baseline!')
   }
 
   const toggleMinimized = () => {
@@ -83,28 +82,28 @@ export function HackathonDemoBar() {
           size="sm"
           className="h-10 px-3.5 gap-2 rounded-full shadow-xl border border-primary/30 bg-primary text-primary-foreground font-semibold hover:shadow-primary/20 hover:scale-105 transition-all"
         >
-          <Sparkles className="h-4 w-4 animate-pulse text-amber-300" />
+          <Play className="h-4 w-4 fill-current" strokeWidth={1.8} />
           <span className="text-xs">Demo Guide</span>
           <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-background/20 text-primary-foreground border-white/20">
             {step.step}/8
           </Badge>
-          <Maximize2 className="h-3.5 w-3.5 ml-1 opacity-70" />
+          <Maximize2 className="h-3.5 w-3.5 ml-1 opacity-70" strokeWidth={1.8} />
         </Button>
       </div>
     )
   }
 
   return (
-    <aside aria-label="Hackathon Demo Guide" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-slide-up">
+    <aside aria-label="Demo Guide" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl animate-slide-up">
       <div className="rounded-2xl border border-border/80 bg-background/95 backdrop-blur-xl p-3 sm:p-4 shadow-2xl transition-all">
         {/* Top Mini Header */}
         <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-border/60">
           <div className="flex items-center gap-2 min-w-0">
             <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+              <Play className="h-3 w-3 text-primary fill-current" strokeWidth={1.8} />
             </span>
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">
-              Hackathon Walkthrough Guide &bull; {step.prdReference}
+              Walkthrough Guide &bull; {step.prdReference}
             </span>
           </div>
 
@@ -116,7 +115,7 @@ export function HackathonDemoBar() {
               className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1"
               title="Reset mock data to initial unapproved state"
             >
-              <RotateCcw className="h-3 w-3" />
+              <RotateCcw className="h-3 w-3" strokeWidth={1.8} />
               <span className="hidden sm:inline">Reset Demo</span>
             </Button>
             <Button
@@ -126,7 +125,7 @@ export function HackathonDemoBar() {
               className="h-6 w-6 text-muted-foreground hover:text-foreground"
               title="Minimize guide bar"
             >
-              <Minimize2 className="h-3.5 w-3.5" />
+              <Minimize2 className="h-3.5 w-3.5" strokeWidth={1.8} />
             </Button>
           </div>
         </div>
@@ -147,7 +146,7 @@ export function HackathonDemoBar() {
               {step.subtitle}
             </p>
             <p className="text-[11px] text-primary/90 font-medium mt-1 flex items-center gap-1.5">
-              <Play className="h-3 w-3 shrink-0" />
+              <Play className="h-3 w-3 shrink-0" strokeWidth={1.8} />
               <span>{step.actionHint}</span>
             </p>
           </div>
@@ -181,7 +180,7 @@ export function HackathonDemoBar() {
               disabled={currentStepIndex === 0}
               className="h-8 px-2.5 text-xs gap-1 border-border/80"
             >
-              <ChevronLeft className="h-3.5 w-3.5" />
+              <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
               <span className="hidden sm:inline">Back</span>
             </Button>
 
@@ -192,7 +191,7 @@ export function HackathonDemoBar() {
               className="h-8 px-3 text-xs gap-1 font-semibold shadow-xs"
             >
               <span>{currentStepIndex === HACKATHON_DEMO_STEPS.length - 1 ? 'Complete' : 'Next Step'}</span>
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.8} />
             </Button>
           </div>
         </div>

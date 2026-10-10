@@ -2,8 +2,8 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
-  ShieldAlert,
-  Calendar,
+  ClipboardCheck,
+  Video,
   Menu,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -39,7 +39,7 @@ export function MobileBottomNav({ onOpenDrawer }: MobileBottomNavProps) {
       id: 'commitments',
       label: 'Commitments',
       href: `/projects/${currentProjectId}/commitments`,
-      icon: ShieldAlert,
+      icon: ClipboardCheck,
       badge: '2',
       badgeClass: 'bg-red-500 text-white font-bold',
       isActive: location.pathname.includes('/commitments'),
@@ -48,7 +48,7 @@ export function MobileBottomNav({ onOpenDrawer }: MobileBottomNavProps) {
       id: 'meetings',
       label: 'Meetings',
       href: `/projects/${currentProjectId}/meetings`,
-      icon: Calendar,
+      icon: Video,
       isActive: location.pathname.includes('/meetings'),
     },
   ]
@@ -78,6 +78,7 @@ export function MobileBottomNav({ onOpenDrawer }: MobileBottomNavProps) {
                     'h-5 w-5 transition-transform duration-150',
                     item.isActive && 'scale-110 text-primary',
                   )}
+                  strokeWidth={1.8}
                 />
                 {item.badge && (
                   <span
@@ -107,7 +108,7 @@ export function MobileBottomNav({ onOpenDrawer }: MobileBottomNavProps) {
           className="relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-muted-foreground hover:text-foreground active:scale-95 transition-all min-w-[56px] min-h-[48px] cursor-pointer select-none"
           aria-label="Open full navigation menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" strokeWidth={1.8} />
           <span className="text-[10px] mt-1 tracking-tight">More</span>
         </button>
       </div>

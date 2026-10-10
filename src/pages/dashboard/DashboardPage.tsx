@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FolderKanban,
+  ClipboardCheck,
   ShieldAlert,
-  AlertTriangle,
-  GitPullRequestDraft,
+  CircleX,
+  FilePenLine,
   Sparkles,
-  Calendar,
+  Video,
   ArrowRight,
   ShieldCheck,
 } from 'lucide-react'
@@ -84,7 +85,7 @@ export function DashboardPage() {
             onClick={() => navigate('/projects/proj-abc-ecommerce/meetings')}
             className="text-xs h-9 font-semibold shadow-xs"
           >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
             Analyze Meeting
           </Button>
         </div>
@@ -106,7 +107,7 @@ export function DashboardPage() {
           title="Detected Commitments"
           value={loading ? '…' : totalDetected}
           description="From analyzed calls & notes"
-          icon={ShieldAlert}
+          icon={ClipboardCheck}
           variant="default"
           actionLabel="Audit"
           onAction={() => navigate('/projects/proj-abc-ecommerce/commitments')}
@@ -116,7 +117,7 @@ export function DashboardPage() {
           title="Unauthorized Scope"
           value={loading ? '…' : totalUnauthorized}
           description="Not in approved SOW"
-          icon={AlertTriangle}
+          icon={CircleX}
           variant="danger"
           actionLabel="Review"
           onAction={() => navigate('/projects/proj-abc-ecommerce/commitments')}
@@ -134,7 +135,7 @@ export function DashboardPage() {
           title="Pending Change Orders"
           value={loading ? '…' : totalPendingCR}
           description="Awaiting client sign-off"
-          icon={GitPullRequestDraft}
+          icon={FilePenLine}
           variant="warning"
           actionLabel="Review"
           onAction={() => navigate('/projects/proj-abc-ecommerce/change-requests')}
@@ -161,7 +162,7 @@ export function DashboardPage() {
           <Card className="border-border/80 shadow-xs bg-muted/20">
             <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
+                <Video className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 <CardTitle className="text-sm font-bold text-foreground">
                   Analyze Client Meeting
                 </CardTitle>
@@ -180,7 +181,7 @@ export function DashboardPage() {
                 className="w-full text-xs font-semibold h-8"
               >
                 Start Meeting Analysis
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
               </Button>
             </CardContent>
           </Card>
@@ -204,7 +205,7 @@ export function DashboardPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                <ShieldCheck className="h-4 w-4 text-emerald-500" strokeWidth={1.8} />
                 <CardTitle className="text-xs font-bold text-foreground">
                   Verification Philosophy
                 </CardTitle>

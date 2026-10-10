@@ -1,5 +1,5 @@
 import {
-  Calendar,
+  Video,
   Users,
   FileText,
   Clock,
@@ -8,7 +8,7 @@ import {
   Trash2,
   X,
   MessageSquare,
-  ShieldAlert,
+  ClipboardCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -44,7 +44,7 @@ export function MeetingDetailDrawer({
         <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Calendar className="h-4 w-4" />
+              <Video className="h-4 w-4" strokeWidth={1.8} />
             </span>
             <div>
               <h3 className="text-sm font-bold text-foreground">Meeting Intelligence</h3>
@@ -62,7 +62,7 @@ export function MeetingDetailDrawer({
                 onClick={() => onDelete(meeting.id)}
                 title="Delete Meeting"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" strokeWidth={1.8} />
               </Button>
             )}
             <Button
@@ -71,7 +71,7 @@ export function MeetingDetailDrawer({
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={onClose}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={1.8} />
             </Button>
           </div>
         </div>
@@ -93,12 +93,12 @@ export function MeetingDetailDrawer({
             <h2 className="text-lg font-bold text-foreground tracking-tight">{meeting.title}</h2>
             <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
               <span className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
+                <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
                 Date: {formatDate(meeting.date)}
               </span>
               {meeting.analyzedAt && (
                 <span className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
                   Analyzed {new Date(meeting.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}
@@ -110,7 +110,7 @@ export function MeetingDetailDrawer({
           {/* Participants */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" />
+              <Users className="h-3.5 w-3.5" strokeWidth={1.8} />
               Participants ({meeting.participants.length})
             </h4>
             <div className="flex flex-wrap gap-1.5">
@@ -130,7 +130,7 @@ export function MeetingDetailDrawer({
           {/* Executive Summary */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
+              <FileText className="h-3.5 w-3.5" strokeWidth={1.8} />
               Meeting Summary & Scope Context
             </h4>
             <div className="rounded-xl border border-border/70 bg-card p-4 text-xs leading-relaxed text-foreground shadow-2xs">
@@ -143,7 +143,7 @@ export function MeetingDetailDrawer({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <MessageSquare className="h-3.5 w-3.5" />
+                  <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.8} />
                   Verbatim Transcript Evidence
                 </h4>
                 <CopyButton text={meeting.transcript} size="sm" className="h-7 text-xs px-2 gap-1">
@@ -160,7 +160,7 @@ export function MeetingDetailDrawer({
           <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <ShieldAlert className="h-4 w-4" />
+                <ClipboardCheck className="h-4 w-4" strokeWidth={1.8} />
               </div>
               <div>
                 <p className="text-xs font-bold text-foreground">
@@ -177,7 +177,7 @@ export function MeetingDetailDrawer({
               onClick={onViewCommitments}
             >
               <span>View</span>
-              <ArrowRight className="h-3 w-3" />
+              <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
             </Button>
           </div>
         </div>

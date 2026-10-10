@@ -2,15 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   History,
-  Calendar,
-  Sparkles,
+  Video,
+  ClipboardCheck,
   ShieldAlert,
-  GitPullRequestDraft,
-  CheckCircle2,
+  FilePenLine,
+  CircleCheck,
   User,
   ArrowRight,
   Filter,
-  ShieldCheck,
   Clock,
   Copy,
 } from 'lucide-react'
@@ -95,15 +94,15 @@ export function ActivityPage() {
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
       case 'meeting_analyzed':
-        return Calendar
+        return Video
       case 'commitment_detected':
-        return Sparkles
+        return ClipboardCheck
       case 'commitment_flagged':
         return ShieldAlert
       case 'change_request_created':
-        return GitPullRequestDraft
+        return FilePenLine
       case 'change_request_approved':
-        return CheckCircle2
+        return CircleCheck
       default:
         return History
     }
@@ -212,7 +211,7 @@ export function ActivityPage() {
 
         <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1.5">
-            <ShieldAlert className="h-3.5 w-3.5" /> Scope Creep Flagged
+            <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} /> Scope Creep Flagged
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-red-600 dark:text-red-400">
@@ -224,7 +223,7 @@ export function ActivityPage() {
 
         <div className="rounded-xl border border-violet-500/25 bg-violet-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
-            <GitPullRequestDraft className="h-3.5 w-3.5" /> Change Requests Created
+            <FilePenLine className="h-3.5 w-3.5" strokeWidth={1.8} /> Change Requests Created
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-violet-600 dark:text-violet-400">
@@ -236,7 +235,7 @@ export function ActivityPage() {
 
         <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5" /> Signed Authorizations
+            <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.8} /> Signed Authorizations
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
@@ -250,7 +249,7 @@ export function ActivityPage() {
       {/* Filter Chips */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
-          <Filter className="h-3.5 w-3.5" /> Filter:
+          <Filter className="h-3.5 w-3.5" strokeWidth={1.8} /> Filter:
         </span>
         <Button
           variant={filterType === 'all' ? 'default' : 'outline'}
@@ -328,7 +327,7 @@ export function ActivityPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                               <span className={`flex h-7 w-7 items-center justify-center rounded-lg border ${colorClass}`}>
-                                <Icon className="h-3.5 w-3.5" />
+                                <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
                               </span>
                               <div>
                                 <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
@@ -352,7 +351,7 @@ export function ActivityPage() {
                                 onClick={() => handleJumpToRelated(item)}
                               >
                                 <span>Inspect</span>
-                                <ArrowRight className="h-3 w-3" />
+                                <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                               </Button>
                             )}
                           </div>

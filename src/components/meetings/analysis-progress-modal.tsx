@@ -3,12 +3,11 @@ import {
   Search,
   FileCheck2,
   ShieldAlert,
-  CheckCircle2,
-  AlertTriangle,
+  CircleCheck,
+  TriangleAlert,
   ArrowRight,
-  ShieldX,
-  ShieldCheck,
-  HelpCircle,
+  CircleX,
+  CircleHelp,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
@@ -54,7 +53,7 @@ const steps = [
     key: 'assessing_risk',
     title: 'Assessing scope risk',
     desc: 'Calculating scope creep exposure and generating action recommendations',
-    icon: AlertTriangle,
+    icon: TriangleAlert,
   },
 ]
 
@@ -103,7 +102,7 @@ export function AnalysisProgressModal({
           <DialogHeader className="mb-5 text-left">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Sparkles className="h-4 w-4 animate-pulse" />
+                <Sparkles className="h-4 w-4 animate-pulse" strokeWidth={1.8} />
               </span>
               <DialogTitle className="text-lg font-bold">
                 {isComplete ? 'Analysis Complete' : 'Analyzing Meeting...'}
@@ -145,14 +144,14 @@ export function AnalysisProgressModal({
                   >
                     <div className="mt-0.5">
                       {status === 'done' ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <CircleCheck className="h-4 w-4 text-emerald-500" strokeWidth={1.8} />
                       ) : status === 'active' ? (
                         <div className="relative flex h-4 w-4 items-center justify-center">
                           <span className="absolute h-full w-full animate-ping rounded-full bg-primary/30" />
-                          <Icon className="h-4 w-4 text-primary animate-pulse" />
+                          <Icon className="h-4 w-4 text-primary animate-pulse" strokeWidth={1.8} />
                         </div>
                       ) : (
-                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -202,7 +201,7 @@ export function AnalysisProgressModal({
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     <div className="flex flex-col items-center justify-center rounded-lg border border-red-500/25 bg-red-500/10 p-2.5 text-center">
                       <span className="flex items-center gap-1 text-[11px] font-bold text-red-600 dark:text-red-400">
-                        <ShieldX className="h-3 w-3" /> Unauthorized
+                        <CircleX className="h-3 w-3" strokeWidth={1.8} /> Unauthorized
                       </span>
                       <span className="mt-1 text-lg font-black text-red-600 dark:text-red-400">
                         {unauthorizedCount}
@@ -211,7 +210,7 @@ export function AnalysisProgressModal({
 
                     <div className="flex flex-col items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 p-2.5 text-center">
                       <span className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                        <HelpCircle className="h-3 w-3" /> Review Needed
+                        <CircleHelp className="h-3 w-3" strokeWidth={1.8} /> Review Needed
                       </span>
                       <span className="mt-1 text-lg font-black text-amber-600 dark:text-amber-400">
                         {needsReviewCount}
@@ -220,7 +219,7 @@ export function AnalysisProgressModal({
 
                     <div className="flex flex-col items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-2.5 text-center">
                       <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                        <ShieldCheck className="h-3 w-3" /> Authorized
+                        <CircleCheck className="h-3 w-3" strokeWidth={1.8} /> Authorized
                       </span>
                       <span className="mt-1 text-lg font-black text-emerald-600 dark:text-emerald-400">
                         {authorizedCount}
@@ -275,7 +274,7 @@ export function AnalysisProgressModal({
                     onClick={onViewCommitments}
                   >
                     <span>Inspect Commitments</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                   </Button>
                 </div>
               </motion.div>

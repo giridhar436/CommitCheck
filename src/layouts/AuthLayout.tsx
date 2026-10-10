@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ShieldAlert, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ShieldAlert, ArrowLeft, CircleCheck } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function AuthLayout({
@@ -20,7 +20,7 @@ export function AuthLayout({
         <div>
           <Link to="/" className="inline-flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-              <ShieldAlert className="h-5 w-5" />
+              <ShieldAlert className="h-5 w-5" strokeWidth={1.8} />
             </div>
             <span className="text-base font-bold tracking-tight text-foreground">
               CommitCheck
@@ -41,15 +41,15 @@ export function AuthLayout({
 
           <div className="space-y-3 pt-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <CircleCheck className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={1.8} />
               <span>Detect verbal commitments from client meeting notes</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <CircleCheck className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={1.8} />
               <span>Cross-reference SOW clauses and contract deliverables</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <CircleCheck className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={1.8} />
               <span>Convert unauthorized scope creep into billable change orders</span>
             </div>
           </div>

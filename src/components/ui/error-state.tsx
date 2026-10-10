@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertCircle, RotateCcw } from 'lucide-react'
+import { TriangleAlert, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
@@ -26,7 +26,7 @@ export function ErrorState({
       )}
     >
       <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
-        <AlertCircle className="h-6 w-6" />
+        <TriangleAlert className="h-6 w-6" strokeWidth={1.8} />
       </div>
       <h3 className="mt-4 text-sm font-semibold tracking-tight text-foreground">{title}</h3>
       <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted-foreground">{message}</p>
@@ -39,7 +39,7 @@ export function ErrorState({
           size="sm"
           className="mt-5 inline-flex items-center gap-1.5 text-xs border-destructive/30 hover:bg-destructive/10"
         >
-          <RotateCcw className="h-3.5 w-3.5" />
+          <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />
           Try Again
         </Button>
       ) : null}

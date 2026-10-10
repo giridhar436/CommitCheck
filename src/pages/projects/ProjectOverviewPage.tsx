@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Calendar,
   Sparkles,
-  FileCheck,
-  ShieldAlert,
-  AlertTriangle,
-  GitPullRequestDraft,
+  FileCheck2,
+  ClipboardCheck,
+  CircleX,
+  FilePenLine,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -104,7 +104,7 @@ export function ProjectOverviewPage() {
             )}
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
+              <Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />
               Started {formatDate(project.startDate)}
             </span>
           </div>
@@ -122,7 +122,7 @@ export function ProjectOverviewPage() {
             onClick={() => navigate(`/projects/${project.id}/scope`)}
             className="text-xs h-9"
           >
-            <FileCheck className="mr-1.5 h-3.5 w-3.5 text-primary" />
+            <FileCheck2 className="mr-1.5 h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
             Approved Scope
           </Button>
 
@@ -131,7 +131,7 @@ export function ProjectOverviewPage() {
             onClick={() => navigate(`/projects/${project.id}/meetings`)}
             className="text-xs h-9 font-semibold shadow-xs"
           >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
             Analyze Meeting
           </Button>
         </div>
@@ -146,7 +146,7 @@ export function ProjectOverviewPage() {
           title="Approved Scope"
           value={project.approvedRequirements}
           description="Signed SOW deliverables"
-          icon={FileCheck}
+          icon={FileCheck2}
           variant="default"
           actionLabel="Inspect"
           onAction={() => navigate(`/projects/${project.id}/scope`)}
@@ -156,7 +156,7 @@ export function ProjectOverviewPage() {
           title="Detected Commitments"
           value={project.detectedCommitments}
           description="From analyzed meetings"
-          icon={ShieldAlert}
+          icon={ClipboardCheck}
           variant="default"
           actionLabel="View"
           onAction={() => navigate(`/projects/${project.id}/commitments`)}
@@ -166,7 +166,7 @@ export function ProjectOverviewPage() {
           title="Unauthorized Scope"
           value={project.unauthorizedCommitments}
           description="Missing change requests"
-          icon={AlertTriangle}
+          icon={CircleX}
           variant={project.unauthorizedCommitments > 0 ? 'danger' : 'default'}
           actionLabel="Review"
           onAction={() => navigate(`/projects/${project.id}/commitments`)}
@@ -176,7 +176,7 @@ export function ProjectOverviewPage() {
           title="Pending Change Orders"
           value={project.pendingChangeRequests}
           description="Awaiting client sign-off"
-          icon={GitPullRequestDraft}
+          icon={FilePenLine}
           variant={project.pendingChangeRequests > 0 ? 'warning' : 'default'}
           actionLabel="Review"
           onAction={() => navigate(`/projects/${project.id}/change-requests`)}

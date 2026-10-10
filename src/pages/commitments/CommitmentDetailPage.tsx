@@ -3,18 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   ShieldAlert,
-  ShieldCheck,
-  ShieldX,
-  AlertTriangle,
+  CircleCheck,
+  CircleX,
+  TriangleAlert,
   Clock,
   User,
-  Calendar,
+  Video,
   FileText,
   FileCheck2,
-  GitPullRequestDraft,
+  FilePenLine,
   Sparkles,
-  CheckCircle2,
-  HelpCircle,
+  CircleHelp,
   ExternalLink,
   ChevronRight,
 } from 'lucide-react'
@@ -191,7 +190,7 @@ export function CommitmentDetailPage() {
                 className="gap-1.5 font-semibold shadow-xs"
                 onClick={() => setCrDialogOpen(true)}
               >
-                <GitPullRequestDraft className="h-4 w-4" />
+                <FilePenLine className="h-4 w-4" strokeWidth={1.8} />
                 <span>Create Change Request</span>
               </Button>
             )}
@@ -244,7 +243,7 @@ export function CommitmentDetailPage() {
               {meeting && (
                 <div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/20 p-2.5 text-xs">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Video className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
                     <span className="font-medium text-foreground">{meeting.title}</span>
                     <span className="text-muted-foreground">&bull; {formatDate(meeting.date)}</span>
                   </div>
@@ -255,7 +254,7 @@ export function CommitmentDetailPage() {
                     onClick={() => navigate(`/projects/${commitment.projectId}/meetings`)}
                   >
                     <span>View Meeting</span>
-                    <ExternalLink className="h-3 w-3" />
+                    <ExternalLink className="h-3 w-3" strokeWidth={1.8} />
                   </Button>
                 </div>
               )}
@@ -292,7 +291,7 @@ export function CommitmentDetailPage() {
                 <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <FileCheck2 className="h-3.5 w-3.5" />
+                      <FileCheck2 className="h-3.5 w-3.5" strokeWidth={1.8} />
                       Approved Scope Baseline
                     </span>
                     <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]">
@@ -321,7 +320,7 @@ export function CommitmentDetailPage() {
                     <span className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
                       !isScopeFound ? 'text-red-700 dark:text-red-300' : 'text-blue-700 dark:text-blue-300'
                     }`}>
-                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <TriangleAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
                       Detected Commitment
                     </span>
                     <Badge className={
@@ -351,7 +350,7 @@ export function CommitmentDetailPage() {
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
                     !isScopeFound ? 'bg-red-500/20 text-red-600 dark:text-red-400' : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                   }`}>
-                    {!isScopeFound ? <ShieldX className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+                    {!isScopeFound ? <CircleX className="h-5 w-5" strokeWidth={1.8} /> : <CircleCheck className="h-5 w-5" strokeWidth={1.8} />}
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-bold tracking-wider opacity-80">
@@ -379,7 +378,7 @@ export function CommitmentDetailPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Sparkles className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 Why CommitCheck Flagged This Commitment
               </CardTitle>
               <CardDescription className="text-xs">
@@ -442,13 +441,13 @@ export function CommitmentDetailPage() {
                   className="w-full justify-center gap-2 font-semibold shadow-xs"
                   onClick={() => setCrDialogOpen(true)}
                 >
-                  <GitPullRequestDraft className="h-4 w-4" />
+                  <FilePenLine className="h-4 w-4" strokeWidth={1.8} />
                   <span>Create Change Request</span>
                 </Button>
               ) : (
                 <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 p-3 text-xs text-violet-700 dark:text-violet-300 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 font-bold">
-                    <CheckCircle2 className="h-4 w-4" /> Change Request Active
+                    <CircleCheck className="h-4 w-4" strokeWidth={1.8} /> Change Request Active
                   </span>
                   {changeRequest && (
                     <Button
@@ -470,7 +469,7 @@ export function CommitmentDetailPage() {
                   className="w-full justify-center gap-2 text-xs border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                   onClick={handleMarkAuthorized}
                 >
-                  <ShieldCheck className="h-4 w-4" />
+                  <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
                   <span>Mark Authorized in Scope</span>
                 </Button>
               ) : (
@@ -479,7 +478,7 @@ export function CommitmentDetailPage() {
                   className="w-full justify-center gap-2 text-xs"
                   onClick={handleResetReview}
                 >
-                  <HelpCircle className="h-4 w-4" />
+                  <CircleHelp className="h-4 w-4" strokeWidth={1.8} />
                   <span>Re-open for Review</span>
                 </Button>
               )}

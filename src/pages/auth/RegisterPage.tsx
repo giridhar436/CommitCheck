@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, Sparkles, AlertCircle, Check } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Play, CircleAlert, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,8 +70,8 @@ export function RegisterPage() {
       <div className="mb-5 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary shrink-0" />
-            <span className="font-semibold text-foreground">Hackathon Demo Mode</span>
+            <Play className="h-4 w-4 text-primary shrink-0" strokeWidth={1.8} />
+            <span className="font-semibold text-foreground">Demo Mode</span>
           </div>
           <Button
             type="button"
@@ -90,7 +90,7 @@ export function RegisterPage() {
 
       {error && (
         <div className="mb-4 flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+          <CircleAlert className="h-4 w-4 shrink-0" strokeWidth={1.8} />
           <span>{error}</span>
         </div>
       )}

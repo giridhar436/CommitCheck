@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import {
   ShieldAlert,
   ArrowRight,
-  CheckCircle2,
-  AlertTriangle,
+  CircleCheck,
+  TriangleAlert,
   FileText,
   Search,
   Sparkles,
@@ -14,6 +14,8 @@ import {
   Zap,
   TrendingDown,
   Lock,
+  X,
+  FilePenLine,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -160,19 +162,19 @@ export function LandingPage() {
           {/* Target Audience Bar */}
           <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs font-medium text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              <CircleCheck className="h-3.5 w-3.5 text-emerald-500" strokeWidth={1.8} />
               Freelancers & Consultants
             </span>
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              <CircleCheck className="h-3.5 w-3.5 text-emerald-500" strokeWidth={1.8} />
               Software Agencies & Dev Shops
             </span>
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              <CircleCheck className="h-3.5 w-3.5 text-emerald-500" strokeWidth={1.8} />
               Delivery & Project Managers
             </span>
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              <CircleCheck className="h-3.5 w-3.5 text-emerald-500" strokeWidth={1.8} />
               Founders Managing Client Work
             </span>
           </div>
@@ -247,8 +249,8 @@ export function LandingPage() {
               <CardContent className="space-y-4 p-5 text-xs">
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-[10px]">
-                      ✗
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
+                      <X className="h-2.5 w-2.5" strokeWidth={2.5} />
                     </span>
                     <div>
                       <span className="font-semibold text-foreground">Not in Approved Scope:</span>
@@ -259,8 +261,8 @@ export function LandingPage() {
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-[10px]">
-                      ✗
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
+                      <X className="h-2.5 w-2.5" strokeWidth={2.5} />
                     </span>
                     <div>
                       <span className="font-semibold text-foreground">No Authorization Found:</span>
@@ -271,8 +273,8 @@ export function LandingPage() {
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-[10px]">
-                      !
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
+                      <TriangleAlert className="h-2.5 w-2.5" strokeWidth={2.5} />
                     </span>
                     <div>
                       <span className="font-semibold text-foreground">Unauthorized Work Risk:</span>
@@ -427,7 +429,7 @@ export function LandingPage() {
               </div>
               <CardContent className="p-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
-                  <AlertTriangle className="h-5 w-5" />
+                  <TriangleAlert className="h-5 w-5" strokeWidth={1.8} />
                 </div>
                 <h3 className="mt-4 text-sm font-semibold text-foreground">
                   5. Review Unauthorized Work
@@ -446,7 +448,7 @@ export function LandingPage() {
               </div>
               <CardContent className="p-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <ShieldCheck className="h-5 w-5" />
+                  <FilePenLine className="h-5 w-5" strokeWidth={1.8} />
                 </div>
                 <h3 className="mt-4 text-sm font-semibold text-foreground">
                   6. Create Change Request
@@ -523,7 +525,7 @@ export function LandingPage() {
               {/* Pillar 3: Protect */}
               <Card className="relative overflow-hidden border-border/80 bg-card p-6 shadow-xs">
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <ShieldCheck className="h-5 w-5" />
+                  <ShieldCheck className="h-5 w-5" strokeWidth={1.8} />
                 </div>
                 <h3 className="mt-4 text-base font-bold text-foreground">
                   Protect
@@ -640,7 +642,7 @@ export function LandingPage() {
                       "System shall support email and password authentication with Argon2 hashing and transactional verification emails."
                     </p>
                     <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
                       Approved Contract Clause
                     </div>
                   </div>
@@ -656,7 +658,7 @@ export function LandingPage() {
                       "Client requested adding Google Login to decrease checkout friction before Friday launch demo."
                     </p>
                     <div className="mt-3 flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-bold">
-                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <TriangleAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
                       NOT FOUND IN APPROVED SCOPE
                     </div>
                   </div>
@@ -769,7 +771,7 @@ export function LandingPage() {
             </Card>
 
             <Card className="border-border/80 text-center p-6 shadow-xs">
-              <ShieldCheck className="mx-auto h-6 w-6 text-emerald-500" />
+              <ShieldCheck className="mx-auto h-6 w-6 text-emerald-500" strokeWidth={1.8} />
               <div className="mt-3 text-3xl font-bold tracking-tight text-foreground font-mono">
                 100%
               </div>
@@ -853,7 +855,7 @@ export function LandingPage() {
           </div>
 
           <div className="mt-8 border-t border-border/60 pt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p>© {new Date().getFullYear()} CommitCheck. Built for hackathon demo. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} CommitCheck. All rights reserved.</p>
             <div className="flex items-center gap-2 text-[11px]">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               <span>Verification Engine Online</span>

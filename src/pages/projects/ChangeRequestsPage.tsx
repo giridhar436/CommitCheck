@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Search,
   Clock,
-  CheckCircle2,
-  XCircle,
+  CircleCheck,
+  CircleX,
   ArrowRight,
   User,
 } from 'lucide-react'
@@ -166,7 +166,7 @@ export function ChangeRequestsPage() {
             className="gap-1.5 text-xs font-medium"
           >
             <span>Browse Flagged Commitments</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
           </Button>
         </div>
       </div>
@@ -186,7 +186,7 @@ export function ChangeRequestsPage() {
 
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> Pending Client Sign-Off
+            <Clock className="h-3.5 w-3.5" strokeWidth={1.8} /> Pending Client Sign-Off
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
@@ -198,7 +198,7 @@ export function ChangeRequestsPage() {
 
         <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Approved Scope Addendums
+            <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.8} /> Approved Scope Addendums
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
@@ -210,7 +210,7 @@ export function ChangeRequestsPage() {
 
         <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1.5">
-            <XCircle className="h-3.5 w-3.5" /> Deflected Creep (Rejected)
+            <CircleX className="h-3.5 w-3.5" strokeWidth={1.8} /> Deflected Creep (Rejected)
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-red-600 dark:text-red-400">
@@ -359,7 +359,7 @@ export function ChangeRequestsPage() {
                           className="h-7 text-xs px-2.5 font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1"
                           onClick={() => handleQuickApprove(cr.id)}
                         >
-                          <CheckCircle2 className="h-3 w-3" />
+                          <CircleCheck className="h-3 w-3" strokeWidth={1.8} />
                           <span>Approve</span>
                         </Button>
                         <Button
@@ -371,7 +371,7 @@ export function ChangeRequestsPage() {
                             setRejectModalOpen(true)
                           }}
                         >
-                          <XCircle className="h-3 w-3" />
+                          <CircleX className="h-3 w-3" strokeWidth={1.8} />
                         </Button>
                       </>
                     )}
@@ -381,7 +381,7 @@ export function ChangeRequestsPage() {
                       onClick={() => navigate(`/change-requests/${cr.id}`)}
                     >
                       <span>View</span>
-                      <ArrowRight className="h-3 w-3" />
+                      <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                     </Button>
                   </div>
                 </div>
@@ -462,12 +462,12 @@ export function ChangeRequestsPage() {
                     <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-muted-foreground">
                       {cr.approvedBy ? (
                         <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                          <CheckCircle2 className="h-3 w-3" />
+                          <CircleCheck className="h-3 w-3" strokeWidth={1.8} />
                           <span>{cr.approvedBy}</span>
                         </div>
                       ) : cr.rejectedBy ? (
                         <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                          <XCircle className="h-3 w-3" />
+                          <CircleX className="h-3 w-3" strokeWidth={1.8} />
                           <span>{cr.rejectedBy}</span>
                         </div>
                       ) : (
@@ -484,7 +484,7 @@ export function ChangeRequestsPage() {
                           onClick={() => navigate(`/change-requests/${cr.id}`)}
                         >
                           <span>Review</span>
-                          <ArrowRight className="h-3 w-3" />
+                          <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                         </Button>
 
                         {/* Quick Approve / Reject if pending */}
@@ -497,7 +497,7 @@ export function ChangeRequestsPage() {
                               onClick={() => handleQuickApprove(cr.id)}
                               title="Approve Change Request"
                             >
-                              <CheckCircle2 className="h-3 w-3" />
+                              <CircleCheck className="h-3 w-3" strokeWidth={1.8} />
                             </Button>
                             <Button
                               variant="outline"
@@ -509,7 +509,7 @@ export function ChangeRequestsPage() {
                               }}
                               title="Reject Change Request"
                             >
-                              <XCircle className="h-3 w-3" />
+                              <CircleX className="h-3 w-3" strokeWidth={1.8} />
                             </Button>
                           </>
                         )}

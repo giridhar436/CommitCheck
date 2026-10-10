@@ -11,7 +11,7 @@ export function ProjectRiskSummary({ projects }: { projects: Project[] }) {
     <Card className="border-border/80 shadow-xs">
       <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/60">
         <div className="flex items-center gap-2">
-          <FolderKanban className="h-4 w-4 text-primary" />
+          <FolderKanban className="h-4 w-4 text-primary" strokeWidth={1.8} />
           <CardTitle className="text-sm font-bold text-foreground">
             Project Risk Matrix
           </CardTitle>
@@ -65,7 +65,7 @@ export function ProjectRiskSummary({ projects }: { projects: Project[] }) {
               </div>
 
               <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground">
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
               </div>
             </div>
           </div>

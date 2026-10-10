@@ -78,7 +78,7 @@ export function ProjectSwitcher() {
               </div>
             </div>
           </div>
-          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64 p-1">
@@ -102,7 +102,7 @@ export function ProjectSwitcher() {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <RiskBadge level={proj.riskLevel} showIcon={false} />
-                {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                {isSelected && <Check className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />}
               </div>
             </DropdownMenuItem>
           )

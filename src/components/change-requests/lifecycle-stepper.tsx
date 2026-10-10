@@ -1,11 +1,11 @@
 import {
-  Calendar,
-  AlertTriangle,
-  GitPullRequestDraft,
-  CheckCircle2,
-  XCircle,
+  Video,
+  ClipboardCheck,
+  TriangleAlert,
+  FilePenLine,
+  CircleCheck,
+  CircleX,
   Clock,
-  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ChangeRequestStatus } from '@/types'
@@ -21,28 +21,28 @@ export function LifecycleStepper({ status, className }: LifecycleStepperProps) {
       key: 'meeting',
       label: 'Client Meeting',
       sublabel: 'Dialogue ingested',
-      icon: Calendar,
+      icon: Video,
       state: 'complete',
     },
     {
       key: 'commitment',
       label: 'Commitment',
       sublabel: 'Promise detected',
-      icon: Sparkles,
+      icon: ClipboardCheck,
       state: 'complete',
     },
     {
       key: 'scope_mismatch',
       label: 'Scope Mismatch',
       sublabel: 'Creep flagged',
-      icon: AlertTriangle,
+      icon: TriangleAlert,
       state: 'complete',
     },
     {
       key: 'change_request',
       label: 'Change Request',
       sublabel: 'Proposal drafted',
-      icon: GitPullRequestDraft,
+      icon: FilePenLine,
       state: 'complete',
     },
     {
@@ -65,9 +65,9 @@ export function LifecycleStepper({ status, className }: LifecycleStepperProps) {
               : 'Awaiting client sign-off',
       icon:
         status === 'approved' || status === 'implemented'
-          ? CheckCircle2
+          ? CircleCheck
           : status === 'rejected'
-            ? XCircle
+            ? CircleX
             : Clock,
       state:
         status === 'approved' || status === 'implemented'
@@ -110,7 +110,7 @@ export function LifecycleStepper({ status, className }: LifecycleStepperProps) {
                         : 'border-primary/30 bg-primary/10 text-primary',
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" strokeWidth={1.8} />
               </div>
 
               <div>

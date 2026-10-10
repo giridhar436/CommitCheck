@@ -1,4 +1,4 @@
-import { Menu, Search, ShieldCheck, Sparkles } from 'lucide-react'
+import { Menu, Search, ShieldCheck, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Breadcrumbs } from './breadcrumbs'
 import { NotificationsPopover } from './notifications-popover'
@@ -20,7 +20,7 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors md:hidden cursor-pointer shrink-0"
           aria-label="Open mobile navigation"
         >
-          <Menu className="h-4 w-4" />
+          <Menu className="h-4 w-4" strokeWidth={1.8} />
         </button>
 
         <div className="min-w-0 overflow-hidden">
@@ -33,7 +33,7 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
         {/* Quick Search Shortcut Display */}
         <div className="relative hidden md:block">
           <div className="flex h-8 items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-2.5 text-xs text-muted-foreground">
-            <Search className="h-3.5 w-3.5" />
+            <Search className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>Search commitments…</span>
             <kbd className="rounded border border-border/80 bg-background px-1.5 py-0.2 text-[10px] font-mono text-muted-foreground">
               ⌘K
@@ -43,17 +43,17 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
 
         {/* Protection Engine Status Pill */}
         <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-          <ShieldCheck className="h-3.5 w-3.5" />
+          <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
           <span>Scope Protected</span>
         </div>
 
-        {/* Hackathon Demo Flow Pill */}
+        {/* Demo Flow Pill */}
         <Link
           to="/projects/proj-abc-ecommerce"
           className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors"
         >
-          <Sparkles className="h-3 w-3 animate-pulse text-amber-500 dark:text-amber-300" />
-          <span>Hackathon Demo</span>
+          <Play className="h-3 w-3 text-primary" strokeWidth={1.8} />
+          <span>Demo</span>
         </Link>
 
         {/* Notifications */}

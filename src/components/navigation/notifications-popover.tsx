@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import {
   Bell,
   CheckCheck,
-  AlertTriangle,
-  FileText,
+  ShieldAlert,
+  FilePenLine,
   Info,
   ArrowRight,
-  CheckCircle2,
-  XCircle,
+  CircleCheck,
+  CircleX,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -66,15 +66,15 @@ export function NotificationsPopover() {
     switch (type) {
       case 'high_risk':
       case 'unauthorized':
-        return <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+        return <ShieldAlert className="h-4 w-4 text-red-500 shrink-0 mt-0.5" strokeWidth={1.8} />
       case 'approval_needed':
-        return <FileText className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+        return <FilePenLine className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.8} />
       case 'approved':
-        return <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+        return <CircleCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" strokeWidth={1.8} />
       case 'rejected':
-        return <XCircle className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
+        return <CircleX className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" strokeWidth={1.8} />
       default:
-        return <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+        return <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" strokeWidth={1.8} />
     }
   }
 
@@ -87,7 +87,7 @@ export function NotificationsPopover() {
           className="relative text-muted-foreground hover:text-foreground"
           aria-label="Open notifications"
         >
-          <Bell className="h-4 w-4" />
+          <Bell className="h-4 w-4" strokeWidth={1.8} />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-xs animate-pulse">
               {unreadCount}
@@ -111,7 +111,7 @@ export function NotificationsPopover() {
               onClick={handleMarkAllRead}
               className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
             >
-              <CheckCheck className="h-3 w-3" />
+              <CheckCheck className="h-3 w-3" strokeWidth={1.8} />
               Mark all read
             </button>
           )}
@@ -197,7 +197,7 @@ export function NotificationsPopover() {
                           onClick={(e) => handleItemAction(notif, e)}
                         >
                           <span>Review</span>
-                          <ArrowRight className="h-3 w-3" />
+                          <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                         </Button>
                       </div>
                     </div>

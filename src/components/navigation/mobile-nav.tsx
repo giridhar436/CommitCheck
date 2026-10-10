@@ -3,13 +3,14 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   X,
   ShieldAlert,
+  ClipboardCheck,
   LayoutDashboard,
   FolderKanban,
-  GitPullRequestDraft,
-  Calendar,
-  FileCheck,
-  FileText,
-  History,
+  FilePenLine,
+  Video,
+  FileCheck2,
+  Files,
+  Activity,
   Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -40,36 +41,36 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
     {
       title: 'Commitments',
       href: `/projects/${currentProjectId}/commitments`,
-      icon: ShieldAlert,
+      icon: ClipboardCheck,
       badge: '2 High Risk',
       badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400 font-bold',
     },
     {
       title: 'Change Requests',
       href: `/projects/${currentProjectId}/change-requests`,
-      icon: GitPullRequestDraft,
+      icon: FilePenLine,
       badge: '1 Pending',
       badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     },
     {
       title: 'Meeting Analysis',
       href: `/projects/${currentProjectId}/meetings`,
-      icon: Calendar,
+      icon: Video,
     },
     {
       title: 'Approved Scope',
       href: `/projects/${currentProjectId}/scope`,
-      icon: FileCheck,
+      icon: FileCheck2,
     },
     {
       title: 'Scope Documents',
       href: `/projects/${currentProjectId}/documents`,
-      icon: FileText,
+      icon: Files,
     },
     {
       title: 'Activity & Audit',
       href: `/projects/${currentProjectId}/activity`,
-      icon: History,
+      icon: Activity,
     },
     { title: 'Settings', href: '/settings', icon: Settings },
   ]
@@ -94,7 +95,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
         <div className="flex h-16 items-center justify-between border-b border-border/60 px-4">
           <Link to="/dashboard" className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-              <ShieldAlert className="h-4 w-4" />
+              <ShieldAlert className="h-4 w-4" strokeWidth={1.8} />
             </div>
             <span className="text-sm font-bold tracking-tight text-foreground">
               CommitCheck
@@ -106,7 +107,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
             className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
             aria-label="Close navigation"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" strokeWidth={1.8} />
           </button>
         </div>
 
@@ -132,7 +133,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
                 )}
               >
                 <div className="flex items-center gap-2.5">
-                  <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
+                  <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground')} strokeWidth={1.8} />
                   <span>{item.title}</span>
                 </div>
                 {item.badge && (

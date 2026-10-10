@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import {
-  GitPullRequestDraft,
+  FilePenLine,
   Clock,
   DollarSign,
-  AlertTriangle,
+  TriangleAlert,
   User,
-  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -117,7 +116,7 @@ export function CreateChangeRequestDialog({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <GitPullRequestDraft className="h-4 w-4" />
+              <FilePenLine className="h-4 w-4" strokeWidth={1.8} />
             </span>
             <div>
               <DialogTitle className="text-base font-bold">
@@ -191,7 +190,7 @@ export function CreateChangeRequestDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <User className="h-3 w-3 text-muted-foreground" />
+                <User className="h-3 w-3 text-muted-foreground" strokeWidth={1.8} />
                 Committed By
               </label>
               <Input
@@ -202,7 +201,7 @@ export function CreateChangeRequestDialog({
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3 text-muted-foreground" />
+                <Clock className="h-3 w-3 text-muted-foreground" strokeWidth={1.8} />
                 Promised Deadline
               </label>
               <Input
@@ -216,7 +215,7 @@ export function CreateChangeRequestDialog({
           {/* Estimated Effort & Budget */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-              <DollarSign className="h-3 w-3 text-muted-foreground" />
+              <DollarSign className="h-3 w-3 text-muted-foreground" strokeWidth={1.8} />
               Estimated Effort & Budget Impact
             </label>
             <Input
@@ -230,7 +229,7 @@ export function CreateChangeRequestDialog({
           {/* Technical & Timeline Impact */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3 text-muted-foreground" />
+              <TriangleAlert className="h-3 w-3 text-muted-foreground" strokeWidth={1.8} />
               Impact on Architecture & Delivery
             </label>
             <Textarea
@@ -256,7 +255,7 @@ export function CreateChangeRequestDialog({
               disabled={submitting}
               className="gap-1.5 font-semibold shadow-xs"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <FilePenLine className="h-3.5 w-3.5" strokeWidth={1.8} />
               <span>{submitting ? 'Creating...' : 'Submit for Client Approval'}</span>
             </Button>
           </DialogFooter>

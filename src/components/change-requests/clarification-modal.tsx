@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HelpCircle, Send } from 'lucide-react'
+import { CircleHelp, Send } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -43,7 +43,7 @@ export function ClarificationModal({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <HelpCircle className="h-4 w-4" />
+              <CircleHelp className="h-4 w-4" strokeWidth={1.8} />
             </span>
             <div>
               <DialogTitle className="text-base font-bold">Request Clarification</DialogTitle>
@@ -79,7 +79,7 @@ export function ClarificationModal({
             onClick={handleSend}
             className="gap-1.5 font-semibold"
           >
-            <Send className="h-3.5 w-3.5" />
+            <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
             {submitting ? 'Sending...' : 'Send Clarification Request'}
           </Button>
         </DialogFooter>

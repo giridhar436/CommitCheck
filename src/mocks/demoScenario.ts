@@ -47,7 +47,7 @@ export const HACKATHON_DEMO_STEPS: DemoStep[] = [
   {
     step: 5,
     title: 'High-Risk Commitment Flagged',
-    subtitle: '🚨 High-Risk: Google Login promised by Developer for Friday',
+    subtitle: 'High-Risk: Google Login promised by Developer for Friday',
     path: '/projects/proj-abc-ecommerce/commitments',
     actionHint: 'Notice the unauthorized alert badge and flagged scope creep item.',
     prdReference: 'Step 5 — AI Result (High-Risk Commitment)',
@@ -71,7 +71,7 @@ export const HACKATHON_DEMO_STEPS: DemoStep[] = [
   {
     step: 8,
     title: 'Client Approval & Baseline Sync',
-    subtitle: '✅ Approved by Client VP • Commitment authorized & added to Scope',
+    subtitle: 'Approved by Client VP • Commitment authorized & added to Scope',
     path: '/change-requests/cr-google-login',
     actionHint: 'Click "Approve Change Request" to authorize work and update the contract baseline.',
     prdReference: 'Step 8 — Approve & Authorize',

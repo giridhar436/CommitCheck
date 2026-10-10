@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ShieldAlert, ArrowRight } from 'lucide-react'
+import { ClipboardCheck, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RiskBadge } from '@/components/ui/risk-badge'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -14,7 +14,7 @@ export function RecentCommitmentsCard({ commitments }: { commitments: Commitment
     <Card className="border-border/80 shadow-xs">
       <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/60">
         <div className="flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-primary" />
+          <ClipboardCheck className="h-4 w-4 text-primary" strokeWidth={1.8} />
           <CardTitle className="text-sm font-bold text-foreground">
             Recent Detected Commitments
           </CardTitle>

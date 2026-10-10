@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { XCircle, AlertTriangle } from 'lucide-react'
+import { CircleX, TriangleAlert } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -53,7 +53,7 @@ export function RejectionModal({ open, onOpenChange, onConfirm }: RejectionModal
         <DialogHeader>
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
-              <XCircle className="h-4 w-4" />
+              <CircleX className="h-4 w-4" strokeWidth={1.8} />
             </span>
             <div>
               <DialogTitle className="text-base font-bold">Reject Change Request</DialogTitle>
@@ -97,7 +97,7 @@ export function RejectionModal({ open, onOpenChange, onConfirm }: RejectionModal
           </div>
 
           <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 text-[11px] text-red-700 dark:text-red-300">
-            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <TriangleAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" strokeWidth={1.8} />
             <span>
               Rejecting this change request will prevent this work from becoming engineering tasks and keeps the project within the signed contract baseline.
             </span>

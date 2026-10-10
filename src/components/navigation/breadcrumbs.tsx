@@ -35,14 +35,14 @@ export function Breadcrumbs({ items }: { items?: BreadcrumbItem[] }) {
               className="flex items-center hover:text-foreground transition-colors"
               aria-label="Home"
             >
-              <Home className="h-3.5 w-3.5" />
+              <Home className="h-3.5 w-3.5" strokeWidth={1.8} />
             </Link>
           </li>
           {items.map((item, index) => {
             const isLast = index === items.length - 1
             return (
               <li key={index} className="flex items-center gap-1.5">
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" strokeWidth={1.8} />
                 {isLast || !item.href ? (
                   <span className="font-semibold text-foreground truncate max-w-[200px]">
                     {item.label}
@@ -76,7 +76,7 @@ export function Breadcrumbs({ items }: { items?: BreadcrumbItem[] }) {
             className="flex items-center hover:text-foreground transition-colors"
             aria-label="Home"
           >
-            <Home className="h-3.5 w-3.5" />
+            <Home className="h-3.5 w-3.5" strokeWidth={1.8} />
           </Link>
         </li>
         {segments.map((segment, index) => {
@@ -93,7 +93,7 @@ export function Breadcrumbs({ items }: { items?: BreadcrumbItem[] }) {
                 !isLast && !isSecondToLast && 'hidden md:flex',
               )}
             >
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" strokeWidth={1.8} />
               {isLast ? (
                 <span className="font-semibold text-foreground truncate max-w-[120px] sm:max-w-[200px]">
                   {label}

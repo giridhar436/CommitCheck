@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2, MailCheck, ArrowLeft, AlertCircle } from 'lucide-react'
+import { Loader2, MailCheck, ArrowLeft, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,7 +84,7 @@ export function ForgotPasswordPage() {
         <>
           {error && (
             <div className="mb-4 flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+              <CircleAlert className="h-4 w-4 shrink-0" strokeWidth={1.8} />
               <span>{error}</span>
             </div>
           )}

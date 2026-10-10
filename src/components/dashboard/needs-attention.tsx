@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import {
-  AlertTriangle,
+  ShieldAlert,
   ArrowRight,
   Clock,
-  ExternalLink,
+  ArrowUpRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,7 +20,7 @@ export function NeedsAttention() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/20 text-red-600 dark:text-red-400">
-              <AlertTriangle className="h-3.5 w-3.5" />
+              <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
             </div>
             <CardTitle className="text-sm font-bold text-foreground">
               Needs Immediate Attention
@@ -64,7 +64,7 @@ export function NeedsAttention() {
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/40">
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
               <span>Flagged 10:33 AM today</span>
             </div>
             <div className="flex items-center gap-2">
@@ -82,7 +82,7 @@ export function NeedsAttention() {
                 className="h-8 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 dark:bg-red-600"
               >
                 Review Commitment
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
               </Button>
             </div>
           </div>
@@ -121,7 +121,7 @@ export function NeedsAttention() {
                 className="h-8 text-xs font-medium"
               >
                 View in Commitments
-                <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
               </Button>
             </div>
           </div>

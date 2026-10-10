@@ -2,9 +2,10 @@ import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   Calendar,
-  FileCheck,
-  ShieldAlert,
-  GitPullRequestDraft,
+  FileCheck2,
+  ClipboardCheck,
+  CircleX,
+  FilePenLine,
   Sparkles,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -39,7 +40,7 @@ export function ProjectCard({ project }: { project: Project }) {
           </div>
 
           <div className="shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5" />
+            <Calendar className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>Started {formatDate(project.startDate)}</span>
           </div>
         </div>
@@ -53,7 +54,7 @@ export function ProjectCard({ project }: { project: Project }) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
           <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5 text-center">
             <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground uppercase font-medium">
-              <FileCheck className="h-3 w-3 text-emerald-500" />
+              <FileCheck2 className="h-3 w-3 text-emerald-500" strokeWidth={1.8} />
               <span>Approved Scope</span>
             </div>
             <div className="mt-1 font-mono text-base font-bold text-foreground">
@@ -63,7 +64,7 @@ export function ProjectCard({ project }: { project: Project }) {
 
           <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5 text-center">
             <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground uppercase font-medium">
-              <ShieldAlert className="h-3 w-3 text-primary" />
+              <ClipboardCheck className="h-3 w-3 text-primary" strokeWidth={1.8} />
               <span>Commitments</span>
             </div>
             <div className="mt-1 font-mono text-base font-bold text-foreground">
@@ -79,6 +80,7 @@ export function ProjectCard({ project }: { project: Project }) {
             }`}
           >
             <div className="flex items-center justify-center gap-1 text-[10px] uppercase font-medium">
+              <CircleX className="h-3 w-3" strokeWidth={1.8} />
               <span>Unauthorized</span>
             </div>
             <div className="mt-1 font-mono text-base font-bold">
@@ -94,7 +96,7 @@ export function ProjectCard({ project }: { project: Project }) {
             }`}
           >
             <div className="flex items-center justify-center gap-1 text-[10px] uppercase font-medium">
-              <GitPullRequestDraft className="h-3 w-3" />
+              <FilePenLine className="h-3 w-3" strokeWidth={1.8} />
               <span>Pending CRs</span>
             </div>
             <div className="mt-1 font-mono text-base font-bold">
@@ -112,7 +114,7 @@ export function ProjectCard({ project }: { project: Project }) {
               onClick={() => navigate(`/projects/${project.id}/meetings`)}
               className="h-8 text-xs font-medium"
             >
-              <Sparkles className="mr-1.5 h-3 w-3 text-primary" />
+              <Sparkles className="mr-1.5 h-3 w-3 text-primary" strokeWidth={1.8} />
               Analyze Meeting
             </Button>
             <Button
@@ -131,7 +133,7 @@ export function ProjectCard({ project }: { project: Project }) {
             className="h-8 text-xs font-semibold gap-1.5"
           >
             Open Project
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
           </Button>
         </div>
       </CardContent>

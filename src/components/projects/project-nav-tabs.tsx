@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
-  FileCheck,
-  FileText,
-  Calendar,
-  ShieldAlert,
-  GitPullRequestDraft,
-  History,
+  FileCheck2,
+  Files,
+  Video,
+  ClipboardCheck,
+  FilePenLine,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -23,39 +23,39 @@ export function ProjectNavTabs({ projectId }: { projectId: string }) {
     {
       title: 'Approved Scope',
       href: `/projects/${projectId}/scope`,
-      icon: FileCheck,
+      icon: FileCheck2,
       badge: '5',
     },
     {
       title: 'Scope Documents',
       href: `/projects/${projectId}/documents`,
-      icon: FileText,
+      icon: Files,
       badge: '3',
     },
     {
       title: 'Meeting Analysis',
       href: `/projects/${projectId}/meetings`,
-      icon: Calendar,
+      icon: Video,
       badge: undefined,
     },
     {
       title: 'Commitments',
       href: `/projects/${projectId}/commitments`,
-      icon: ShieldAlert,
+      icon: ClipboardCheck,
       badge: '2 High Risk',
       badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400 font-bold',
     },
     {
       title: 'Change Requests',
       href: `/projects/${projectId}/change-requests`,
-      icon: GitPullRequestDraft,
+      icon: FilePenLine,
       badge: '1',
       badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     },
     {
       title: 'Activity & Audit',
       href: `/projects/${projectId}/activity`,
-      icon: History,
+      icon: Activity,
     },
   ]
 
@@ -87,6 +87,7 @@ export function ProjectNavTabs({ projectId }: { projectId: string }) {
                   'h-3.5 w-3.5',
                   active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
                 )}
+                strokeWidth={1.8}
               />
               <span>{tab.title}</span>
               {tab.badge && (

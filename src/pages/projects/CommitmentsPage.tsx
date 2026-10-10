@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Search,
-  AlertTriangle,
-  FileQuestion,
+  ShieldAlert,
+  TriangleAlert,
+  CircleHelp,
   ArrowRight,
-  GitPullRequestDraft,
-  ShieldCheck,
-  ShieldX,
-  Calendar,
+  FilePenLine,
+  CircleCheck,
+  CircleX,
+  Video,
   User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -158,7 +159,7 @@ export function CommitmentsPage() {
             onClick={() => navigate(`/projects/${project.id}/meetings`)}
             className="gap-1.5 text-xs font-medium"
           >
-            <Calendar className="h-3.5 w-3.5 text-primary" />
+            <Video className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
             <span>Analyze New Meeting</span>
           </Button>
         </div>
@@ -179,7 +180,7 @@ export function CommitmentsPage() {
 
         <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1.5">
-            <AlertTriangle className="h-3.5 w-3.5" /> High Risk Scope Creep
+            <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} /> High Risk Scope Creep
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-red-600 dark:text-red-400">
@@ -191,7 +192,7 @@ export function CommitmentsPage() {
 
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-            <FileQuestion className="h-3.5 w-3.5" /> Awaiting Review
+            <CircleHelp className="h-3.5 w-3.5" strokeWidth={1.8} /> Awaiting Review
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
@@ -203,7 +204,7 @@ export function CommitmentsPage() {
 
         <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5" /> Authorized in Scope
+            <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.8} /> Authorized in Scope
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
@@ -360,11 +361,11 @@ export function CommitmentsPage() {
                     )}
                     {comm.authorization === 'authorized' ? (
                       <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-medium flex items-center gap-0.5">
-                        <ShieldCheck className="h-3 w-3" /> Authorized
+                        <CircleCheck className="h-3 w-3" strokeWidth={1.8} /> Authorized
                       </span>
                     ) : (
                       <span className="text-red-600 dark:text-red-400 text-[10px] font-bold flex items-center gap-0.5">
-                        <ShieldX className="h-3 w-3" /> Unauthorized
+                        <CircleX className="h-3 w-3" strokeWidth={1.8} /> Unauthorized
                       </span>
                     )}
                   </div>
@@ -380,7 +381,7 @@ export function CommitmentsPage() {
                           setCrDialogOpen(true)
                         }}
                       >
-                        <GitPullRequestDraft className="h-3 w-3" />
+                        <FilePenLine className="h-3 w-3" strokeWidth={1.8} />
                         <span>CR</span>
                       </Button>
                     )}
@@ -487,15 +488,15 @@ export function CommitmentsPage() {
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {comm.authorization === 'authorized' ? (
                           <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium text-[11px]">
-                            <ShieldCheck className="h-3 w-3" /> Authorized
+                            <CircleCheck className="h-3 w-3" strokeWidth={1.8} /> Authorized
                           </span>
                         ) : comm.authorization === 'pending' ? (
                           <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium text-[11px]">
-                            <AlertTriangle className="h-3 w-3" /> Pending Sign-off
+                            <TriangleAlert className="h-3 w-3" strokeWidth={1.8} /> Pending Sign-off
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-bold text-[11px]">
-                            <ShieldX className="h-3 w-3" /> Not Authorized
+                            <CircleX className="h-3 w-3" strokeWidth={1.8} /> Not Authorized
                           </span>
                         )}
                       </td>
@@ -520,7 +521,7 @@ export function CommitmentsPage() {
                             onClick={() => navigate(`/commitments/${comm.id}`)}
                           >
                             <span>Review</span>
-                            <ArrowRight className="h-3 w-3" />
+                            <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                           </Button>
 
                           {/* Quick Change Request Trigger */}
@@ -535,7 +536,7 @@ export function CommitmentsPage() {
                               }}
                               title="Create Change Request"
                             >
-                              <GitPullRequestDraft className="h-3 w-3" />
+                              <FilePenLine className="h-3 w-3" strokeWidth={1.8} />
                               <span className="hidden xl:inline">CR</span>
                             </Button>
                           )}

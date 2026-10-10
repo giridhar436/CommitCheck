@@ -2,20 +2,18 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Search,
-  FileCheck,
+  FileCheck2,
   ChevronRight,
   Filter,
   Pencil,
   Trash2,
   Eye,
   X,
-  ShieldCheck,
-  ShieldX,
-  ShieldQuestion,
   ShieldOff,
   ArrowUpDown,
-  CheckCircle2,
-  AlertCircle,
+  CircleCheck,
+  CircleAlert,
+  CircleX,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -51,17 +49,17 @@ import type { Project, Requirement, RequirementStatus, RequirementPriority } fro
 const statusConfig: Record<RequirementStatus, { label: string; icon: React.ElementType; className: string }> = {
   approved: {
     label: 'Approved',
-    icon: ShieldCheck,
+    icon: CircleCheck,
     className: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
   },
   pending: {
     label: 'Pending',
-    icon: ShieldQuestion,
+    icon: CircleAlert,
     className: 'bg-amber-500/12 text-amber-600 dark:text-amber-400 border-amber-500/20',
   },
   rejected: {
     label: 'Rejected',
-    icon: ShieldX,
+    icon: CircleX,
     className: 'bg-red-500/12 text-red-600 dark:text-red-400 border-red-500/20',
   },
   not_in_scope: {
@@ -239,22 +237,22 @@ export function ScopePage() {
       {/* Stats Badges */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+          <CircleCheck className="h-3.5 w-3.5 text-emerald-500" strokeWidth={1.8} />
           <span className="text-xs font-semibold text-foreground">{approvedCount}</span>
           <span className="text-xs text-muted-foreground">Approved</span>
         </div>
         <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2">
-          <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+          <CircleAlert className="h-3.5 w-3.5 text-amber-500" strokeWidth={1.8} />
           <span className="text-xs font-semibold text-foreground">{pendingCount}</span>
           <span className="text-xs text-muted-foreground">Pending</span>
         </div>
         <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2">
-          <ShieldOff className="h-3.5 w-3.5 text-zinc-500" />
+          <ShieldOff className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.8} />
           <span className="text-xs font-semibold text-foreground">{excludedCount}</span>
           <span className="text-xs text-muted-foreground">Excluded / Out of Scope</span>
         </div>
         <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2">
-          <FileCheck className="h-3.5 w-3.5 text-primary" />
+          <FileCheck2 className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
           <span className="text-xs font-semibold text-foreground">{requirements.length}</span>
           <span className="text-xs text-muted-foreground">Total Catalog</span>
         </div>
@@ -264,7 +262,7 @@ export function ScopePage() {
       <div className="rounded-xl border border-border/80 bg-gradient-to-r from-card via-muted/30 to-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-start gap-3">
           <div className="h-8 w-8 rounded-lg bg-zinc-500/10 border border-zinc-500/20 flex items-center justify-center shrink-0 mt-0.5 text-zinc-600 dark:text-zinc-400">
-            <ShieldOff className="h-4 w-4" />
+            <ShieldOff className="h-4 w-4" strokeWidth={1.8} />
           </div>
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 flex-wrap">
@@ -451,7 +449,7 @@ export function ScopePage() {
                               {pc.label}
                             </Badge>
                             <Badge variant="outline" className={cn('text-[10px] px-2 py-0.5 w-fit gap-1 border', sc.className)}>
-                              <StatusIcon className="h-3 w-3" />
+                              <StatusIcon className="h-3 w-3" strokeWidth={1.8} />
                               {sc.label}
                             </Badge>
                           </div>
@@ -513,7 +511,7 @@ export function ScopePage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Badge variant="outline" className={cn('text-[10px] px-2 py-0.5 w-fit gap-1 border', sc.className)}>
-                                <StatusIcon className="h-3 w-3" />
+                                <StatusIcon className="h-3 w-3" strokeWidth={1.8} />
                                 {sc.label}
                               </Badge>
                             </TooltipTrigger>
@@ -611,7 +609,7 @@ export function ScopePage() {
                     const StatusIcon = sc.icon
                     return (
                       <Badge variant="outline" className={cn('text-[10px] px-2 py-0.5 gap-1 border', sc.className)}>
-                        <StatusIcon className="h-3 w-3" />
+                        <StatusIcon className="h-3 w-3" strokeWidth={1.8} />
                         {sc.label}
                       </Badge>
                     )
@@ -643,7 +641,7 @@ export function ScopePage() {
               {/* Scope Verification Context */}
               <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <FileCheck className="h-3 w-3 text-primary" />
+                  <FileCheck2 className="h-3 w-3 text-primary" strokeWidth={1.8} />
                   <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">
                     Scope Verification Note
                   </span>
@@ -684,7 +682,7 @@ export function ScopePage() {
       {/* Scope Importance Callout */}
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
         <div className="rounded-lg bg-primary/10 p-2 shrink-0">
-          <ShieldCheck className="h-4 w-4 text-primary" />
+          <FileCheck2 className="h-4 w-4 text-primary" strokeWidth={1.8} />
         </div>
         <div className="space-y-0.5 min-w-0">
           <p className="text-xs font-semibold text-foreground">

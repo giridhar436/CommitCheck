@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   ShieldAlert,
-  CheckCircle2,
+  CircleCheck,
   FolderOpen,
   ArrowRight,
   Sparkles,
@@ -331,9 +331,9 @@ export function PhaseOneFoundationPage() {
                       <IconSwap>
                         <IconSwapItem key={swapped ? 'checked' : 'arrow'}>
                           {swapped ? (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            <CircleCheck className="h-4 w-4 text-emerald-500" strokeWidth={1.8} />
                           ) : (
-                            <ArrowRight className="h-4 w-4" />
+                            <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
                           )}
                         </IconSwapItem>
                       </IconSwap>

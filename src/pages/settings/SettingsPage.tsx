@@ -90,7 +90,7 @@ export function SettingsPage() {
           onClick={() => handleSave('Workspace')}
           className="gap-2 shadow-sm font-semibold self-start sm:self-auto text-xs"
         >
-          <Save className="h-3.5 w-3.5" />
+          <Save className="h-3.5 w-3.5" strokeWidth={1.8} />
           <span>Save Changes</span>
         </Button>
       </div>
@@ -99,23 +99,23 @@ export function SettingsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="h-10 p-1 bg-muted/60 border border-border/60 rounded-xl grid grid-cols-2 sm:grid-cols-5 w-full">
           <TabsTrigger value="profile" className="text-xs gap-1.5 font-medium">
-            <User className="h-3.5 w-3.5" />
+            <User className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>Profile</span>
           </TabsTrigger>
           <TabsTrigger value="organization" className="text-xs gap-1.5 font-medium">
-            <Building className="h-3.5 w-3.5" />
+            <Building className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>Organization</span>
           </TabsTrigger>
           <TabsTrigger value="theme" className="text-xs gap-1.5 font-medium">
-            <Palette className="h-3.5 w-3.5" />
+            <Palette className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>Theme & Display</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs gap-1.5 font-medium">
-            <Bell className="h-3.5 w-3.5" />
+            <Bell className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>Notifications</span>
           </TabsTrigger>
           <TabsTrigger value="preferences" className="text-xs gap-1.5 font-medium">
-            <Sliders className="h-3.5 w-3.5" />
+            <Sliders className="h-3.5 w-3.5" strokeWidth={1.8} />
             <span>AI Engine</span>
           </TabsTrigger>
         </TabsList>
@@ -125,7 +125,7 @@ export function SettingsPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" />
+                <User className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 Personal Profile
               </CardTitle>
               <CardDescription className="text-xs">
@@ -167,7 +167,7 @@ export function SettingsPage() {
               {/* Password Section */}
               <div className="space-y-3 pt-1">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5" /> Security & Password
+                  <Lock className="h-3.5 w-3.5" strokeWidth={1.8} /> Security & Password
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -207,7 +207,7 @@ export function SettingsPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Building className="h-4 w-4 text-primary" />
+                <Building className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 Agency & Billing Baseline
               </CardTitle>
               <CardDescription className="text-xs">
@@ -237,7 +237,7 @@ export function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
                     Standard Blended Hourly Rate
                   </label>
                   <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ export function SettingsPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Palette className="h-4 w-4 text-primary" />
+                <Palette className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 Theme & Interface Appearance
               </CardTitle>
               <CardDescription className="text-xs">
@@ -429,7 +429,7 @@ export function SettingsPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Bell className="h-4 w-4 text-primary" />
+                <Bell className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 Notification Alerts & Triggers
               </CardTitle>
               <CardDescription className="text-xs">
@@ -503,7 +503,7 @@ export function SettingsPage() {
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Sliders className="h-4 w-4 text-primary" />
+                <Sliders className="h-4 w-4 text-primary" strokeWidth={1.8} />
                 Verification Engine Preferences
               </CardTitle>
               <CardDescription className="text-xs">

@@ -10,8 +10,8 @@ import {
   Download,
   Clock,
   HardDriveUpload,
-  CheckCircle2,
-  XCircle,
+  CircleCheck,
+  CircleX,
   File,
   FileSpreadsheet,
 } from 'lucide-react'
@@ -75,12 +75,12 @@ const processingStatusConfig: Record<
   },
   processed: {
     label: 'Processed',
-    icon: CheckCircle2,
+    icon: CircleCheck,
     className: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
   },
   failed: {
     label: 'Failed',
-    icon: XCircle,
+    icon: CircleX,
     className: 'bg-red-500/12 text-red-600 dark:text-red-400 border-red-500/20',
   },
 }
@@ -230,7 +230,7 @@ export function DocumentsPage() {
       <Card className="border-border/80 shadow-xs overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Upload className="h-4 w-4 text-primary" />
+            <Upload className="h-4 w-4 text-primary" strokeWidth={1.8} />
             Upload Scope Document
           </CardTitle>
         </CardHeader>
@@ -291,10 +291,13 @@ export function DocumentsPage() {
                     'rounded-full p-3 mb-3 transition-colors',
                     dragOver ? 'bg-primary/20' : 'bg-muted/50 group-hover:bg-primary/10',
                   )}>
-                    <Upload className={cn(
-                      'h-6 w-6 transition-colors',
-                      dragOver ? 'text-primary' : 'text-muted-foreground group-hover:text-primary',
-                    )} />
+                    <Upload
+                      className={cn(
+                        'h-6 w-6 transition-colors',
+                        dragOver ? 'text-primary' : 'text-muted-foreground group-hover:text-primary',
+                      )}
+                      strokeWidth={1.8}
+                    />
                   </div>
                   <p className="text-sm font-semibold text-foreground">
                     {dragOver ? 'Drop file here' : 'Drop a file here or click to browse'}
@@ -377,7 +380,7 @@ export function DocumentsPage() {
 
                     {/* Processing Status */}
                     <Badge variant="outline" className={cn('text-[10px] px-2 py-0.5 gap-1 border shrink-0', processing.className)}>
-                      <ProcessingIcon className={cn('h-3 w-3', doc.processingStatus === 'processing' && 'animate-spin')} />
+                      <ProcessingIcon className={cn('h-3 w-3', doc.processingStatus === 'processing' && 'animate-spin')} strokeWidth={1.8} />
                       {processing.label}
                     </Badge>
 
@@ -422,7 +425,7 @@ export function DocumentsPage() {
       {/* Backend Processing Note */}
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-start gap-3">
         <div className="rounded-lg bg-amber-500/10 p-2 shrink-0">
-          <FileWarning className="h-4 w-4 text-amber-500" />
+          <FileWarning className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
         </div>
         <div className="space-y-0.5 min-w-0">
           <p className="text-xs font-semibold text-foreground">
