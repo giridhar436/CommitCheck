@@ -173,7 +173,7 @@ export class ScopeRequirementsService {
    * project deletion, this activity survives: it points at the (still
    * existing) project via projectId, and entityId is polymorphic by design.
    */
-  async remove(projectId: string, id: string): Promise<ScopeRequirement> {
+  async remove(projectId: string, id: string): Promise<{ id: string; title: string }> {
     const existing = await this.prisma.scopeRequirement.findFirst({
       where: { id, projectId },
       select: { id: true, title: true },

@@ -1,4 +1,4 @@
-import { ActivitySummaryDto } from '../projects/dto/project-response.dto';
+import { ActivitySummaryDto } from '../../projects/dto/project-response.dto';
 
 /** Full JSON contract for a meeting attachment (metadata only — no URLs). */
 export class MeetingAttachmentResponseDto {

@@ -1,5 +1,5 @@
 import { ApprovalStatus, RiskLevel } from '@prisma/client';
-import { ActivitySummaryDto } from '../projects/dto/project-response.dto';
+import { ActivitySummaryDto } from '../../projects/dto/project-response.dto';
 
 /** List-item contract for both GET surfaces. */
 export class CommitmentResponseDto {

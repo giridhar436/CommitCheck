@@ -1,5 +1,5 @@
 import { MeetingAnalysisStatus, MeetingAttachment } from '@prisma/client';
-import { ActivitySummaryDto } from '../projects/dto/project-response.dto';
+import { ActivitySummaryDto } from '../../projects/dto/project-response.dto';
 
 /** Attachment summary embedded in the meeting detail response. */
 export class AttachmentSummaryDto {
