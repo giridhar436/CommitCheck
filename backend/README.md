@@ -85,12 +85,19 @@ backend/
 │   │   ├── scope-requirements.mapper.ts
 │   │   ├── scope-requirements.module.ts
 │   │   └── scope-requirements.service.ts     # Nested CRUD + filters + audit log
+│   ├── meetings/
+│   │   ├── dto/                     # Create/Update/Query/Response/Detail DTOs
+│   │   ├── meetings.controller.ts   # /api/projects/:projectId/meetings
+│   │   ├── meetings.mapper.ts
+│   │   ├── meetings.module.ts
+│   │   └── meetings.service.ts      # Nested CRUD + date/status filters + audit log
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
 │   ├── verify-db.mjs                # Ephemeral-Postgres migration+seed check
 │   ├── test-api.mjs                 # End-to-end Projects API tests (37 checks)
-│   └── test-scope-api.mjs           # End-to-end Scope Requirements tests (43 checks)
+│   ├── test-scope-api.mjs           # End-to-end Scope Requirements tests (43 checks)
+│   └── test-meetings-api.mjs        # End-to-end Meetings API tests (49 checks)
 ├── .env.example
 └── package.json
 ```
@@ -124,6 +131,21 @@ the requirement exists but belongs to a different project:
 Business rules: title and category required, enums validated, duplicate title
 within a project (case-insensitive) → `409`, requirement-under-wrong-project
 → `404`. Default on create: `priority=MEDIUM`, `approvalStatus=PENDING`.
+
+### Meetings API (Phase 4)
+
+All nested under their project; 404 when the project doesn't exist, 404 when
+the meeting exists but belongs to a different project:
+
+| Method | Route                                | Notes |
+| ------ | ------------------------------------ | ----- |
+| GET    | `/api/projects/:projectId/meetings`  | `page`, `limit` (≤100), `search` (title/summary), `analysisStatus`, `meetingDateFrom`/`meetingDateTo` (inclusive), `sortBy` (meetingDate/title/createdAt), `sortOrder` |
+| GET    | `/api/projects/:projectId/meetings/:id` | Detail + `attachments[]` + `commitmentCount` + `latestActivity` |
+| POST   | `/api/projects/:projectId/meetings`  | Creates + `MEETING_CREATED` activity (transactional); `analysisStatus` defaults to `NOT_STARTED` |
+| PATCH  | `/api/projects/:projectId/meetings/:id` | Partial update + `MEETING_UPDATED` activity |
+| DELETE | `/api/projects/:projectId/meetings/:id` | Delete + `MEETING_DELETED` activity; cascade removes attachments/commitments/evidence |
+
+Duplicate meeting titles are allowed (no uniqueness rule).
 
 Business rules enforced: name/client required, budget ≥ 0, `startDate ≤ endDate`
 (checked across create and patch merges), duplicate name per client → `409`.
