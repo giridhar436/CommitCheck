@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProjectsModule } from './projects/projects.module';
 
 /**
- * Phase 1 root module — wires the database layer only.
- * Feature modules (projects, meetings, commitments, …) are added in later phases.
+ * Root module.
+ * Phase 1: database layer · Phase 2: Projects API.
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ProjectsModule],
 })
 export class AppModule {}

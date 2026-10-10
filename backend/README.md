@@ -61,20 +61,53 @@ privileges that Supabase's pgbouncer transaction pool does not allow.
 backend/
 ├── prisma/
 │   ├── migrations/
-│   │   └── 20261011000000_init/     # Initial schema (tables, enums, FKs, indexes)
+│   │   ├── 20261011000000_init/                 # Initial schema (tables, enums, FKs, indexes)
+│   │   └── 20261011000001_add_project_activity_actions/
 │   ├── schema.prisma                # 9 models · 10 enums · full relation graph
 │   └── seed.ts                      # Interconnected demo data (2 projects)
 ├── src/
+│   ├── common/
+│   │   ├── api-response.ts          # Success/error envelope types
+│   │   ├── dto/pagination.dto.ts    # Reusable page/limit/search/sort query
+│   │   └── filters/http-exception.filter.ts  # Global { success:false } envelope
 │   ├── prisma/
 │   │   ├── prisma.module.ts         # @Global database module
 │   │   └── prisma.service.ts        # PrismaClient + Nest lifecycle hooks
-│   ├── app.module.ts                # Root module (database layer only for now)
-│   └── main.ts                      # Bootstrap (global /api prefix, CORS)
+│   ├── projects/
+│   │   ├── dto/                     # Create/Update/Response/Query DTOs
+│   │   ├── projects.controller.ts   # /api/projects REST endpoints
+│   │   ├── projects.mapper.ts       # Prisma row → JSON contract
+│   │   ├── projects.module.ts
+│   │   └── projects.service.ts      # CRUD + activity logging + business rules
+│   ├── app.module.ts                # Root module
+│   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
-│   └── verify-db.mjs                # Ephemeral-Postgres migration+seed check
+│   ├── verify-db.mjs                # Ephemeral-Postgres migration+seed check
+│   └── test-api.mjs                 # End-to-end Projects API tests (37 checks)
 ├── .env.example
 └── package.json
 ```
+
+## Projects API (Phase 2)
+
+REST endpoints under `/api` (all responses use the `{ success, message, data }`
+envelope):
+
+| Method | Route              | Notes                                                              |
+| ------ | ------------------ | ------------------------------------------------------------------ |
+| GET    | `/api/projects`    | `page`, `limit` (≤100), `search` (name/client), `status`, `sortBy`, `sortOrder` |
+| GET    | `/api/projects/:id` | Detail + relationship counts + latest activity                     |
+| POST   | `/api/projects`    | Creates project + `PROJECT_CREATED` activity in one transaction    |
+| PATCH  | `/api/projects/:id` | Partial update; logs a `PROJECT_UPDATED` activity                  |
+| DELETE | `/api/projects/:id` | Cascades the whole graph (activity trail cannot outlive the row)   |
+
+Business rules enforced: name/client required, budget ≥ 0, `startDate ≤ endDate`
+(checked across create and patch merges), duplicate name per client → `409`.
+Errors always return `{ success: false, message, error }` with proper status
+codes (400 validation, 404 missing, 409 duplicate, 500 unexpected).
+
+Run `node scripts/test-api.mjs` to execute the full 37-check suite against an
+ephemeral PostgreSQL (requires `npm i --no-save embedded-postgres`).
 
 ## Data model (business flow)
 
