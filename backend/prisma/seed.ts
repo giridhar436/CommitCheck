@@ -313,6 +313,7 @@ async function main() {
   // ————————————————————————————————————————————————————
   const freshCart = await prisma.project.create({
     data: {
+      id: IDS.cartProject,
       name: 'FreshCART Storefront',
       clientName: 'FreshCART Grocery',
       description:

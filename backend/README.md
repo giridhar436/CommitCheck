@@ -79,11 +79,18 @@ backend/
 │   │   ├── projects.mapper.ts       # Prisma row → JSON contract
 │   │   ├── projects.module.ts
 │   │   └── projects.service.ts      # CRUD + activity logging + business rules
+│   ├── scope-requirements/
+│   │   ├── dto/                     # Create/Update/Response/Query DTOs
+│   │   ├── scope-requirements.controller.ts  # /api/projects/:projectId/scope
+│   │   ├── scope-requirements.mapper.ts
+│   │   ├── scope-requirements.module.ts
+│   │   └── scope-requirements.service.ts     # Nested CRUD + filters + audit log
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
 │   ├── verify-db.mjs                # Ephemeral-Postgres migration+seed check
-│   └── test-api.mjs                 # End-to-end Projects API tests (37 checks)
+│   ├── test-api.mjs                 # End-to-end Projects API tests (37 checks)
+│   └── test-scope-api.mjs           # End-to-end Scope Requirements tests (43 checks)
 ├── .env.example
 └── package.json
 ```
@@ -100,6 +107,23 @@ envelope):
 | POST   | `/api/projects`    | Creates project + `PROJECT_CREATED` activity in one transaction    |
 | PATCH  | `/api/projects/:id` | Partial update; logs a `PROJECT_UPDATED` activity                  |
 | DELETE | `/api/projects/:id` | Cascades the whole graph (activity trail cannot outlive the row)   |
+
+### Scope Requirements API (Phase 3)
+
+All nested under their project; 404 when the project doesn't exist, 404 when
+the requirement exists but belongs to a different project:
+
+| Method | Route                              | Notes                                                            |
+| ------ | ---------------------------------- | ---------------------------------------------------------------- |
+| GET    | `/api/projects/:projectId/scope`   | `page`, `limit` (≤100), `search` (title/description), `category`, `priority`, `approvalStatus`, `sortBy` (title/priority/createdAt/updatedAt), `sortOrder` |
+| GET    | `/api/projects/:projectId/scope/:id` | Full requirement                                               |
+| POST   | `/api/projects/:projectId/scope`   | Creates + `SCOPE_REQUIREMENT_CREATED` activity (transactional)   |
+| PATCH  | `/api/projects/:projectId/scope/:id` | Partial update + `SCOPE_REQUIREMENT_UPDATED` activity          |
+| DELETE | `/api/projects/:projectId/scope/:id` | Delete + `SCOPE_REQUIREMENT_DELETED` activity (transactional)  |
+
+Business rules: title and category required, enums validated, duplicate title
+within a project (case-insensitive) → `409`, requirement-under-wrong-project
+→ `404`. Default on create: `priority=MEDIUM`, `approvalStatus=PENDING`.
 
 Business rules enforced: name/client required, budget ≥ 0, `startDate ≤ endDate`
 (checked across create and patch merges), duplicate name per client → `409`.

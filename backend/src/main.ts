@@ -13,14 +13,15 @@ async function bootstrap(): Promise<void> {
   // allowlist before deploying to production.
   app.enableCors({ origin: true, credentials: true });
 
-  // Reject unknown/extra properties, coerce query primitives, so DTOs are
-  // always clean, typed objects when they reach services.
+  // Reject unknown/extra properties and coerce query primitives via explicit
+  // @Type(() => Number) in DTOs — no implicit conversion, so wrong JSON types
+  // (e.g. a number where a string is expected) fail validation instead of
+  // being silently coerced.
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
     }),
   );
 

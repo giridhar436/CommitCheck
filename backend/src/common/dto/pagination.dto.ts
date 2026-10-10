@@ -7,7 +7,9 @@ export type SortDirection = (typeof SORT_DIRECTIONS)[number];
 
 /**
  * Reusable pagination/search/sort query for all list endpoints.
- * Resource-specific filters (e.g. project status) live in subclasses.
+ * Resource-specific filters AND the `sortBy` whitelist live in subclasses —
+ * redeclare `sortBy` with `@IsIn([...]) declare sortBy: string` (the `declare`
+ * keeps this base class's default value intact at runtime).
  */
 export class PaginationDto {
   @Type(() => Number)
@@ -23,13 +25,13 @@ export class PaginationDto {
   @Max(100)
   limit: number = 10;
 
-  /** Case-insensitive substring search (defined per resource). */
+  /** Case-insensitive substring search (fields defined per resource). */
   @IsOptional()
   @IsString()
   search?: string;
 
   @IsOptional()
-  @IsIn(['name', 'clientName', 'startDate', 'createdAt', 'updatedAt'])
+  @IsString()
   sortBy: string = 'createdAt';
 
   @IsOptional()
