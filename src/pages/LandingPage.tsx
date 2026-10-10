@@ -126,7 +126,7 @@ export function LandingPage() {
           {/* Hero Core Statement */}
           <h1 className="mt-6 text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl lg:leading-[1.12]">
             Make sure what was promised to the client is actually{' '}
-            <span className="bg-gradient-to-r from-foreground via-foreground/90 to-foreground/60 bg-clip-text text-transparent underline decoration-primary/40 decoration-wavy underline-offset-8">
+            <span className="bg-gradient-to-r from-foreground via-foreground/90 to-foreground/60 bg-clip-text text-transparent">
               approved
             </span>{' '}
             before it becomes work.

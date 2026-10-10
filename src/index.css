@@ -3,7 +3,8 @@
 /*
  * CommitCheck Design System
  * Professional B2B SaaS — clean, trustworthy, information-dense
- * Font: Inter
+ * Primary Font: Manrope
+ * Mono Font: JetBrains Mono
  * Base: Zinc
  */
 
@@ -133,12 +134,11 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 /* ——— Scrollbar ——— */
@@ -228,6 +228,8 @@ body {
 .stagger-5 { animation-delay: 0.25s; }
 
 @theme inline {
+  --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
