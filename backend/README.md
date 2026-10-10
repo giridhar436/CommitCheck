@@ -91,13 +91,20 @@ backend/
 │   │   ├── meetings.mapper.ts
 │   │   ├── meetings.module.ts
 │   │   └── meetings.service.ts      # Nested CRUD + date/status filters + audit log
+│   ├── meeting-attachments/
+│   │   ├── dto/                     # Create/Update/Query/Response DTOs
+│   │   ├── meeting-attachments.controller.ts  # /api/projects/:projectId/meetings/:meetingId/attachments
+│   │   ├── meeting-attachments.mapper.ts
+│   │   ├── meeting-attachments.module.ts
+│   │   └── meeting-attachments.service.ts     # Metadata-only CRUD + audit log (no storage I/O)
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
 │   ├── verify-db.mjs                # Ephemeral-Postgres migration+seed check
 │   ├── test-api.mjs                 # End-to-end Projects API tests (37 checks)
 │   ├── test-scope-api.mjs           # End-to-end Scope Requirements tests (43 checks)
-│   └── test-meetings-api.mjs        # End-to-end Meetings API tests (49 checks)
+│   ├── test-meetings-api.mjs        # End-to-end Meetings API tests (49 checks)
+│   └── test-attachments-api.mjs     # End-to-end Meeting Attachments tests (51 checks)
 ├── .env.example
 └── package.json
 ```
@@ -146,6 +153,24 @@ the meeting exists but belongs to a different project:
 | DELETE | `/api/projects/:projectId/meetings/:id` | Delete + `MEETING_DELETED` activity; cascade removes attachments/commitments/evidence |
 
 Duplicate meeting titles are allowed (no uniqueness rule).
+
+### Meeting Attachments API (Phase 5)
+
+Metadata only — no file uploads, no storage access, no signed URLs.
+Nested three levels deep; every endpoint verifies project → meeting →
+attachment ownership (wrong combination → 404):
+
+| Method | Route | Notes |
+| ------ | ----- | ----- |
+| GET    | `/api/projects/:projectId/meetings/:meetingId/attachments` | `page`, `limit` (≤100), `search` (fileName), `sortBy` (uploadedAt/fileName/createdAt), `sortOrder` |
+| GET    | `…/attachments/:id` | Attachment metadata + latest activity |
+| POST   | `…/attachments` | Creates metadata row + `MEETING_ATTACHMENT_CREATED` activity (transactional); `uploadedAt` defaults to `now()` |
+| PATCH  | `…/attachments/:id` | Updates `fileName`/`fileType`/`storagePath`/`fileSize` only (`uploadedAt` is immutable) |
+| DELETE | `…/attachments/:id` | Deletes metadata + `MEETING_ATTACHMENT_DELETED` activity; storage object untouched |
+
+Validation: MIME `type/subtype` pattern, `storagePath` must begin with
+`meetings/`, `fileSize` integer ≥ 0, `fileName` ≤ 255 chars. Duplicate
+filenames are allowed.
 
 Business rules enforced: name/client required, budget ≥ 0, `startDate ≤ endDate`
 (checked across create and patch merges), duplicate name per client → `409`.
