@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { PhaseOneFoundationPage } from '@/pages/PhaseOneFoundationPage'
 import { LandingPage } from '@/pages/LandingPage'
@@ -82,6 +82,30 @@ export const router = createBrowserRouter([
       {
         path: '/projects/:id/activity',
         element: <ActivityPage />,
+      },
+      {
+        path: '/commitments',
+        element: <Navigate to="/projects/proj-abc-ecommerce/commitments" replace />,
+      },
+      {
+        path: '/change-requests',
+        element: <Navigate to="/projects/proj-abc-ecommerce/change-requests" replace />,
+      },
+      {
+        path: '/meetings',
+        element: <Navigate to="/projects/proj-abc-ecommerce/meetings" replace />,
+      },
+      {
+        path: '/scope',
+        element: <Navigate to="/projects/proj-abc-ecommerce/scope" replace />,
+      },
+      {
+        path: '/documents',
+        element: <Navigate to="/projects/proj-abc-ecommerce/documents" replace />,
+      },
+      {
+        path: '/activity',
+        element: <Navigate to="/projects/proj-abc-ecommerce/activity" replace />,
       },
       {
         path: '/commitments/:id',

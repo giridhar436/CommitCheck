@@ -40,16 +40,16 @@ export function SettingsPage() {
 
   // Profile Form State
   const [fullName, setFullName] = useState(user?.name || 'Rahul Mehta')
-  const [email, setEmail] = useState(user?.email || 'rahul@apexsoftware.io')
+  const [email, setEmail] = useState(user?.email || 'rahul@pixelforge.io')
   const [role, setRole] = useState('Lead Solutions Architect & Tech Lead')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
 
   // Organization Form State
-  const [orgName, setOrgName] = useState(user?.organization || 'Apex Software Studio')
+  const [orgName, setOrgName] = useState(user?.organization || 'PixelForge Studios')
   const [hourlyRate, setHourlyRate] = useState('125')
   const [currency, setCurrency] = useState('USD')
-  const [workspaceDomain, setWorkspaceDomain] = useState('apex-studio.commitcheck.app')
+  const [workspaceDomain, setWorkspaceDomain] = useState('pixelforge.commitcheck.app')
 
   // Notification Toggles
   const [notifHighRisk, setNotifHighRisk] = useState(true)

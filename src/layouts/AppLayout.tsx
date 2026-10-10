@@ -5,6 +5,7 @@ import { Topbar } from '@/components/navigation/topbar'
 import { MobileNav } from '@/components/navigation/mobile-nav'
 import { MobileBottomNav } from '@/components/navigation/mobile-bottom-nav'
 import { HackathonDemoBar } from '@/components/demo/hackathon-demo-bar'
+import { PwaInstallPrompt } from '@/components/pwa/pwa-install-prompt'
 import { useAuth } from '@/hooks/useAuth'
 
 const COLLAPSED_STORAGE_KEY = 'commitcheck-sidebar-collapsed'
@@ -63,8 +64,11 @@ export function AppLayout() {
       {/* Mobile Bottom Dock Bar */}
       <MobileBottomNav onOpenDrawer={() => setMobileNavOpen(true)} />
 
-      {/* Interactive Hackathon Demo Navigator */}
+      {/* Interactive Walkthrough Demo Navigator */}
       <HackathonDemoBar />
+
+      {/* PWA Install Prompt — subtle, once per session */}
+      <PwaInstallPrompt />
     </div>
   )
 }

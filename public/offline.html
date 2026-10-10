@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CommitCheck — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+      background-color: #0f0f14;
+      color: #e4e4e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container {
+      text-align: center;
+      max-width: 420px;
+    }
+    .icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: rgba(134, 59, 255, 0.12);
+      margin-bottom: 1.5rem;
+    }
+    .icon-wrap svg {
+      width: 28px;
+      height: 28px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      font-size: 0.8125rem;
+      color: #a1a1aa;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(134, 59, 255, 0.2);
+      background: rgba(134, 59, 255, 0.06);
+      font-size: 0.75rem;
+      color: #a78bfa;
+      font-weight: 500;
+    }
+    .hint svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1.25rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      border: 1px solid rgba(228, 228, 231, 0.15);
+      background: rgba(228, 228, 231, 0.06);
+      color: #e4e4e7;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .retry-btn:hover {
+      background: rgba(228, 228, 231, 0.1);
+      border-color: rgba(228, 228, 231, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#863bff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+    </div>
+    <h1>You're offline</h1>
+    <p>
+      Some project data and analysis features require an internet connection.
+      CommitCheck will reconnect automatically when your network is available.
+    </p>
+    <div class="hint">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>Meeting analysis and scope verification require connectivity</span>
+    </div>
+    <br>
+    <button class="retry-btn" onclick="window.location.reload()">
+      Try Again
+    </button>
+  </div>
+</body>
+</html>
