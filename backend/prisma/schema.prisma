@@ -1,0 +1,297 @@
+// ——————————————————————————————————————————————————————————————————————————
+// CommitCheck — Database Schema (Phase 1: database foundation)
+// ——————————————————————————————————————————————————————————————————————————
+// Business flow:
+//   Project → Approved Scope → Meeting → Commitment Detection
+//   → Scope Verification → Unauthorized Commitment → Change Request
+//   → Approval → Execution
+//
+// Conventions:
+//   • UUID primary keys generated database-side (gen_random_uuid(), PG13+)
+//   • snake_case table/column names via @map (clean interop with Supabase
+//     SQL editor, RLS policies, and future pgvector columns)
+//   • Referential integrity: full cascade down the derivation chain —
+//     deleting a Project removes its entire graph; deleting a Meeting
+//     removes its attachments and detected commitments.
+// ——————————————————————————————————————————————————————————————————————————
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (pgBouncer) — app runtime
+  directUrl = env("DIRECT_URL") // direct — Prisma Migrate / shadow DB
+}
+
+// ————————————————————————————————————————————————————————————————
+// Enums
+// ————————————————————————————————————————————————————————————————
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ApprovalStatus {
+  AUTHORIZED
+  UNAUTHORIZED
+  PENDING
+}
+
+enum MeetingAnalysisStatus {
+  NOT_STARTED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum DocumentType {
+  SOW
+  CONTRACT
+  PROPOSAL
+  REQUIREMENTS
+  OTHER
+}
+
+enum EvidenceSource {
+  TRANSCRIPT
+  SUMMARY
+  NOTES
+  RECORDING
+  DOCUMENT
+  OTHER
+}
+
+enum ActivityAction {
+  PROJECT_CREATED
+  SCOPE_UPDATED
+  DOCUMENT_UPLOADED
+  MEETING_CREATED
+  MEETING_ANALYZED
+  COMMITMENT_DETECTED
+  COMMITMENT_FLAGGED
+  CHANGE_REQUEST_CREATED
+  CHANGE_REQUEST_APPROVED
+  CHANGE_REQUEST_REJECTED
+  CHANGE_REQUEST_CANCELLED
+}
+
+enum ActivityEntityType {
+  PROJECT
+  SCOPE_REQUIREMENT
+  MEETING
+  MEETING_ATTACHMENT
+  COMMITMENT
+  CHANGE_REQUEST
+  DOCUMENT
+}
+
+// ————————————————————————————————————————————————————————————————
+// Models
+// ————————————————————————————————————————————————————————————————
+
+/// A client engagement whose approved scope is monitored for creep.
+model Project {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  clientName  String        @map("client_name")
+  description String?       @db.Text
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime?     @map("start_date")
+  endDate     DateTime?     @map("end_date")
+  budget      Decimal?      @db.Decimal(12, 2)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  scopeRequirements ScopeRequirement[]
+  meetings          Meeting[]
+  commitments       Commitment[]
+  changeRequests    ChangeRequest[]
+  documents         Document[]
+  activities        Activity[]
+
+  @@index([status])
+  @@map("projects")
+}
+
+/// A single requirement that is part of a project's approved scope.
+model ScopeRequirement {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId          String         @map("project_id") @db.Uuid
+  title              String
+  description        String?        @db.Text
+  category           String
+  priority           Priority       @default(MEDIUM)
+  approvalStatus     ApprovalStatus @default(PENDING) @map("approval_status")
+  sourceClause       String?        @map("source_clause")
+  acceptanceCriteria String?        @map("acceptance_criteria") @db.Text
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, approvalStatus])
+  @@index([projectId, priority])
+  @@map("scope_requirements")
+}
+
+/// A client meeting whose transcript/notes are analyzed for commitments.
+model Meeting {
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId      String                @map("project_id") @db.Uuid
+  title          String
+  summary        String?               @db.Text
+  meetingDate    DateTime              @map("meeting_date")
+  analysisStatus MeetingAnalysisStatus @default(NOT_STARTED) @map("analysis_status")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  project     Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  attachments MeetingAttachment[]
+  commitments Commitment[]
+
+  @@index([projectId, meetingDate(sort: Desc)])
+  @@index([projectId, analysisStatus])
+  @@map("meetings")
+}
+
+/// A file (transcript, notes, recording, screenshot) attached to a meeting.
+model MeetingAttachment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meetingId   String   @map("meeting_id") @db.Uuid
+  fileName    String   @map("file_name")
+  fileType    String?  @map("file_type")
+  storagePath String   @map("storage_path")
+  fileSize    Int?     @map("file_size")
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@map("meeting_attachments")
+}
+
+/// A promise detected during a meeting, verified against the approved scope.
+model Commitment {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId           String         @map("project_id") @db.Uuid
+  meetingId           String         @map("meeting_id") @db.Uuid
+  title               String
+  description         String?        @db.Text
+  speaker             String?
+  riskLevel           RiskLevel      @default(LOW) @map("risk_level")
+  authorizationStatus ApprovalStatus @default(PENDING) @map("authorization_status")
+  confidenceScore     Float?         @map("confidence_score")
+  evidenceReference   String?        @map("evidence_reference")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  project        Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  meeting        Meeting              @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  evidence       CommitmentEvidence[]
+  changeRequests ChangeRequest[]
+
+  @@index([projectId, authorizationStatus])
+  @@index([projectId, riskLevel])
+  @@index([meetingId, authorizationStatus])
+  @@map("commitments")
+}
+
+/// A verbatim quote that evidences when/how a commitment was made.
+model CommitmentEvidence {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  commitmentId String         @map("commitment_id") @db.Uuid
+  quote        String         @db.Text
+  timestamp    DateTime?
+  source       EvidenceSource @default(TRANSCRIPT)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  commitment Commitment @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
+
+  @@index([commitmentId])
+  @@map("commitment_evidence")
+}
+
+/// A formal request to authorize work that a commitment introduced outside scope.
+model ChangeRequest {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId      String              @map("project_id") @db.Uuid
+  commitmentId   String              @map("commitment_id") @db.Uuid
+  title          String
+  description    String?             @db.Text
+  status         ChangeRequestStatus @default(PENDING)
+  approvalReason String?             @map("approval_reason") @db.Text
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  commitment Commitment @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@index([commitmentId])
+  @@map("change_requests")
+}
+
+/// A project document (SOW, contract, proposal) stored in Supabase Storage.
+model Document {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  title       String
+  type        DocumentType
+  storagePath String       @map("storage_path")
+  fileSize    Int?         @map("file_size")
+  uploadedAt  DateTime     @default(now()) @map("uploaded_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, type])
+  @@map("documents")
+}
+
+/// Audit-log entry: an immutable trail of what happened inside a project.
+/// entityId is a polymorphic UUID reference (no FK) to the row named by entityType.
+model Activity {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId   String             @map("project_id") @db.Uuid
+  action      ActivityAction
+  entityType  ActivityEntityType @map("entity_type")
+  entityId    String?            @map("entity_id") @db.Uuid
+  description String             @db.Text
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([action])
+  @@map("activities")
+}

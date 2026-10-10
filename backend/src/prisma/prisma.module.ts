@@ -1,0 +1,15 @@
+import { Global, Module } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+
+/**
+ * Database-layer infrastructure for the whole application.
+ *
+ * Marked @Global() so feature modules added in later phases can inject
+ * PrismaService without re-importing this module everywhere.
+ */
+@Global()
+@Module({
+  providers: [PrismaService],
+  exports: [PrismaService],
+})
+export class PrismaModule {}
