@@ -46,6 +46,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme])
 
   const setTheme = (newTheme: Theme) => {
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      const doc = document as unknown as { startViewTransition?: (cb: () => void) => void }
+      if (doc.startViewTransition) {
+        doc.startViewTransition(() => {
+          setThemeState(newTheme)
+        })
+        return
+      }
+    }
     setThemeState(newTheme)
   }
 

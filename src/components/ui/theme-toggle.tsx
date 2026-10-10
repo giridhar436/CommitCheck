@@ -12,19 +12,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
 
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    // If browser supports document.startViewTransition, let the CSS view-transition effect run
-    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-      const doc = document as unknown as { startViewTransition?: (cb: () => void) => void }
-      if (doc.startViewTransition) {
-        doc.startViewTransition(() => {
-          setTheme(newTheme)
-        })
-      } else {
-        setTheme(newTheme)
-      }
-    } else {
-      setTheme(newTheme)
-    }
+    setTheme(newTheme)
   }
 
   return (
