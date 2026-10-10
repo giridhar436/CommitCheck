@@ -97,6 +97,13 @@ backend/
 │   │   ├── meeting-attachments.mapper.ts
 │   │   ├── meeting-attachments.module.ts
 │   │   └── meeting-attachments.service.ts     # Metadata-only CRUD + audit log (no storage I/O)
+│   ├── commitments/
+│   │   ├── dto/                     # Create/Update/Query/Response/Detail DTOs
+│   │   ├── commitments.controller.ts          # /api/projects/:projectId/commitments (CRUD)
+│   │   ├── meeting-commitments.controller.ts  # /api/meetings/:meetingId/commitments (read-only)
+│   │   ├── commitments.mapper.ts
+│   │   ├── commitments.module.ts
+│   │   └── commitments.service.ts   # CRUD + ownership rules + filters + audit log
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
@@ -104,7 +111,8 @@ backend/
 │   ├── test-api.mjs                 # End-to-end Projects API tests (37 checks)
 │   ├── test-scope-api.mjs           # End-to-end Scope Requirements tests (43 checks)
 │   ├── test-meetings-api.mjs        # End-to-end Meetings API tests (49 checks)
-│   └── test-attachments-api.mjs     # End-to-end Meeting Attachments tests (51 checks)
+│   ├── test-attachments-api.mjs     # End-to-end Meeting Attachments tests (51 checks)
+│   └── test-commitments-api.mjs     # End-to-end Commitments API tests (61 checks)
 ├── .env.example
 └── package.json
 ```
@@ -171,6 +179,26 @@ attachment ownership (wrong combination → 404):
 Validation: MIME `type/subtype` pattern, `storagePath` must begin with
 `meetings/`, `fileSize` integer ≥ 0, `fileName` ≤ 255 chars. Duplicate
 filenames are allowed.
+
+### Commitments API (Phase 6)
+
+CRUD under `/api/projects/:projectId/commitments` plus a read-only
+`GET /api/meetings/:meetingId/commitments` for the Meeting Details page.
+
+- Create takes `meetingId` in the body; the service verifies the meeting exists
+  **and** belongs to the route's project (missing → 404, cross-project → 400).
+  `projectId` is never accepted from the client.
+- List/search across title, description and speaker; filters:
+  `authorizationStatus`, `riskLevel`, `speaker` (exact, case-insensitive),
+  `meetingId`; sorting limited to `createdAt`/`updatedAt`/`title`/
+  `confidenceScore`/`riskLevel`.
+- List items include `meetingTitle` + `latestActivity`; detail adds
+  `meetingSummary`, `projectName`, `projectSummary`, `evidenceCount`
+  (evidence rows are NOT included — see Phase 7).
+- Defaults on create: `riskLevel=LOW`, `authorizationStatus=PENDING`.
+  Duplicate titles allowed. `confidenceScore` must be within 0–1.
+- All mutations log `COMMITMENT_CREATED`/`_UPDATED`/`_DELETED` transactionally;
+  deleting a commitment cascades its evidence but the log survives.
 
 Business rules enforced: name/client required, budget ≥ 0, `startDate ≤ endDate`
 (checked across create and patch merges), duplicate name per client → `409`.
