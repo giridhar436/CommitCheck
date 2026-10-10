@@ -1,0 +1,406 @@
+@import "tailwindcss";
+
+/*
+ * CommitCheck Design System
+ * Professional B2B SaaS — clean, trustworthy, information-dense
+ * Font: Inter
+ * Base: Zinc
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* ——— Radius ——— */
+  --radius: 0.5rem;
+
+  /* ——— Colors (Light) ——— */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.13 0.01 285);
+
+  --card: oklch(0.99 0 0);
+  --card-foreground: oklch(0.13 0.01 285);
+
+  --popover: oklch(0.99 0 0);
+  --popover-foreground: oklch(0.13 0.01 285);
+
+  --primary: oklch(0.21 0.01 285);
+  --primary-foreground: oklch(0.98 0 0);
+
+  --secondary: oklch(0.96 0.005 285);
+  --secondary-foreground: oklch(0.21 0.01 285);
+
+  --muted: oklch(0.96 0.005 285);
+  --muted-foreground: oklch(0.55 0.01 285);
+
+  --accent: oklch(0.96 0.005 285);
+  --accent-foreground: oklch(0.21 0.01 285);
+
+  --destructive: oklch(0.58 0.22 28);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.91 0.005 285);
+  --input: oklch(0.91 0.005 285);
+  --ring: oklch(0.21 0.01 285);
+
+  /* ——— Sidebar ——— */
+  --sidebar: oklch(0.98 0.003 285);
+  --sidebar-foreground: oklch(0.30 0.01 285);
+  --sidebar-primary: oklch(0.21 0.01 285);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.94 0.005 285);
+  --sidebar-accent-foreground: oklch(0.21 0.01 285);
+  --sidebar-border: oklch(0.91 0.005 285);
+  --sidebar-ring: oklch(0.21 0.01 285);
+
+  /* ——— Chart ——— */
+  --chart-1: oklch(0.65 0.15 145);
+  --chart-2: oklch(0.60 0.15 250);
+  --chart-3: oklch(0.55 0.18 28);
+  --chart-4: oklch(0.70 0.12 60);
+  --chart-5: oklch(0.50 0.20 310);
+
+  /* ——— CommitCheck Semantic Colors ——— */
+  --risk-high: oklch(0.58 0.22 28);
+  --risk-high-foreground: oklch(0.98 0 0);
+  --risk-high-bg: oklch(0.94 0.04 28);
+
+  --risk-medium: oklch(0.75 0.16 65);
+  --risk-medium-foreground: oklch(0.30 0.08 65);
+  --risk-medium-bg: oklch(0.96 0.04 65);
+
+  --risk-low: oklch(0.65 0.15 145);
+  --risk-low-foreground: oklch(0.30 0.06 145);
+  --risk-low-bg: oklch(0.94 0.04 145);
+
+  --status-authorized: oklch(0.65 0.15 145);
+  --status-unauthorized: oklch(0.58 0.22 28);
+  --status-pending: oklch(0.75 0.16 65);
+  --status-review: oklch(0.60 0.15 250);
+  --status-approved: oklch(0.65 0.15 145);
+  --status-rejected: oklch(0.58 0.22 28);
+  --status-draft: oklch(0.55 0.01 285);
+  --status-implemented: oklch(0.50 0.20 310);
+}
+
+.dark {
+  --background: oklch(0.13 0.01 285);
+  --foreground: oklch(0.96 0.005 285);
+
+  --card: oklch(0.16 0.01 285);
+  --card-foreground: oklch(0.96 0.005 285);
+
+  --popover: oklch(0.16 0.01 285);
+  --popover-foreground: oklch(0.96 0.005 285);
+
+  --primary: oklch(0.96 0.005 285);
+  --primary-foreground: oklch(0.16 0.01 285);
+
+  --secondary: oklch(0.22 0.01 285);
+  --secondary-foreground: oklch(0.96 0.005 285);
+
+  --muted: oklch(0.22 0.01 285);
+  --muted-foreground: oklch(0.60 0.01 285);
+
+  --accent: oklch(0.22 0.01 285);
+  --accent-foreground: oklch(0.96 0.005 285);
+
+  --destructive: oklch(0.58 0.22 28);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.26 0.01 285);
+  --input: oklch(0.26 0.01 285);
+  --ring: oklch(0.85 0.005 285);
+
+  /* ——— Sidebar (Dark) ——— */
+  --sidebar: oklch(0.14 0.01 285);
+  --sidebar-foreground: oklch(0.85 0.005 285);
+  --sidebar-primary: oklch(0.96 0.005 285);
+  --sidebar-primary-foreground: oklch(0.16 0.01 285);
+  --sidebar-accent: oklch(0.20 0.01 285);
+  --sidebar-accent-foreground: oklch(0.96 0.005 285);
+  --sidebar-border: oklch(0.26 0.01 285);
+  --sidebar-ring: oklch(0.85 0.005 285);
+
+  /* ——— CommitCheck Semantic Colors (Dark) ——— */
+  --risk-high-bg: oklch(0.22 0.06 28);
+  --risk-medium-bg: oklch(0.24 0.05 65);
+  --risk-low-bg: oklch(0.22 0.04 145);
+}
+
+/* ——— Base Styles ——— */
+* {
+  border-color: var(--border);
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* ——— Scrollbar ——— */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+  opacity: 0.3;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.5;
+}
+
+/* ——— Focus Visible ——— */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ——— Selection ——— */
+::selection {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ——— Utility: Animate In ——— */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.2s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+/* ——— Stagger animation delay utility ——— */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* CommitCheck semantic */
+  --color-risk-high: var(--risk-high);
+  --color-risk-high-foreground: var(--risk-high-foreground);
+  --color-risk-high-bg: var(--risk-high-bg);
+  --color-risk-medium: var(--risk-medium);
+  --color-risk-medium-foreground: var(--risk-medium-foreground);
+  --color-risk-medium-bg: var(--risk-medium-bg);
+  --color-risk-low: var(--risk-low);
+  --color-risk-low-foreground: var(--risk-low-foreground);
+  --color-risk-low-bg: var(--risk-low-bg);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --expo-out: linear(0 0%, 0.1684 2.66%, 0.3165 5.49%, 0.446 8.52%, 0.5581 11.78%, 0.6535 15.29%, 0.7341 19.11%, 0.8011 23.3%, 0.8557 27.93%, 0.8962 32.68%, 0.9283 38.01%, 0.9529 44.08%, 0.9711 51.14%, 0.9833 59.06%, 0.9915 68.74%, 1 100%);
+  --animate-spinner-opacity: spinner-opacity var(--tw-animation-duration, var(--tw-duration, 1s)) linear infinite;
+  @keyframes spinner-opacity {
+  from {
+    opacity: 1;
+    }
+  to {
+    opacity: 0.15;
+    }
+  }
+}
+/*
+ ---break---
+ */
+@layer base {
+  ::view-transition-group(root) {
+    animation-timing-function: var(--expo-out);
+  }
+  ::view-transition-new(root) {
+    mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PGRlZnM+PGZpbHRlciBpZD0iYmx1ciI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMiIvPjwvZmlsdGVyPjwvZGVmcz48Y2lyY2xlIGN4PSIwIiBjeT0iMCIgcj0iMTgiIGZpbGw9IndoaXRlIiBmaWx0ZXI9InVybCgjYmx1cikiLz48L3N2Zz4=") top left / 0 no-repeat;
+    mask-origin: content-box;
+    animation: scale 1s;
+    animation-fill-mode: both;
+    transform-origin: top left;
+  }
+  ::view-transition-old(root),.dark::view-transition-old(root) {
+    animation: scale 1s;
+    animation-fill-mode: both;
+    transform-origin: top left;
+    z-index: -1;
+  }
+/*
+ ---break---
+ */
+@keyframes scale {
+  to {
+    mask-size: 350vmax;
+    }
+  }
+/*
+ ---break---
+ */
+@keyframes show-top-mask {
+  to {
+    --top-mask-height: var(--mask-height);
+    }
+  }
+/*
+ ---break---
+ */
+@keyframes hide-bottom-mask {
+  to {
+    --bottom-mask-height: 0px;
+    }
+  }
+/*
+ ---break---
+ */
+@keyframes show-left-mask {
+  to {
+    --left-mask-width: var(--mask-width);
+    }
+  }
+/*
+ ---break---
+ */
+@keyframes hide-right-mask {
+  to {
+    --right-mask-width: 0px;
+    }
+  }
+}
+  @property --top-mask-height {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+}
+  @property --bottom-mask-height {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 64px;
+}
+  @property --left-mask-width {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+}
+  @property --right-mask-width {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 64px;
+}
+/*
+ ---break---
+ */
+@utility scroll-fade-effect-y {
+    --mask-height: 64px;
+    --mask-offset-top: 0px;
+    --mask-offset-bottom: 0px;
+    --scroll-buffer: 2rem;
+    mask-image: linear-gradient(to top, transparent, black 90%), linear-gradient(to bottom, transparent 0%, black 100%), linear-gradient(black, black);
+    mask-size: 100% var(--top-mask-height), 100% var(--bottom-mask-height), 100% 100%;
+    mask-repeat: no-repeat, no-repeat, no-repeat;
+    mask-position: 0 var(--mask-offset-top), 0 calc(100% - var(--mask-offset-bottom)), 0 0;
+    mask-composite: exclude;
+    animation-name: show-top-mask, hide-bottom-mask;
+    animation-timeline: scroll(self), scroll(self);
+    animation-range: 0 var(--scroll-buffer), calc(100% - var(--scroll-buffer)) 100%;
+    animation-fill-mode: both;
+}
+/*
+ ---break---
+ */
+@utility scroll-fade-effect-x {
+    --mask-width: 64px;
+    --mask-offset-left: 0px;
+    --mask-offset-right: 0px;
+    --scroll-buffer: 2rem;
+    mask-image: linear-gradient(to left, transparent, black 90%), linear-gradient(to right, transparent 0%, black 100%), linear-gradient(black, black);
+    mask-size: var(--left-mask-width) 100%, var(--right-mask-width) 100%, 100% 100%;
+    mask-repeat: no-repeat, no-repeat, no-repeat;
+    mask-position: var(--mask-offset-left) 0, calc(100% - var(--mask-offset-right)) 0, 0 0;
+    mask-composite: exclude;
+    animation-name: show-left-mask, hide-right-mask;
+    animation-timeline: scroll(self inline), scroll(self inline);
+    animation-range: 0 var(--scroll-buffer), calc(100% - var(--scroll-buffer)) 100%;
+    animation-fill-mode: both;
+}

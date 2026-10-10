@@ -1,0 +1,977 @@
+Product Requirements Document (PRD)
+CommitCheck
+Hackathon: Hackloop Season 5
+Track: Generative AI
+Product Type: AI-powered B2B Web Application
+Primary Users: Freelancers, software agencies, project managers, small software teams
+
+prd.txt
+24 KB
+﻿
+Product Requirements Document (PRD)
+CommitCheck
+Hackathon: Hackloop Season 5
+Track: Generative AI
+Product Type: AI-powered B2B Web Application
+Primary Users: Freelancers, software agencies, project managers, small software teams
+1. Product Overview
+CommitCheck is an AI-powered web application that helps software agencies and freelancers prevent unauthorized scope creep.
+After a client meeting, the user provides the meeting summary, notes, transcript, screenshot, or document to CommitCheck. The system identifies requirements and commitments made during the meeting and compares them with the project's approved scope.
+If the system detects that someone has promised work that was not part of the approved scope and has no recorded approval, it alerts the team and can create a structured change request before the work begins.
+Core idea
+Make sure what was promised to the client is actually approved before it becomes work.
+
+2. Problem Statement
+Software agencies and freelancers frequently discuss project requirements and changes during client meetings.
+A client might say:
+"Can we also add Google Login?"
+
+And a developer might respond:
+"Sure, I'll add it by Friday."
+
+The problem is that this commitment may never be formally added to the project's approved scope.
+This can lead to:
+- Scope creep
+- Unpaid work
+- Lost development time
+- Missed deadlines
+- Reduced project profitability
+- Misunderstandings between clients and teams
+- Disputes about what was actually agreed
+Existing project-management tools generally manage work after it becomes a task.
+CommitCheck focuses on the earlier stage:
+Conversation → Commitment → Authorization → Work
+
+3. Product Vision
+CommitCheck aims to become an AI-powered verification layer between client communication and project execution.
+Its purpose is to ensure that commitments made during client interactions are checked against the project's approved scope before they become actual development work.
+4. Target Users
+4.1 Freelancers
+A freelancer may accidentally agree to additional work during a client meeting.
+CommitCheck helps them identify:
+"Did I just promise something that wasn't part of the original agreement?"
+
+4.2 Software Agencies
+Agencies often have multiple developers and project managers communicating with clients.
+CommitCheck helps owners identify:
+- Unauthorized commitments
+- Scope changes
+- Potential revenue leakage
+- Unapproved work
+4.3 Project Managers
+Project managers can use CommitCheck to review meeting outcomes and determine:
+- What changed?
+- What was promised?
+- Was it already approved?
+- Does a change request need to be created?
+5. Core User Flow
+Client Meeting
+      ↓
+Meeting Summary / Notes / Transcript
+      ↓
+User uploads or pastes information
+      ↓
+CommitCheck AI
+      ↓
+Requirement & Commitment Detection
+      ↓
+Retrieve Relevant Project Scope
+      ↓
+Scope Comparison
+      ↓
+Authorization Check
+      ↓
+ ┌───────────────┐
+ │               │
+Authorized    Unauthorized
+ │               │
+ ▼               ▼
+No Alert       Alert
+                 ↓
+          Change Request
+                 ↓
+              Approval
+                 ↓
+             Execution
+
+6. Main Product Features
+6.1 User Authentication
+Users can:
+- Sign up
+- Log in
+- Log out
+- Reset password
+- Manage their account
+Technology
+Supabase Auth
+7. Workspace / Organization
+Users can create an organization or workspace.
+Example:
+ABC Software Agency
+
+Owner
+ ├── Project Manager
+ ├── Developer
+ └── Developer
+
+Each organization has isolated projects and data.
+Requirements
+- Create workspace
+- Add members
+- Assign basic roles
+- Manage project access
+8. Project Creation
+Users can create a project.
+Project information
+Project Name
+Client Name
+Client Email
+Project Description
+Start Date
+End Date
+Budget
+
+Example:
+Project:
+ABC E-Commerce Website
+
+Client:
+XYZ Pvt Ltd
+
+Budget:
+₹4,50,000
+
+Deadline:
+30 November 2026
+
+9. Project Scope
+The project scope is the baseline against which CommitCheck evaluates commitments.
+Users can enter or upload:
+- Statement of Work
+- Requirements
+- Deliverables
+- Features
+- Deadlines
+- Budget
+- Constraints
+- Approved changes
+Example:
+Approved Scope
+✓ Email/password login
+✓ Product catalogue
+✓ Shopping cart
+✓ Payment gateway
+✓ Admin dashboard
+
+Not included
+✗ Google Login
+✗ Mobile application
+✗ Advanced analytics
+
+This information becomes the project's reference point.
+10. Document Upload
+Users can upload project documents such as:
+- SOW
+- Requirements documents
+- Contracts
+- Specifications
+- PDFs
+- Screenshots
+Technology
+Supabase Storage
+11. PDF Processing
+When a PDF is uploaded:
+PDF
+ ↓
+Supabase Storage
+ ↓
+Backend
+ ↓
+PyMuPDF / pdfplumber
+ ↓
+Extracted Text
+ ↓
+AI Processing
+ ↓
+Project Knowledge
+
+Technologies
+- PyMuPDF
+- pdfplumber
+12. Meeting Input
+The MVP will not continuously monitor meetings.
+Instead, after a meeting, the user can provide:
+Option 1 — Paste summary
+Client requested Google Login.
+Rahul agreed to add it by Friday.
+
+Option 2 — Upload document
+The user can upload a meeting summary or transcript.
+Option 3 — Screenshot
+The user can upload screenshots of relevant notes or text.
+Option 4 — Future integration
+A future version can directly integrate with services such as Google Meet or other meeting platforms.
+13. OCR
+For screenshots or image-based documents, CommitCheck can extract text using:
+Google Vision API
+Example:
+Screenshot
+     ↓
+Google Vision OCR
+     ↓
+Extracted Text
+     ↓
+CommitCheck AI
+
+This is useful when the user has meeting notes or relevant evidence in image form.
+14. AI Commitment Detection
+This is the core functionality of the product.
+The AI analyzes the meeting content and identifies:
+Client request
+"Can we add Google Login?"
+
+Team commitment
+"Sure, I'll add it by Friday."
+
+Deliverable
+Google Login
+
+Deadline
+Friday
+
+Person responsible
+Rahul
+
+15. Requirement Detection
+The AI should also identify requirements that may not immediately be commitments.
+Example:
+"The client wants a dark mode option."
+
+The system records:
+Requirement:
+Dark Mode
+
+Source:
+Client Meeting
+
+Status:
+Needs Verification
+
+This allows the system to distinguish between:
+Request
+and
+Actual commitment
+16. Scope Verification
+After detecting a commitment, CommitCheck searches the project's approved scope.
+Example:
+Detected:
+Google Login
+
+Approved Scope:
+Google Login ❌
+
+Approved Changes:
+None ❌
+
+Authorization:
+Not found ❌
+
+Result:
+🚨 Potential Unauthorized Commitment
+
+17. Vector Search
+Large project documents should not need to be sent completely to the AI for every analysis.
+Instead:
+Project Documents
+       ↓
+Extract Text
+       ↓
+Split into chunks
+       ↓
+Generate embeddings
+       ↓
+Store vectors
+       ↓
+pgvector
+
+When a commitment is detected:
+"Google Login"
+
+       ↓
+
+Search relevant project context
+
+       ↓
+
+Authentication requirements
+
+       ↓
+
+AI comparison
+
+This makes retrieval more efficient and scalable.
+Technology
+pgvector
+18. Embeddings
+Embeddings convert project text into numerical representations that allow the system to find semantically relevant information.
+Options
+OpenAI Embeddings
+or
+Gemini Embeddings
+The implementation can select one based on the AI ecosystem and API availability during development.
+19. AI Model
+Technology
+Fireworks API
+The Fireworks API will provide the generative AI model used for:
+- Understanding meeting content
+- Detecting commitments
+- Extracting structured information
+- Comparing relevant context
+- Generating explanations
+- Generating change requests
+20. AI Analysis Pipeline
+Meeting Summary
+      ↓
+Text Processing
+      ↓
+Requirement Detection
+      ↓
+Commitment Detection
+      ↓
+Extract:
+ ├── What was promised?
+ ├── Who promised it?
+ ├── Deadline?
+ └── Feature / deliverable?
+      ↓
+Retrieve relevant project scope
+      ↓
+pgvector
+      ↓
+AI comparison
+      ↓
+Authorization verification
+      ↓
+Risk classification
+      ↓
+Result
+
+21. Example AI Output
+{
+  "is_commitment": true,
+  "commitment": "Add Google Login",
+  "committed_by": "Rahul",
+  "deadline": "Friday",
+  "scope_match": false,
+  "authorization_found": false,
+  "risk": "HIGH"
+}
+
+22. Risk Classification
+CommitCheck should not treat every AI detection as absolute truth.
+Instead, it provides a risk level.
+Risk	Meaning
+🟢 Low	Commitment appears authorized or within scope
+🟡 Medium	Ambiguous commitment or authorization
+🔴 High	Clear commitment outside scope with no approval
+
+
+The user can inspect the evidence before taking action.
+23. Evidence & Explainability
+One of the most important product features is showing why the AI reached its conclusion.
+Example:
+Commitment detected
+"I'll add Google Login by Friday."
+
+Relevant scope
+Approved authentication requirements include email/password login only.
+
+Authorization
+No approved change request found.
+
+Result
+Potential unauthorized commitment
+
+This makes the AI output much more trustworthy than simply displaying:
+"AI says this is unauthorized."
+
+24. Commitment Dashboard
+The dashboard provides a quick project overview.
+Example:
+COMMITCHECK
+
+Projects                         8
+
+Potential Commitments            12
+
+Unauthorized                    4
+
+Pending Approval                5
+
+Approved Changes                18
+
+25. Commitment Detail Page
+Example:
+Potential Unauthorized Commitment
+
+Project:
+ABC E-Commerce
+
+Commitment:
+"Google Login will be added by Friday."
+
+Committed By:
+Rahul
+
+Deadline:
+Friday
+
+Scope:
+Not included
+
+Authorization:
+Not found
+
+Risk:
+HIGH
+
+Actions
+[Create Change Request]
+
+[Mark as Authorized]
+
+[Dismiss]
+
+[View Evidence]
+
+26. Change Request
+When an unauthorized commitment is detected, the system can generate:
+CHANGE REQUEST
+
+Feature:
+Google Login
+
+Source:
+Client Meeting
+
+Committed By:
+Rahul
+
+Promised Deadline:
+Friday
+
+Original Scope:
+Not Included
+
+Estimated Effort:
+2 Days
+
+Status:
+Pending Approval
+
+27. Approval Workflow
+The project manager or authorized user can:
+Approve
+Pending
+   ↓
+Approved
+
+Reject
+Pending
+   ↓
+Rejected
+
+Request clarification
+Pending
+   ↓
+Needs Clarification
+
+28. Notifications
+When an important unauthorized commitment is detected:
+🚨 Potential unauthorized commitment detected.
+
+Notifications can be sent through:
+- In-app notifications
+- Email
+Technology
+Resend
+29. Audit Trail
+The system should maintain a history of important project events.
+Example:
+10:30 AM
+Client requested Google Login
+
+10:32 AM
+Developer committed to delivering it
+
+10:33 AM
+CommitCheck detected scope mismatch
+
+10:35 AM
+Change request created
+
+11:00 AM
+Project Manager approved request
+
+This creates a useful project history.
+30. Technology Stack
+Component	Technology
+Frontend	React + Vite
+UI	Tailwind CSS
+Backend	Node.js + NestJS
+Database	Supabase PostgreSQL
+Authentication	Supabase Auth
+File Storage	Supabase Storage
+Vector Search	pgvector
+AI Model	Fireworks API
+PDF Processing	PyMuPDF + pdfplumber
+OCR	Google Vision API
+Embeddings	OpenAI Embeddings / Gemini Embeddings
+Notifications	Resend
+Frontend Hosting	Vercel
+Backend Hosting	Railway / Render
+Version Control	Git + GitHub
+
+
+31. System Architecture
+                    ┌───────────────────┐
+                    │       USER        │
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                 ┌────────────────────────┐
+                 │ React + Vite Frontend  │
+                 │      Tailwind CSS      │
+                 └───────────┬────────────┘
+                             │
+                             ▼
+                 ┌────────────────────────┐
+                 │   NestJS Backend       │
+                 │      Node.js           │
+                 └───────────┬────────────┘
+                             │
+           ┌─────────────────┼──────────────────┐
+           │                 │                  │
+           ▼                 ▼                  ▼
+     Supabase DB        File Storage       AI Services
+     PostgreSQL         Supabase           Fireworks API
+           │                 │                  │
+           │                 │             Embeddings
+           │                 │                  │
+           │                 ▼                  │
+           │          PDF / OCR                 │
+           │      PyMuPDF/pdfplumber            │
+           │      Google Vision API             │
+           │                 │                  │
+           └─────────────────┼──────────────────┘
+                             │
+                             ▼
+                         pgvector
+                             │
+                             ▼
+                   Scope Retrieval
+                             │
+                             ▼
+                   Commitment Analysis
+                             │
+                             ▼
+                   Authorization Check
+                             │
+                ┌────────────┴────────────┐
+                │                         │
+            Authorized              Unauthorized
+                │                         │
+                ▼                         ▼
+            Continue                  Alert
+                                          │
+                                          ▼
+                                  Change Request
+                                          │
+                                          ▼
+                                      Approval
+
+32. Frontend Architecture
+React + Vite application structure:
+src/
+
+├── components/
+├── pages/
+├── layouts/
+├── hooks/
+├── services/
+├── contexts/
+├── utils/
+├── types/
+└── assets/
+
+Main pages
+/login
+/register
+
+/dashboard
+
+/projects
+/projects/:id
+
+/projects/:id/scope
+/projects/:id/documents
+/projects/:id/commitments
+/projects/:id/change-requests
+
+/commitments/:id
+/change-requests/:id
+
+/settings
+
+33. Backend Architecture
+NestJS modules:
+src/
+
+├── auth/
+├── users/
+├── organizations/
+├── projects/
+├── clients/
+├── documents/
+├── conversations/
+├── commitments/
+├── scope/
+├── change-requests/
+├── approvals/
+├── notifications/
+├── ai/
+├── embeddings/
+├── vector-search/
+└── audit/
+
+This modular structure allows additional integrations to be added later.
+34. Database Structure
+Main tables
+users
+organizations
+organization_members
+
+clients
+
+projects
+project_members
+
+project_scopes
+requirements
+
+documents
+document_chunks
+
+conversations
+messages
+
+commitments
+
+change_requests
+approvals
+
+audit_logs
+notifications
+
+embeddings / vector data
+
+35. Important Relationships
+Organization
+     │
+     ├── Users
+     │
+     ├── Clients
+     │
+     └── Projects
+             │
+             ├── Scope
+             ├── Requirements
+             ├── Documents
+             │       │
+             │       └── Vector Data
+             │
+             ├── Conversations
+             │       │
+             │       └── Messages
+             │
+             ├── Commitments
+             │
+             ├── Change Requests
+             │       │
+             │       └── Approvals
+             │
+             └── Audit Logs
+
+36. Core API Endpoints
+Authentication
+POST /auth/signup
+POST /auth/login
+POST /auth/logout
+
+Projects
+POST /projects
+GET /projects
+GET /projects/:id
+PATCH /projects/:id
+DELETE /projects/:id
+
+Documents
+POST /projects/:id/documents
+GET /projects/:id/documents
+DELETE /documents/:id
+
+Conversations
+POST /projects/:id/conversations
+GET /projects/:id/conversations
+GET /conversations/:id
+
+AI
+POST /conversations/:id/analyze
+
+Commitments
+GET /projects/:id/commitments
+GET /commitments/:id
+PATCH /commitments/:id
+
+Change Requests
+POST /commitments/:id/change-request
+GET /projects/:id/change-requests
+PATCH /change-requests/:id
+
+Approvals
+POST /change-requests/:id/approve
+POST /change-requests/:id/reject
+POST /change-requests/:id/clarification
+
+37. Privacy & Security
+Because the application processes potentially sensitive client information, privacy is a major product requirement.
+Principles
+- User-authorized input only
+- No continuous meeting monitoring in the MVP
+- Organization-level data isolation
+- Role-based access
+- Secure authentication
+- HTTPS
+- Secure file storage
+- Controlled access to uploaded documents
+- Data deletion capability
+- Audit logging
+- Minimum necessary data access
+User consent
+The user explicitly chooses to provide meeting information for analysis.
+The MVP does not secretly monitor or record meetings.
+38. What We Are NOT Building
+This distinction is important.
+CommitCheck is not:
+❌ A replacement for Google Meet
+❌ A replacement for Jira
+❌ A replacement for Slack
+❌ A project-management platform
+❌ A meeting recording platform
+❌ A continuous surveillance system
+❌ A legal decision-making system
+Instead:
+CommitCheck is a verification layer between client communication and project execution.
+
+39. MVP Scope
+For Hackloop, the MVP should focus on the core problem.
+Must Have
+- User authentication
+- Project creation
+- Project scope creation/upload
+- PDF processing
+- Meeting summary input
+- AI commitment detection
+- Scope verification
+- Authorization check
+- Risk classification
+- Evidence display
+- Unauthorized commitment alert
+- Change request generation
+- Approval/rejection
+- Dashboard
+Should Have
+- Screenshot OCR
+- Email notifications
+- pgvector retrieval
+- Audit history
+- Better risk scoring
+Do Not Build During MVP
+- Real-time meeting transcription
+- Full Google Meet integration
+- WhatsApp integration
+- Full Slack integration
+- Full Gmail integration
+- Full Jira integration
+- Mobile application
+- Custom foundation model
+- AI model training
+40. Hackathon Demo
+The strongest demo would be:
+Step 1 — Create Project
+ABC E-Commerce Website
+Budget: ₹4,50,000
+
+Step 2 — Upload Scope
+Approved:
+✓ Email login
+✓ Product catalogue
+✓ Cart
+✓ Payment
+✓ Admin dashboard
+
+Not included:
+Google Login
+
+Step 3 — Add Meeting Summary
+Client:
+Can we also add Google Login?
+
+Developer:
+Sure, I'll have it ready by Friday.
+
+Step 4 — Analyze
+Click:
+Analyze Meeting
+Step 5 — AI Result
+🚨 HIGH-RISK COMMITMENT
+
+Google Login
+
+Committed by:
+Developer
+
+Deadline:
+Friday
+
+Scope:
+Not included
+
+Authorization:
+Not found
+
+Step 6 — Show Evidence
+Conversation:
+"Sure, I'll have it ready by Friday."
+
+Scope:
+Google Login not found.
+
+Authorization:
+No approved change request found.
+
+Step 7 — Generate Change Request
+Google Login
+Estimated Effort: 2 Days
+Status: Pending Approval
+
+Step 8 — Approve
+✅ Approved
+
+The commitment is now authorized.
+
+That demonstrates the entire product in a few minutes.
+41. Future Integrations
+Once the core system is validated, the same engine can accept information from:
+Google Meet
+      │
+Slack ─┤
+      │
+Gmail ─┤
+      │
+Teams ─┤
+      │
+Other meeting tools
+      │
+      ▼
+   CommitCheck
+      │
+      ▼
+Commitment Verification
+
+And after approval:
+CommitCheck
+     ↓
+Jira / Linear / ClickUp
+     ↓
+Actual Work
+
+The important point is that these integrations do not change the core product.
+They simply provide additional sources of project communication.
+42. Product Differentiator
+CommitCheck is not another task-management application.
+The key difference is when it intervenes.
+Traditional workflow:
+Conversation → Someone promises work → Task gets created → Team builds it
+
+CommitCheck:
+Conversation → Commitment detected → Scope checked → Authorization verified → Work
+
+Therefore, the product addresses the moment when scope creep begins, rather than only managing the work afterward.
+43. Success Metrics
+Product metrics
+- Commitment detection accuracy
+- Unauthorized commitment detection accuracy
+- False-positive rate
+- Number of commitments detected
+- Number of unauthorized commitments identified
+- Number of change requests generated
+- Approval time
+Business metrics
+- Estimated unapproved effort prevented
+- Estimated financial impact prevented
+- Reduction in scope-related disputes
+- Time saved by project managers
+44. Future Roadmap
+Phase 1 — Hackathon MVP
+Meeting Summary
+      ↓
+AI Analysis
+      ↓
+Scope Verification
+      ↓
+Commitment Alert
+      ↓
+Change Request
+      ↓
+Approval
+
+Phase 2 — Integrations
+- Google Meet
+- Slack
+- Gmail
+- Microsoft Teams
+Phase 3 — Project Management
+- Jira
+- Linear
+- ClickUp
+Phase 4 — Advanced AI
+- Real-time transcript analysis
+- Automatic commitment monitoring
+- Better cost/effort estimation
+- Intelligent follow-ups
+- Automated approval routing
+45. Final Product Definition
+CommitCheck is an AI-powered web application that analyzes user-authorized client meeting summaries to identify requirements and commitments, compares them with the approved project scope, and detects potential unauthorized scope changes. When an unauthorized commitment is found, CommitCheck explains the evidence, alerts the project team, and generates a structured change request for approval before the work begins.
+
+The core equation
+Client Meeting
+↓
+Meeting Summary
+↓
+AI understands what was requested and promised
+↓
+Compare with approved scope
+↓
+Check authorization
+↓
+Authorized → Continue
+Unauthorized → Alert
+↓
+Change Request
+↓
+Human Approval
+↓
+Execution
+prd.txt
+24 KB
