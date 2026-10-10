@@ -144,7 +144,7 @@ export function AnalysisProgressModal({
                   >
                     <div className="mt-0.5">
                       {status === 'done' ? (
-                        <CircleCheck className="h-4 w-4 text-emerald-500" strokeWidth={1.8} />
+                        <CircleCheck className="h-4 w-4 text-emerald-500 animate-fade-in-scale" strokeWidth={1.8} />
                       ) : status === 'active' ? (
                         <div className="relative flex h-4 w-4 items-center justify-center">
                           <span className="absolute h-full w-full animate-ping rounded-full bg-primary/30" />

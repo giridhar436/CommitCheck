@@ -39,7 +39,7 @@ export function MeetingDetailDrawer({
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Drawer Container */}
-      <div className="relative z-10 flex h-full w-full max-w-xl flex-col bg-background border-l border-border/80 shadow-2xl animate-in slide-in-from-right duration-200">
+      <div className="relative z-10 flex h-full w-full max-w-xl flex-col bg-background border-l border-border/80 shadow-2xl animate-drawer-right">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
           <div className="flex items-center gap-2.5">

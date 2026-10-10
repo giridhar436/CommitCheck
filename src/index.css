@@ -174,11 +174,180 @@ body {
   color: var(--primary-foreground);
 }
 
-/* ——— Utility: Animate In ——— */
+/* ——— Unified SaaS Animation System (Linear / Vercel / Stripe Style) ——— */
+
+/* 1. Page / Route Transition (200ms subtle settle) */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 2. Dialog / Modal Transitions (180ms subtle scale & fade) */
+@keyframes dialog-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes dialog-content-in {
+  from {
+    opacity: 0;
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes dialog-content-out {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 0.98;
+  }
+}
+
+[data-slot="dialog-overlay"][data-state="open"] {
+  animation: dialog-overlay-in 180ms ease-out forwards;
+}
+[data-slot="dialog-overlay"][data-state="closed"] {
+  animation: dialog-overlay-out 150ms ease-in forwards;
+}
+
+[data-slot="dialog-content"][data-state="open"] {
+  animation: dialog-content-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+[data-slot="dialog-content"][data-state="closed"] {
+  animation: dialog-content-out 150ms ease-in forwards;
+}
+
+/* 3. Dropdown Menu / Select / Popover Transitions (140ms snappy scale & translate) */
+@keyframes dropdown-menu-in {
+  from {
+    opacity: 0;
+    scale: 0.98;
+    translate: 0 -4px;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes dropdown-menu-out {
+  from {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    scale: 0.98;
+    translate: 0 -4px;
+  }
+}
+
+[data-slot="dropdown-menu-content"][data-state="open"],
+[data-slot="select-content"][data-state="open"],
+[data-slot="popover-content"][data-state="open"] {
+  animation: dropdown-menu-in 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+[data-slot="dropdown-menu-content"][data-state="closed"],
+[data-slot="select-content"][data-state="closed"],
+[data-slot="popover-content"][data-state="closed"] {
+  animation: dropdown-menu-out 100ms ease-in forwards;
+}
+
+/* 4. Tooltip Transitions (120ms fast & subtle) */
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 2px;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes tooltip-out {
+  from {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 2px;
+  }
+}
+
+[data-slot="tooltip-content"][data-state="delayed-open"],
+[data-slot="tooltip-content"][data-state="instant-open"] {
+  animation: tooltip-in 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+[data-slot="tooltip-content"][data-state="closed"] {
+  animation: tooltip-out 80ms ease-in forwards;
+}
+
+/* 5. Drawer / Sheet Edge Slide Transitions (220ms smooth ease-out) */
+@keyframes drawer-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawer-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-drawer-right {
+  animation: drawer-slide-right 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-left {
+  animation: drawer-slide-left 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 6. General Purpose Micro-Animations */
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -189,7 +358,7 @@ body {
 @keyframes fade-in-scale {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.98);
   }
   to {
     opacity: 1;
@@ -209,23 +378,41 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
+  animation: fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in-scale {
-  animation: fade-in-scale 0.2s ease-out forwards;
+  animation: fade-in-scale 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out forwards;
+  animation: slide-in-right 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ——— Stagger animation delay utility ——— */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.10s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.20s; }
-.stagger-5 { animation-delay: 0.25s; }
+/* Stagger animation delay utility */
+.stagger-1 { animation-delay: 0.04s; }
+.stagger-2 { animation-delay: 0.08s; }
+.stagger-3 { animation-delay: 0.12s; }
+.stagger-4 { animation-delay: 0.16s; }
+.stagger-5 { animation-delay: 0.20s; }
+
+/* 7. Mandatory Accessibility: Prefers-Reduced-Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
 
 @theme inline {
   --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;

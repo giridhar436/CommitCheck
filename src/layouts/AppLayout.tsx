@@ -57,7 +57,9 @@ export function AppLayout() {
         <Topbar onOpenMobileNav={() => setMobileNavOpen(true)} />
 
         <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-y-auto">
-          <Outlet />
+          <div key={location.pathname} className="animate-page-enter min-w-0 flex-1">
+            <Outlet />
+          </div>
         </main>
       </div>
 

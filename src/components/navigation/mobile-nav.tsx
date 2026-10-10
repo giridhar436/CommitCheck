@@ -85,12 +85,12 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
     <div className="fixed inset-0 z-50 md:hidden">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-background/80 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-background/80 backdrop-blur-xs transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
       {/* Drawer Panel */}
-      <div className="fixed inset-y-0 left-0 flex w-72 flex-col border-r border-border/80 bg-sidebar text-sidebar-foreground shadow-xl animate-slide-in-right">
+      <div className="fixed inset-y-0 left-0 flex w-72 flex-col border-r border-border/80 bg-sidebar text-sidebar-foreground shadow-xl animate-drawer-left">
         {/* Drawer Header */}
         <div className="flex h-16 items-center justify-between border-b border-border/60 px-4">
           <Link to="/dashboard" className="flex items-center gap-2.5">

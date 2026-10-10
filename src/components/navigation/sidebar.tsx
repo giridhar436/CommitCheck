@@ -170,7 +170,7 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  'group flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors relative',
+                  'group flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors duration-150 relative',
                   active
                     ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-2xs'
                     : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
@@ -179,10 +179,10 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
                 title={collapsed ? item.title : undefined}
               >
                 {active && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary transition-all duration-200" />
                 )}
-                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} strokeWidth={1.8} />
-                {!collapsed && <span className="truncate flex-1">{item.title}</span>}
+                <Icon className={cn('h-4 w-4 shrink-0 transition-colors duration-150', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} strokeWidth={1.8} />
+                {!collapsed && <span className="truncate flex-1 transition-opacity duration-200">{item.title}</span>}
                 {!collapsed && item.badge && (
                   <span className="rounded-full bg-muted px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
                     {item.badge}
@@ -208,7 +208,7 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  'group flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors relative',
+                  'group flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors duration-150 relative',
                   active
                     ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-2xs'
                     : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
@@ -217,10 +217,10 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
                 title={collapsed ? item.title : undefined}
               >
                 {active && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary transition-all duration-200" />
                 )}
-                <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} strokeWidth={1.8} />
-                {!collapsed && <span className="truncate flex-1">{item.title}</span>}
+                <Icon className={cn('h-4 w-4 shrink-0 transition-colors duration-150', active ? 'text-primary' : 'text-muted-foreground group-hover:text-sidebar-foreground')} strokeWidth={1.8} />
+                {!collapsed && <span className="truncate flex-1 transition-opacity duration-200">{item.title}</span>}
                 {!collapsed && item.badge && (
                   <span
                     className={cn(
@@ -242,14 +242,14 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
         <Link
           to="/settings"
           className={cn(
-            'flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors',
+            'flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors duration-150',
             collapsed && 'justify-center px-0',
             isActive('/settings') && 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold',
           )}
           title={collapsed ? 'Settings' : undefined}
         >
           <Settings className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-          {!collapsed && <span className="truncate">Settings</span>}
+          {!collapsed && <span className="truncate transition-opacity duration-200">Settings</span>}
         </Link>
 
         {/* User Card */}
