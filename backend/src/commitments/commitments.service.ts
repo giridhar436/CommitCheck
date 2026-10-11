@@ -91,7 +91,9 @@ export class CommitmentsService {
           description: dto.description,
           speaker: dto.speaker,
           riskLevel: dto.riskLevel ?? RiskLevel.LOW,
-          authorizationStatus: dto.authorizationStatus ?? ApprovalStatus.PENDING,
+          // Phase 11 security: clients never set authorization directly —
+          // only an approved Change Request (or Phase 10 verification) can.
+          authorizationStatus: ApprovalStatus.PENDING,
           confidenceScore: dto.confidenceScore,
           evidenceReference: dto.evidenceReference,
         },
@@ -140,9 +142,6 @@ export class CommitmentsService {
         meeting: { connect: { id: dto.meetingId } },
       }),
       ...(dto.riskLevel !== undefined && { riskLevel: dto.riskLevel }),
-      ...(dto.authorizationStatus !== undefined && {
-        authorizationStatus: dto.authorizationStatus,
-      }),
       ...(dto.confidenceScore !== undefined && { confidenceScore: dto.confidenceScore }),
       ...(dto.evidenceReference !== undefined && { evidenceReference: dto.evidenceReference }),
     };

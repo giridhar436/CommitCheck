@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   CircleCheck,
   CircleX,
-  CircleHelp,
   TriangleAlert,
   Clock,
   User,
@@ -33,7 +32,7 @@ import { CreateChangeRequestDialog } from '@/components/commitments/create-chang
 import { commitmentService } from '@/services/commitments'
 import { projectService } from '@/services/projects'
 import { meetingService } from '@/services/meetings'
-import { changeRequestService } from '@/services/changeRequests'
+import { changeRequestService, isOpenChangeRequestStatus } from '@/services/changeRequests'
 import { verificationService } from '@/services/verification'
 import { formatDate } from '@/lib/utils'
 import type { Commitment, Project, Meeting, ChangeRequest, VerificationResult } from '@/types'
@@ -119,41 +118,9 @@ export function CommitmentDetailPage() {
     }
   }
 
-  // Mark Authorized action
-  const handleMarkAuthorized = async () => {
-    if (!commitment) return
-    try {
-      const updated = await commitmentService.updateStatus(commitment.projectId, commitment.id, 'authorized')
-      setCommitment(updated)
-      toast.success('Commitment marked as Authorized. Scope baseline updated.')
-    } catch {
-      toast.error('Failed to authorize commitment')
-    }
-  }
-
-  // Dismiss action
-  const handleDismiss = async () => {
-    if (!commitment) return
-    try {
-      const updated = await commitmentService.updateStatus(commitment.projectId, commitment.id, 'dismissed')
-      setCommitment(updated)
-      toast.info('Commitment dismissed from active scope creep tracking.')
-    } catch {
-      toast.error('Failed to dismiss commitment')
-    }
-  }
-
-  // Restore to needs review
-  const handleResetReview = async () => {
-    if (!commitment) return
-    try {
-      const updated = await commitmentService.updateStatus(commitment.projectId, commitment.id, 'needs_review')
-      setCommitment(updated)
-      toast.info('Status reset to Needs Review.')
-    } catch {
-      toast.error('Failed to update status')
-    }
-  }
+  // Phase 11 security: clients can no longer mark a commitment authorized
+  // directly — authorization is granted only by approving a Change Request
+  // (or automatically by verification for in-scope commitments).
 
   if (loading) return <LoadingState message="Loading commitment evidence & scope comparison..." />
   if (error || !commitment) {
@@ -582,8 +549,23 @@ export function CommitmentDetailPage() {
                 <span>{verifying ? 'Verifying…' : 'Verify Scope'}</span>
               </Button>
 
-              {/* Primary Action: Create Change Request */}
-              {commitment.status !== 'change_request_created' ? (
+              {/* Primary Action: Create Change Request — hidden while an
+                  open (pending/clarification) request already exists */}
+              {changeRequest && isOpenChangeRequestStatus(changeRequest.status) ? (
+                <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 p-3 text-xs text-violet-700 dark:text-violet-300 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <CircleCheck className="h-4 w-4" strokeWidth={1.8} /> Change Request Open
+                  </span>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-violet-600 dark:text-violet-400 font-bold text-xs"
+                    onClick={() => navigate(`/change-requests/${changeRequest.id}`)}
+                  >
+                    {changeRequest.changeRequestId}
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   className="w-full justify-center gap-2 font-semibold shadow-xs"
                   onClick={() => setCrDialogOpen(true)}
@@ -591,55 +573,18 @@ export function CommitmentDetailPage() {
                   <FilePenLine className="h-4 w-4" strokeWidth={1.8} />
                   <span>Create Change Request</span>
                 </Button>
-              ) : (
-                <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 p-3 text-xs text-violet-700 dark:text-violet-300 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 font-bold">
-                    <CircleCheck className="h-4 w-4" strokeWidth={1.8} /> Change Request Active
-                  </span>
-                  {changeRequest && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-violet-600 dark:text-violet-400 font-bold text-xs"
-                      onClick={() => navigate(`/change-requests/${changeRequest.id}`)}
-                    >
-                      {changeRequest.changeRequestId}
-                    </Button>
-                  )}
-                </div>
               )}
 
-              {/* Secondary Action: Mark Authorized */}
-              {commitment.authorization !== 'authorized' ? (
-                <Button
-                  variant="outline"
-                  className="w-full justify-center gap-2 text-xs border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
-                  onClick={handleMarkAuthorized}
-                >
-                  <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
-                  <span>Mark Authorized in Scope</span>
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full justify-center gap-2 text-xs"
-                  onClick={handleResetReview}
-                >
-                  <CircleHelp className="h-4 w-4" strokeWidth={1.8} />
-                  <span>Re-open for Review</span>
-                </Button>
-              )}
-
-              {/* Tertiary Action: Dismiss */}
-              {commitment.status !== 'dismissed' && (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-center text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                  onClick={handleDismiss}
-                >
-                  Dismiss Flag
-                </Button>
-              )}
+              {/* Authorization note — the backend does not accept direct
+                  authorization writes; approving a CR is the only path */}
+              <p className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" />
+                <span>
+                  Commitments become authorized only by approving their change
+                  request — there is no manual override. In-scope commitments are
+                  authorized automatically by scope verification.
+                </span>
+              </p>
             </CardContent>
           </Card>
 
@@ -658,7 +603,7 @@ export function CommitmentDetailPage() {
                 </p>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>ID: {changeRequest.changeRequestId}</span>
-                  <span>{changeRequest.estimatedEffort}</span>
+                  <span className="max-w-[50%] truncate">{changeRequest.meetingTitle ?? ''}</span>
                 </div>
                 <Button
                   variant="outline"

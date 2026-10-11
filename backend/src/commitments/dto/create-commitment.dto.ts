@@ -10,7 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { ApprovalStatus, RiskLevel } from '@prisma/client';
+import { RiskLevel } from '@prisma/client';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -43,11 +43,6 @@ export class CreateCommitmentDto {
   @IsOptional()
   @IsEnum(RiskLevel)
   riskLevel?: RiskLevel;
-
-  /** Defaults to PENDING when omitted; the AI pipeline owns later states. */
-  @IsOptional()
-  @IsEnum(ApprovalStatus)
-  authorizationStatus?: ApprovalStatus;
 
   /** AI confidence 0–1. */
   @IsOptional()

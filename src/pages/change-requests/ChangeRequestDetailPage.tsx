@@ -5,7 +5,6 @@ import {
   FilePenLine,
   Clock,
   FileText,
-  FileCheck2,
   TriangleAlert,
   CircleCheck,
   CircleX,
@@ -13,26 +12,35 @@ import {
   ExternalLink,
   Check,
   X,
+  ShieldCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { CopyButton } from '@/components/copy-button'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { StatusButton, type ButtonStatus } from '@/components/status-button'
+import { RiskBadge } from '@/components/ui/risk-badge'
 import { LifecycleStepper } from '@/components/change-requests/lifecycle-stepper'
 import { RejectionModal } from '@/components/change-requests/rejection-modal'
 import { ClarificationModal } from '@/components/change-requests/clarification-modal'
-import { changeRequestService } from '@/services/changeRequests'
+import { ApiError } from '@/services/api/client'
+import { changeRequestService, isOpenChangeRequestStatus } from '@/services/changeRequests'
 import { projectService } from '@/services/projects'
-import { commitmentService } from '@/services/commitments'
-import { scopeService } from '@/services/scope'
 import { formatDate } from '@/lib/utils'
-import type { ChangeRequest, Project, Commitment } from '@/types'
+import type { ChangeRequest, Project } from '@/types'
 
 export function ChangeRequestDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -40,14 +48,18 @@ export function ChangeRequestDetailPage() {
 
   const [changeRequest, setChangeRequest] = useState<ChangeRequest | null>(null)
   const [project, setProject] = useState<Project | null>(null)
-  const [commitment, setCommitment] = useState<Commitment | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Modals state
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false)
   const [clarificationModalOpen, setClarificationModalOpen] = useState(false)
+  const [approvalConfirmOpen, setApprovalConfirmOpen] = useState(false)
   const [approvalButtonStatus, setApprovalButtonStatus] = useState<ButtonStatus>('idle')
+
+  // Busy flags — action buttons disable while their request is in flight
+  const [rejecting, setRejecting] = useState(false)
+  const [clarifying, setClarifying] = useState(false)
 
   const fetchData = async () => {
     if (!id) return
@@ -60,14 +72,10 @@ export function ChangeRequestDetailPage() {
       }
       setChangeRequest(cr)
 
-      // Fetch related project & commitment
-      const [proj, comm] = await Promise.all([
-        projectService.getById(cr.projectId),
-        cr.commitmentId ? commitmentService.getById(cr.commitmentId) : Promise.resolve(null),
-      ])
-
+      // The project context (breadcrumb, nav) — the commitment context
+      // ships inside the change request detail payload itself.
+      const proj = await projectService.getById(cr.projectId)
       setProject(proj)
-      setCommitment(comm)
     } catch {
       setError('Failed to load change request details')
     } finally {
@@ -79,68 +87,77 @@ export function ChangeRequestDetailPage() {
     fetchData()
   }, [id])
 
-  // Approve action with StatusButton
+  const speaker = changeRequest?.commitment?.speaker ?? 'Unidentified speaker'
+
+  // Approve — the backend transactionally marks the change request APPROVED,
+  // authorizes the linked commitment (AUTHORIZED + risk LOW) and audits it.
   const handleApprove = async () => {
     if (!changeRequest) return
     try {
       setApprovalButtonStatus('loading')
-      const updated = await changeRequestService.updateStatus(changeRequest.id, 'approved')
+      const updated = await changeRequestService.approve(
+        changeRequest.projectId,
+        changeRequest.id,
+      )
       setChangeRequest(updated)
-
-      // Also mark linked commitment authorized if present
-      if (commitment) {
-        await commitmentService.updateStatus(commitment.projectId, commitment.id, 'authorized')
-      }
-
-      // Update approved scope baseline
-      try {
-        const existingReqs = await scopeService.getRequirements(changeRequest.projectId)
-        const match = existingReqs.find(
-          (r) => r.id === 'req-google-login-excluded' || r.name.toLowerCase().includes('google'),
-        )
-        if (match) {
-          await scopeService.updateRequirement(changeRequest.projectId, match.id, {
-            status: 'approved',
-            source: `Change Order ${updated.changeRequestId} (Signed by Marcus Vance)`,
-            description: `${match.description} — Officially approved and funded via Change Request ${updated.changeRequestId}.`,
-          })
-        } else {
-          await scopeService.addRequirement(changeRequest.projectId, {
-            name: changeRequest.feature || changeRequest.title,
-            description: `Approved scope addition via Change Order ${updated.changeRequestId}. Estimated effort: ${changeRequest.estimatedEffort || '2 Days'}.`,
-            category: 'Authentication',
-            priority: 'high',
-            status: 'approved',
-            source: `Change Order ${updated.changeRequestId}`,
-          })
-        }
-      } catch {
-        // Non-blocking
-      }
-
+      setApprovalConfirmOpen(false)
       setApprovalButtonStatus('success')
-      toast.success(`Change Request ${updated.changeRequestId} approved! Scope baseline updated.`)
-    } catch {
+      toast.success(
+        `Change Request ${updated.changeRequestId} approved — the linked commitment is now authorized.`,
+      )
+    } catch (err) {
       setApprovalButtonStatus('idle')
-      toast.error('Failed to approve change request')
+      setApprovalConfirmOpen(false)
+      toast.error(
+        err instanceof ApiError ? err.message : 'Failed to approve change request',
+      )
     }
   }
 
-  // Reject action
+  // Reject — commitment stays unauthorized with its risk unchanged
   const handleRejectConfirm = async (reason: string) => {
     if (!changeRequest) return
     try {
-      const updated = await changeRequestService.updateStatus(changeRequest.id, 'rejected', reason)
+      setRejecting(true)
+      const updated = await changeRequestService.reject(
+        changeRequest.projectId,
+        changeRequest.id,
+        reason,
+      )
       setChangeRequest(updated)
-      toast.info(`Change Request ${updated.changeRequestId} rejected.`)
-    } catch {
-      toast.error('Failed to reject change request')
+      toast.info(`Change Request ${updated.changeRequestId} rejected — commitment remains unauthorized.`)
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : 'Failed to reject change request',
+      )
+    } finally {
+      setRejecting(false)
     }
   }
 
-  // Clarification action
-  const handleClarificationConfirm = (_notes: string) => {
-    toast.success('Clarification request sent to client stakeholders!')
+  // Clarification — comment is required and appended to the existing thread
+  const handleClarificationConfirm = async (notes: string) => {
+    if (!changeRequest) return
+    if (!notes.trim()) {
+      toast.error('Please describe what needs clarification before sending.')
+      return
+    }
+    try {
+      setClarifying(true)
+      const updated = await changeRequestService.requestClarification(
+        changeRequest.projectId,
+        changeRequest.id,
+        notes.trim(),
+      )
+      setChangeRequest(updated)
+      toast.success('Clarification request sent — the comment was recorded on the change request.')
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : 'Failed to request clarification',
+      )
+    } finally {
+      setClarifying(false)
+    }
   }
 
   if (loading) return <LoadingState message="Loading change order lifecycle..." />
@@ -154,9 +171,11 @@ export function ChangeRequestDetailPage() {
     )
   }
 
-  const isPending = changeRequest.status === 'pending_approval'
-  const isApproved = changeRequest.status === 'approved' || changeRequest.status === 'implemented'
+  const isOpen = isOpenChangeRequestStatus(changeRequest.status)
+  const isApproved = changeRequest.status === 'approved'
   const isRejected = changeRequest.status === 'rejected'
+  const isClarification = changeRequest.status === 'clarification_requested'
+  const commitmentContext = changeRequest.commitment
 
   return (
     <div className="space-y-6 pb-16 animate-fade-in max-w-6xl mx-auto">
@@ -189,7 +208,7 @@ export function ChangeRequestDetailPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <span className="font-mono text-sm font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/80 flex items-center gap-1.5">
                 {changeRequest.changeRequestId}
                 <CopyButton text={changeRequest.changeRequestId} size="icon" className="h-5 w-5" />
@@ -204,31 +223,33 @@ export function ChangeRequestDetailPage() {
             </h1>
           </div>
 
-          {/* Quick Header CTAs if Pending */}
-          {isPending && (
+          {/* Quick Header CTAs if Open */}
+          {isOpen && (
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 className="gap-1 text-xs"
+                disabled={clarifying || rejecting}
                 onClick={() => setClarificationModalOpen(true)}
               >
                 <CircleHelp className="h-3.5 w-3.5" strokeWidth={1.8} />
-                <span>Clarification</span>
+                <span>{clarifying ? 'Sending…' : 'Clarification'}</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="gap-1 text-xs text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/10"
+                disabled={rejecting || clarifying}
                 onClick={() => setRejectionModalOpen(true)}
               >
                 <CircleX className="h-3.5 w-3.5" strokeWidth={1.8} />
-                <span>Reject</span>
+                <span>{rejecting ? 'Rejecting…' : 'Reject'}</span>
               </Button>
               <StatusButton
                 status={approvalButtonStatus}
                 onStatusChange={setApprovalButtonStatus}
-                onClick={handleApprove}
+                onClick={() => setApprovalConfirmOpen(true)}
                 className="gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
               >
                 <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
@@ -244,87 +265,98 @@ export function ChangeRequestDetailPage() {
 
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (8 cols): Specifications, Scope Baseline, Impact */}
+        {/* Left Column (8 cols): Specifications, Promise, Impact */}
         <div className="lg:col-span-8 space-y-6">
           {/* Card 1: Requested Scope Addendum Specifications */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
                   <FilePenLine className="h-4 w-4 text-primary" strokeWidth={1.8} />
                   Feature Specification & Scope
                 </CardTitle>
                 <Badge variant="outline" className="text-[11px] font-mono">
-                  {changeRequest.feature}
+                  {changeRequest.title}
                 </Badge>
               </div>
               <CardDescription className="text-xs">
-                Detailed scope deliverables proposed for client authorization.
+                Populated from the originating commitment — no field is client-authored.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl border border-border/70 bg-card p-4 space-y-2 text-xs shadow-2xs leading-relaxed text-foreground">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Feature Description
+                  Requested Feature
                 </h4>
                 <p className="text-sm font-medium">
-                  {changeRequest.feature}
+                  {changeRequest.title}
                 </p>
                 <p className="text-muted-foreground pt-1">
-                  Ingested from: <span className="font-medium text-foreground">{changeRequest.source}</span>
+                  Source meeting: <span className="font-medium text-foreground">{changeRequest.meetingTitle ?? 'Unrecorded meeting'}</span>
                 </p>
               </div>
 
-              {/* Side-by-side Scope Baseline Comparison */}
+              {/* What was promised & why it needs approval */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                 <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3.5 space-y-1.5">
                   <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <FileCheck2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    Original Scope Baseline
+                    <FileText className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    What Was Promised
                   </span>
                   <p className="text-xs font-medium text-foreground leading-relaxed">
-                    {changeRequest.originalScope}
+                    {changeRequest.description ?? 'No description recorded.'}
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-violet-500/25 bg-violet-500/5 p-3.5 space-y-1.5">
                   <span className="text-[11px] font-bold text-violet-700 dark:text-violet-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <FilePenLine className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    Proposed Change Addendum
+                    <TriangleAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Why It Requires Approval
                   </span>
                   <p className="text-xs font-medium text-foreground leading-relaxed">
-                    Integrate Google OAuth Single Sign-On and auto-link user profiles during checkout.
+                    The commitment falls outside the approved scope baseline and is
+                    not yet authorized. Only approving this change request (or a
+                    scope update by the client) authorizes the work.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Card 2: Architecture & Delivery Impact */}
+          {/* Card 2: Verification Context */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <TriangleAlert className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
-                Technical & Delivery Impact Analysis
+                <ShieldCheck className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
+                Scope Verification Context
               </CardTitle>
               <CardDescription className="text-xs">
-                Engineering implications, third-party dependencies, and sprint schedule adjustments.
+                Live verdict on the linked commitment from deterministic verification.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-xs leading-relaxed text-foreground">
-              <div className="rounded-xl border border-border/70 bg-card p-4 space-y-2 shadow-2xs">
-                <p className="text-sm leading-relaxed">
-                  {changeRequest.impact}
-                </p>
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                    Commitment Risk
+                  </span>
+                  {commitmentContext ? (
+                    <RiskBadge level={commitmentContext.riskLevel.toLowerCase() as 'low' | 'medium' | 'high'} />
+                  ) : (
+                    <span className="text-sm font-bold text-foreground">—</span>
+                  )}
+                </div>
+
                 <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
-                    Engineering Effort
+                    Authorization
                   </span>
                   <span className="text-sm font-bold text-foreground mt-0.5 block">
-                    {changeRequest.estimatedEffort || '18 hours'}
+                    {commitmentContext?.authorizationStatus === 'AUTHORIZED'
+                      ? 'Authorized'
+                      : commitmentContext?.authorizationStatus === 'PENDING'
+                        ? 'Pending review'
+                        : 'Unauthorized'}
                   </span>
                 </div>
 
@@ -333,24 +365,27 @@ export function ChangeRequestDetailPage() {
                     Promised Delivery
                   </span>
                   <span className="text-sm font-bold text-foreground mt-0.5 block">
-                    {changeRequest.promisedDeadline || 'Friday close'}
-                  </span>
-                </div>
-
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
-                    Budget Authorization
-                  </span>
-                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
-                    $2,250 Addendum
+                    Not specified
                   </span>
                 </div>
               </div>
+
+              {isClarification && changeRequest.clarificationComment && (
+                <div className="rounded-xl border border-blue-500/25 bg-blue-500/5 p-3 space-y-1">
+                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <CircleHelp className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Clarification Thread
+                  </span>
+                  <p className="text-xs text-foreground leading-relaxed whitespace-pre-line">
+                    {changeRequest.clarificationComment}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Card 3: Verbatim Evidence & Linked Commitment */}
-          {commitment && (
+          {/* Card 3: Originating Commitment */}
+          {commitmentContext && (
             <Card className="border-border/80 shadow-xs">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -362,7 +397,7 @@ export function ChangeRequestDetailPage() {
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs text-primary gap-1"
-                    onClick={() => navigate(`/commitments/${commitment.id}`)}
+                    onClick={() => navigate(`/commitments/${commitmentContext.id}`)}
                   >
                     <span>View Commitment</span>
                     <ExternalLink className="h-3 w-3" />
@@ -372,15 +407,15 @@ export function ChangeRequestDetailPage() {
               <CardContent className="space-y-3">
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono font-bold text-foreground">
-                      {commitment.commitmentId}
+                    <span className="font-medium text-foreground">
+                      {commitmentContext.title}
                     </span>
                     <span className="text-muted-foreground">
-                      Spoken by {commitment.committedBy}
+                      Spoken by {commitmentContext.speaker ?? 'an unidentified speaker'}
                     </span>
                   </div>
-                  <p className="font-serif italic text-sm text-foreground">
-                    {commitment.evidence}
+                  <p className="text-[11px] text-muted-foreground">
+                    Detected during "{changeRequest.meetingTitle ?? 'an unrecorded meeting'}"
                   </p>
                 </div>
               </CardContent>
@@ -398,7 +433,7 @@ export function ChangeRequestDetailPage() {
                 Client Approval Sign-Off
               </CardTitle>
               <CardDescription className="text-xs">
-                Legally binding authorization before work implementation.
+                Approving authorizes the linked commitment for implementation.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -409,11 +444,12 @@ export function ChangeRequestDetailPage() {
                     <span>Change Request Approved</span>
                   </div>
                   <p className="text-muted-foreground leading-relaxed">
-                    Authorized by <strong className="text-foreground">{changeRequest.approvedBy || 'Marcus Vance (Client VP)'}</strong> on {formatDate(changeRequest.approvedAt || changeRequest.updatedAt)}.
+                    Approved on {formatDate(changeRequest.updatedAt)}.
+                    {changeRequest.decisionReason ? ` Reason: "${changeRequest.decisionReason}"` : ''}
                   </p>
                   <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pt-1 flex items-center gap-1">
                     <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-                    <span>Scope baseline updated. Team is authorized to proceed with implementation.</span>
+                    <span>The linked commitment is authorized and its risk is now LOW. Team may proceed with implementation.</span>
                   </p>
                 </div>
               ) : isRejected ? (
@@ -422,33 +458,41 @@ export function ChangeRequestDetailPage() {
                     <CircleX className="h-5 w-5 text-red-600 dark:text-red-400" strokeWidth={1.8} />
                     <span>Change Request Rejected</span>
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Rejected by <strong className="text-foreground">{changeRequest.rejectedBy || 'Marcus Vance (Client VP)'}</strong>:
-                  </p>
+                  <p className="text-muted-foreground leading-relaxed">Rejection reason:</p>
                   <p className="italic text-foreground bg-muted/40 p-2 rounded-lg border border-border/70">
-                    "{changeRequest.rejectionReason || 'Scope postponed to Phase 2 roadmap'}"
+                    "{changeRequest.decisionReason || 'No reason recorded'}"
                   </p>
                   <p className="text-[11px] text-red-600 dark:text-red-400 font-medium pt-1 flex items-center gap-1">
                     <X className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-                    <span>Work will not be executed. Scope creep successfully deflected.</span>
+                    <span>The commitment stays unauthorized with its original risk level. A new request may be generated after re-negotiation.</span>
                   </p>
                 </div>
               ) : (
-                /* Pending state interactive actions */
+                /* Open state interactive actions */
                 <div className="space-y-3">
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                  <div className={`rounded-xl border p-3 text-xs space-y-1 ${isClarification ? 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'}`}>
                     <p className="font-bold flex items-center gap-1.5">
-                      <Clock className="h-4 w-4" strokeWidth={1.8} /> Awaiting Client Signature
+                      {isClarification ? (
+                        <>
+                          <CircleHelp className="h-4 w-4" strokeWidth={1.8} /> Clarification Requested
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="h-4 w-4" strokeWidth={1.8} /> Awaiting Client Signature
+                        </>
+                      )}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Client approval is required before developers commence task implementation.
+                      {isClarification
+                        ? 'You can still approve or reject while clarification is outstanding; the comment thread is preserved.'
+                        : 'Approval authorizes the linked commitment; rejection keeps it unauthorized.'}
                     </p>
                   </div>
 
                   <StatusButton
                     status={approvalButtonStatus}
                     onStatusChange={setApprovalButtonStatus}
-                    onClick={handleApprove}
+                    onClick={() => setApprovalConfirmOpen(true)}
                     className="w-full justify-center gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                   >
                     <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
@@ -458,18 +502,20 @@ export function ChangeRequestDetailPage() {
                   <Button
                     variant="outline"
                     className="w-full justify-center gap-2 text-xs"
+                    disabled={clarifying || rejecting}
                     onClick={() => setClarificationModalOpen(true)}
                   >
                     <CircleHelp className="h-4 w-4" strokeWidth={1.8} />
-                    <span>Request Client Clarification</span>
+                    <span>{clarifying ? 'Sending…' : 'Request Client Clarification'}</span>
                   </Button>
 
                   <Button
                     variant="ghost"
                     className="w-full justify-center text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                    disabled={rejecting || clarifying}
                     onClick={() => setRejectionModalOpen(true)}
                   >
-                    Reject Scope Change
+                    {rejecting ? 'Rejecting…' : 'Reject Scope Change'}
                   </Button>
                 </div>
               )}
@@ -486,12 +532,14 @@ export function ChangeRequestDetailPage() {
             <CardContent className="space-y-3 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Committed By</span>
-                <span className="font-medium text-foreground">{changeRequest.committedBy}</span>
+                <span className="font-medium text-foreground">{speaker}</span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Target Deadline</span>
-                <span className="font-medium text-foreground">{changeRequest.promisedDeadline || 'Sprint Close'}</span>
+                <span className="text-muted-foreground">Source Meeting</span>
+                <span className="font-medium text-foreground max-w-[55%] text-right truncate">
+                  {changeRequest.meetingTitle ?? 'Unrecorded meeting'}
+                </span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -507,6 +555,55 @@ export function ChangeRequestDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Approval Confirmation — explains the authorization side effect */}
+      <Dialog open={approvalConfirmOpen} onOpenChange={setApprovalConfirmOpen}>
+        <DialogContent className="max-w-md border-border/80 bg-background/98 p-6 shadow-2xl sm:rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+              <div>
+                <DialogTitle className="text-base font-bold">Approve this Change Request?</DialogTitle>
+                <DialogDescription className="text-xs">
+                  This action has a direct effect on the linked commitment.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+            <p>
+              Approving <span className="font-semibold text-foreground">{changeRequest.changeRequestId}</span> will
+              immediately <span className="font-semibold text-foreground">authorize the linked commitment</span>:
+              its authorization status becomes AUTHORIZED and its risk level is set to LOW. This
+              happens in a single backend transaction and is recorded in the audit trail.
+            </p>
+            <p>
+              The linked commitment: <span className="font-medium text-foreground">{changeRequest.title}</span>
+            </p>
+          </div>
+          <DialogFooter className="pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={approvalButtonStatus === 'loading'}
+              onClick={() => setApprovalConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <StatusButton
+              status={approvalButtonStatus}
+              onStatusChange={setApprovalButtonStatus}
+              onClick={handleApprove}
+              className="gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+            >
+              <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
+              <span>Approve & Authorize</span>
+            </StatusButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Rejection Modal */}
       <RejectionModal

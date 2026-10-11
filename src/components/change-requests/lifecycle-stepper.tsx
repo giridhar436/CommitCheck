@@ -5,6 +5,7 @@ import {
   FilePenLine,
   CircleCheck,
   CircleX,
+  CircleHelp,
   Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -52,27 +53,33 @@ export function LifecycleStepper({ status, className }: LifecycleStepperProps) {
           ? 'Approved'
           : status === 'rejected'
             ? 'Rejected'
-            : status === 'implemented'
-              ? 'Implemented'
-              : 'Client Approval',
+            : status === 'clarification_requested'
+              ? 'Clarification Requested'
+              : status === 'cancelled'
+                ? 'Cancelled'
+                : 'Client Approval',
       sublabel:
         status === 'approved'
-          ? 'Signed & baseline updated'
+          ? 'Commitment authorized for work'
           : status === 'rejected'
-            ? 'Deflected to Phase 2'
-            : status === 'implemented'
-              ? 'Work completed'
-              : 'Awaiting client sign-off',
+            ? 'Commitment stays unauthorized'
+            : status === 'clarification_requested'
+              ? 'Awaiting answers — comment thread kept'
+              : status === 'cancelled'
+                ? 'Withdrawn'
+                : 'Awaiting client sign-off',
       icon:
-        status === 'approved' || status === 'implemented'
+        status === 'approved'
           ? CircleCheck
-          : status === 'rejected'
+          : status === 'rejected' || status === 'cancelled'
             ? CircleX
-            : Clock,
+            : status === 'clarification_requested'
+              ? CircleHelp
+              : Clock,
       state:
-        status === 'approved' || status === 'implemented'
+        status === 'approved'
           ? 'approved'
-          : status === 'rejected'
+          : status === 'rejected' || status === 'cancelled'
             ? 'rejected'
             : 'pending',
     },

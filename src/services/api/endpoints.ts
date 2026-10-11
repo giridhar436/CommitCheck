@@ -77,4 +77,16 @@ export const endpoints = {
     delete: (projectId: string, commitmentId: string, id: string) =>
       `/projects/${projectId}/commitments/${commitmentId}/evidence/${id}`,
   },
+  // ——— Change Requests (nested under project; Phase 11) ———
+  changeRequests: {
+    list: (projectId: string) => `/projects/${projectId}/change-requests`,
+    detail: (projectId: string, id: string) => `/projects/${projectId}/change-requests/${id}`,
+    // Generation from a commitment — the endpoint takes no body at all
+    generate: (projectId: string, commitmentId: string) =>
+      `/projects/${projectId}/commitments/${commitmentId}/change-request`,
+    approve: (projectId: string, id: string) => `/projects/${projectId}/change-requests/${id}/approve`,
+    reject: (projectId: string, id: string) => `/projects/${projectId}/change-requests/${id}/reject`,
+    clarification: (projectId: string, id: string) =>
+      `/projects/${projectId}/change-requests/${id}/clarification`,
+  },
 } as const

@@ -47,6 +47,14 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     label: 'Implemented',
     className: 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400 dark:border-purple-400/20',
   },
+  clarification_requested: {
+    label: 'Clarification Requested',
+    className: 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400 dark:border-blue-400/20',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20 dark:text-zinc-400 dark:border-zinc-400/20',
+  },
 
   // Authorization
   pending: {

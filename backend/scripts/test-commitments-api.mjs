@@ -206,8 +206,12 @@ try {
   check('unknown property → 400', r.status === 400);
 
   console.log('\n——— PATCH ———');
-  r = await req('PATCH', commitments(NOVA_ID) + `/${createdId}`, { title: 'Ship dark mode v2', authorizationStatus: 'AUTHORIZED' });
-  check('PATCH valid → 200 + status updated', r.status === 200 && r.json.data.title === 'Ship dark mode v2' && r.json.data.authorizationStatus === 'AUTHORIZED');
+  // Phase 11 security: clients can no longer write authorizationStatus —
+  // only an approved Change Request (or Phase 10 verification) authorizes.
+  r = await req('PATCH', commitments(NOVA_ID) + `/${createdId}`, { authorizationStatus: 'AUTHORIZED' });
+  check('PATCH authorizationStatus → 400 (no direct authorization)', r.status === 400);
+  r = await req('PATCH', commitments(NOVA_ID) + `/${createdId}`, { title: 'Ship dark mode v2' });
+  check('PATCH valid → 200 + title updated, authorization untouched', r.status === 200 && r.json.data.title === 'Ship dark mode v2' && r.json.data.authorizationStatus === 'PENDING');
   r = await req('GET', commitments(NOVA_ID) + `/${createdId}`);
   check('PATCH logs COMMITMENT_UPDATED', r.json.data.latestActivity?.action === 'COMMITMENT_UPDATED', JSON.stringify(r.json.data.latestActivity));
 

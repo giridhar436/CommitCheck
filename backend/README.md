@@ -62,7 +62,9 @@ backend/
 ├── prisma/
 │   ├── migrations/
 │   │   ├── 20261011000000_init/                 # Initial schema (tables, enums, FKs, indexes)
-│   │   └── 20261011000001_add_project_activity_actions/
+│   │   ├── …20261011000006_add_evidence_activity_actions/
+│   │   ├── 20261011000007_add_commitment_verified_action/
+│   │   └── 20261011000008_add_change_request_workflow_fields/  # CLARIFICATION_REQUESTED + audit action + clarification_comment
 │   ├── schema.prisma                # 9 models · 10 enums · full relation graph
 │   └── seed.ts                      # Interconnected demo data (2 projects)
 ├── src/
@@ -110,6 +112,12 @@ backend/
 │   │   ├── scope-verification.controller.ts   # /api/projects/:projectId/commitments/:id/verify
 │   │   ├── scope-verification.module.ts
 │   │   └── scope-verification.service.ts      # Scope match + authorization + risk rules
+│   ├── change-requests/
+│   │   ├── dto/                     # Action/Query/Response/Detail DTOs
+│   │   ├── change-requests.controller.ts      # List/detail/approve/reject/clarification
+│   │   ├── commitment-change-requests.controller.ts  # POST …/commitments/:id/change-request
+│   │   ├── change-requests.module.ts
+│   │   └── change-requests.service.ts         # Generation rules + transactional lifecycle
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
@@ -122,7 +130,8 @@ backend/
 │   ├── test-evidence-api.mjs        # End-to-end Commitment Evidence tests (55 checks)
 │   ├── test-analysis-api.mjs        # End-to-end Meeting Analysis tests (42 checks)
 │   ├── test-fireworks-provider.mjs  # Fireworks provider tests, stubbed HTTP (46 checks)
-│   └── test-verification-api.mjs    # End-to-end Scope Verification tests (48 checks)
+│   ├── test-verification-api.mjs    # End-to-end Scope Verification tests (48 checks)
+│   └── test-change-requests-api.mjs # End-to-end Change Request workflow tests (67 checks)
 ├── .env.example
 └── package.json
 ```
@@ -373,6 +382,112 @@ via the commitment detail (`latestActivity`, `riskLevel`,
 
 Run `node scripts/test-verification-api.mjs` for the 48-check Phase 10 suite
 (matcher unit checks + full API behavior; never calls the real Fireworks API).
+
+## Change Request Generation & Approval Workflow (Phase 11)
+
+Dedicated `change-requests` module on the **existing** `ChangeRequest` model
+(no new table). A change request is generated from a flagged commitment,
+reviewed by the client, and **approving it is the only client-facing action
+that authorizes a commitment**.
+
+```
+POST   /api/projects/:projectId/commitments/:commitmentId/change-request   # generate (201)
+GET    /api/projects/:projectId/change-requests                            # paginated list
+GET    /api/projects/:projectId/change-requests/:changeRequestId           # detail + context
+POST   /api/projects/:projectId/change-requests/:changeRequestId/approve   # 200
+POST   /api/projects/:projectId/change-requests/:changeRequestId/reject    # 200
+POST   /api/projects/:projectId/change-requests/:changeRequestId/clarification # 200
+```
+
+### Lifecycle (state machine)
+
+`PENDING → APPROVED | REJECTED | CLARIFICATION_REQUESTED` — every transition
+out of an open state is claimed with a conditional update, so concurrent
+decisions produce exactly one winner (loser gets `409`). `PENDING` is the
+existing "pending approval" state; `CLARIFICATION_REQUESTED` is still open and
+accepts approve/reject/another clarification. `APPROVED`, `REJECTED` and
+`CANCELLED` are terminal (`409` on any further transition). Invalid transitions
+include APPROVED→REJECTED and REJECTED→APPROVED.
+
+### Generation rules (no client-authored facts)
+
+The generate endpoint takes **no body**. Every field is derived from database
+state: `title`/feature = the commitment's title, `source` = the meeting,
+`committedBy` = the speaker, `description` = what was promised and why it
+requires approval (from the Phase 10 verification explanation). Missing values
+are `null` — nothing is invented. A request is generated only when **all** hold:
+
+- The commitment is **HIGH** risk, **out of scope** (`scopeMatch === false`)
+  and **not already authorized** (live Phase 10 verification decides).
+- No **open** (pending/clarification) change request already exists for it.
+
+Otherwise `409` with the reason: in-scope or already-authorized → "unnecessary";
+ambiguous (`scopeMatch === null`) → resolve the verification first; duplicate →
+existing open request. A **REJECTED** request does not block a new one
+(rejection is terminal; a re-negotiated promise becomes a fresh request).
+
+### Approval authorizes (single transaction)
+
+`POST .../approve` runs in one interactive transaction: claim the CR →
+`APPROVED`, update the linked commitment → `authorizationStatus AUTHORIZED` +
+`riskLevel LOW`, write the `CHANGE_REQUEST_APPROVED` audit entry. **If any step
+fails, the whole transaction rolls back** — no partial state. The AI provider
+is never called and Phase 9 output is never consulted: the database action is
+the authority. Clients cannot authorize a commitment directly — the commitment
+PATCH/POST DTOs no longer accept `authorizationStatus` (`400`), and the
+analysis pipeline already hardcodes `PENDING`.
+
+### Rejection & clarification
+
+- **Reject** (optional reason ≤ 2000 chars): CR → `REJECTED`, commitment stays
+  unauthorized with its risk unchanged, nothing is deleted, audit entry written
+  with the reason.
+- **Clarification** (comment **required**): CR → `CLARIFICATION_REQUESTED`;
+  the comment is appended to `clarificationComment` (`---`-separated) so
+  previous comments are never lost; commitment untouched, risk not downgraded;
+  audited as `CHANGE_REQUEST_CLARIFICATION_REQUESTED` (the only new enum values
+  in this phase's additive migration, alongside the new nullable column).
+
+### Example responses
+
+```json
+// POST .../commitments/:id/change-request → 201
+{
+  "success": true,
+  "message": "Change request generated",
+  "data": {
+    "id": "0f8b1c2e-…",
+    "projectId": "…", "commitmentId": "…",
+    "title": "Add Telegram bot alerts for deployments",
+    "description": "Promised by Priya during \"Sprint 4 Review\": … falls outside the approved scope and has no approved authorization.",
+    "status": "PENDING",
+    "approvalReason": null,
+    "clarificationComment": null,
+    "createdAt": "2026-10-11T10:30:00.000Z",
+    "updatedAt": "2026-10-11T10:30:00.000Z",
+    "commitment": { "id": "…", "title": "…", "speaker": "Priya", "riskLevel": "HIGH", "authorizationStatus": "UNAUTHORIZED", "meetingId": "…" },
+    "meetingTitle": "Sprint 4 Review — Client Sync"
+  }
+}
+```
+
+```json
+// POST .../approve → 200 (commitment is now AUTHORIZED/LOW in the same tx)
+{
+  "success": true,
+  "message": "Change request approved — commitment authorized",
+  "data": { "…same shape…", "status": "APPROVED" }
+}
+```
+
+Errors follow the global envelope: `404` for missing/cross-project entities,
+`400` for validation, `409` with an explanatory message for unnecessary or
+duplicate generation and for closed change requests.
+
+Run `node scripts/test-change-requests-api.mjs` for the 67-check Phase 11
+suite (generation rules, lifecycle, authorization side effects, injected
+mid-transaction failure rollback, concurrent-approve race; never calls the
+real Fireworks API).
 
 ## Data model (business flow)
 

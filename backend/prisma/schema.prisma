@@ -67,6 +67,7 @@ enum ChangeRequestStatus {
   APPROVED
   REJECTED
   CANCELLED
+  CLARIFICATION_REQUESTED
 }
 
 enum DocumentType {
@@ -114,6 +115,7 @@ enum ActivityAction {
   CHANGE_REQUEST_APPROVED
   CHANGE_REQUEST_REJECTED
   CHANGE_REQUEST_CANCELLED
+  CHANGE_REQUEST_CLARIFICATION_REQUESTED
 }
 
 enum ActivityEntityType {
@@ -264,6 +266,7 @@ model ChangeRequest {
   description    String?             @db.Text
   status         ChangeRequestStatus @default(PENDING)
   approvalReason String?             @map("approval_reason") @db.Text
+  clarificationComment String?       @map("clarification_comment") @db.Text
   createdAt      DateTime            @default(now()) @map("created_at")
   updatedAt      DateTime            @updatedAt @map("updated_at")
 

@@ -1,106 +1,125 @@
 /* ——————————————————————————————————————————————————
- * CommitCheck — Change Requests Service
+ * CommitCheck — Change Requests Service (Phase 11)
  *
- * ⚠️ LOCAL-ONLY: the backend has no Change Requests module
- * yet (the Prisma model exists but no controller/service).
- * Until that module ships, change requests run on an
- * in-memory store seeded below. Replace with real API
- * calls once /projects/:projectId/change-requests exists.
+ * Talks to the live NestJS workflow:
+ *  - POST /projects/:projectId/commitments/:commitmentId/change-request
+ *    (generation — takes no body: every field is authored by the
+ *     backend from the commitment + its Phase 10 verification)
+ *  - GET  /projects/:projectId/change-requests (paginated list)
+ *  - GET  /projects/:projectId/change-requests/:id (detail with context)
+ *  - POST .../approve | .../reject | .../clarification
+ *    (approval transactionally authorizes the linked commitment)
+ * The backend only exposes nested routes, so flat lookups probe
+ * each project — same strategy as the commitments service.
  * —————————————————————————————————————————————————— */
 
 import type { ChangeRequest, ChangeRequestStatus } from '@/types'
-import { generateId } from '@/lib/utils'
+import { apiClient } from '@/services/api/client'
+import { endpoints } from '@/services/api/endpoints'
+import { projectService } from '@/services/projects'
+import {
+  unwrap,
+  unwrapList,
+  mapChangeRequest,
+  type BackendEnvelope,
+  type BackendPaginated,
+  type BackendChangeRequest,
+} from '@/services/api/adapters'
 
-let changeRequestsStore: ChangeRequest[] = [
-  {
-    id: 'cr-google-login',
-    changeRequestId: 'CR-3B7F21',
-    projectId: 'proj-abc-ecommerce',
-    commitmentId: 'comm-google-login',
-    title: 'Google OAuth Single Sign-On Integration',
-    feature: 'Google OAuth 2.0 Login & Account Linking',
-    source: 'Sprint 3 Check-in Meeting (March 12, 2025)',
-    committedBy: 'Rahul Mehta',
-    promisedDeadline: 'Friday, March 14',
-    originalScope:
-      'SOW Section 3.1 covers Email and Password authentication only. Third-party federated identity providers were excluded from Phase 1.',
-    estimatedEffort: '18 hours (2.5 engineering days)',
-    impact:
-      'Requires Google Cloud Console OAuth consent screen verification, Passport.js/OAuth strategy integration, database user schema migration to store federated sub IDs, and checkout login modal UI changes.',
-    status: 'pending_approval',
-    createdAt: '2025-03-12T10:35:00Z',
-    updatedAt: '2025-03-12T10:35:00Z',
-  },
-]
+async function fetchProjectPage(projectId: string): Promise<ChangeRequest[]> {
+  const envelope = await apiClient.get<
+    BackendEnvelope<BackendPaginated<BackendChangeRequest>>
+  >(endpoints.changeRequests.list(projectId), { params: { limit: 100 } })
+  return unwrapList(envelope).map(mapChangeRequest)
+}
 
 export const changeRequestService = {
+  /** Change requests for one project, or across all projects when no
+   *  projectId is given (dashboard aggregates). */
   async getAll(projectId?: string): Promise<ChangeRequest[]> {
-    if (!projectId) return [...changeRequestsStore]
-    return changeRequestsStore.filter((cr) => cr.projectId === projectId)
+    if (projectId) return fetchProjectPage(projectId)
+
+    const projects = await projectService.getAll()
+    const pages = await Promise.all(projects.map((p) => fetchProjectPage(p.id)))
+    return pages.flat()
   },
 
-  async getById(id: string): Promise<ChangeRequest | null> {
-    return (
-      changeRequestsStore.find(
-        (cr) => cr.id === id || cr.changeRequestId === id,
-      ) ?? null
-    )
-  },
+  /** Detail payload with the originating commitment + meeting context.
+   *  The route is nested under the project, but the detail page routes
+   *  by change request id alone — resolve the project by probing. */
+  async getById(id: string, projectId?: string): Promise<ChangeRequest | null> {
+    const detail = async (pid: string) =>
+      mapChangeRequest(
+        unwrap(
+          await apiClient.get<BackendEnvelope<BackendChangeRequest>>(
+            endpoints.changeRequests.detail(pid, id),
+          ),
+        ),
+      )
 
-  async create(data: Partial<ChangeRequest>): Promise<ChangeRequest> {
-    const newCr: ChangeRequest = {
-      id: `cr-${Date.now()}`,
-      changeRequestId: generateId('CR'),
-      projectId: data.projectId ?? '',
-      commitmentId: data.commitmentId ?? '',
-      title: data.title ?? 'Untitled Change Request',
-      feature: data.feature ?? '',
-      source: data.source ?? '',
-      committedBy: data.committedBy ?? '',
-      promisedDeadline: data.promisedDeadline,
-      originalScope: data.originalScope ?? '',
-      estimatedEffort: data.estimatedEffort,
-      impact: data.impact ?? '',
-      status: 'pending_approval',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...data,
+    if (projectId) {
+      try {
+        return await detail(projectId)
+      } catch {
+        return null
+      }
     }
-    changeRequestsStore.unshift(newCr)
-    return newCr
+
+    const projects = await projectService.getAll()
+    const probes = await Promise.allSettled(projects.map((p) => detail(p.id)))
+    const hit = probes.find((r) => r.status === 'fulfilled') as
+      | PromiseFulfilledResult<ChangeRequest>
+      | undefined
+    return hit?.value ?? null
   },
 
-  async updateStatus(
+  /** Generate a change request from a HIGH-risk, out-of-scope commitment.
+   *  Sends no body — the backend derives every field from database state.
+   *  409 means generation is unnecessary/ambiguous/duplicate; the ApiError
+   *  message explains which. */
+  async generate(projectId: string, commitmentId: string): Promise<ChangeRequest> {
+    const envelope = await apiClient.post<BackendEnvelope<BackendChangeRequest>>(
+      endpoints.changeRequests.generate(projectId, commitmentId),
+      undefined,
+    )
+    return mapChangeRequest(unwrap(envelope))
+  },
+
+  /** Approve — the backend transactionally authorizes the linked
+   *  commitment (AUTHORIZED + risk LOW) and writes the audit entry. */
+  async approve(projectId: string, id: string, reason?: string): Promise<ChangeRequest> {
+    const envelope = await apiClient.post<BackendEnvelope<BackendChangeRequest>>(
+      endpoints.changeRequests.approve(projectId, id),
+      reason ? { reason } : {},
+    )
+    return mapChangeRequest(unwrap(envelope))
+  },
+
+  /** Reject — the commitment stays unauthorized with its risk unchanged. */
+  async reject(projectId: string, id: string, reason?: string): Promise<ChangeRequest> {
+    const envelope = await apiClient.post<BackendEnvelope<BackendChangeRequest>>(
+      endpoints.changeRequests.reject(projectId, id),
+      reason ? { reason } : {},
+    )
+    return mapChangeRequest(unwrap(envelope))
+  },
+
+  /** Request clarification — requires a non-empty comment, which is
+   *  appended to the existing thread (previous comments are kept). */
+  async requestClarification(
+    projectId: string,
     id: string,
-    status: ChangeRequestStatus,
-    reason?: string,
+    comment: string,
   ): Promise<ChangeRequest> {
-    const index = changeRequestsStore.findIndex(
-      (cr) => cr.id === id || cr.changeRequestId === id,
+    const envelope = await apiClient.post<BackendEnvelope<BackendChangeRequest>>(
+      endpoints.changeRequests.clarification(projectId, id),
+      { comment },
     )
-    if (index === -1) throw new Error('Change request not found')
-
-    const current = changeRequestsStore[index]
-    const updated: ChangeRequest = {
-      ...current,
-      status,
-      updatedAt: new Date().toISOString(),
-      ...(status === 'approved'
-        ? {
-            approvedBy: 'Marcus Vance (Client VP)',
-            approvedAt: new Date().toISOString(),
-          }
-        : {}),
-      ...(status === 'rejected'
-        ? {
-            rejectedBy: 'Marcus Vance (Client VP)',
-            rejectedAt: new Date().toISOString(),
-            rejectionReason: reason ?? 'Scope postponed to Phase 2',
-          }
-        : {}),
-    }
-
-    changeRequestsStore[index] = updated
-    return updated
+    return mapChangeRequest(unwrap(envelope))
   },
+}
+
+/** True for statuses that still accept approve/reject/clarification. */
+export function isOpenChangeRequestStatus(status: ChangeRequestStatus): boolean {
+  return status === 'pending_approval' || status === 'clarification_requested'
 }

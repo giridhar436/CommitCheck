@@ -8,13 +8,15 @@ import { CommitmentsModule } from './commitments/commitments.module';
 import { CommitmentEvidenceModule } from './commitment-evidence/commitment-evidence.module';
 import { MeetingAnalysisModule } from './meeting-analysis/meeting-analysis.module';
 import { ScopeVerificationModule } from './scope-verification/scope-verification.module';
+import { ChangeRequestsModule } from './change-requests/change-requests.module';
 
 /**
  * Root module.
  * Phase 1: database · Phase 2: Projects · Phase 3: Scope Requirements ·
  * Phase 4: Meetings · Phase 5: Meeting Attachments · Phase 6: Commitments ·
  * Phase 7: Commitment Evidence · Phase 8: AI Meeting Analysis ·
- * Phase 9: Fireworks AI provider · Phase 10: Scope Verification.
+ * Phase 9: Fireworks AI provider · Phase 10: Scope Verification ·
+ * Phase 11: Change Request workflow.
  */
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { ScopeVerificationModule } from './scope-verification/scope-verification
     CommitmentEvidenceModule,
     MeetingAnalysisModule,
     ScopeVerificationModule,
+    ChangeRequestsModule,
   ],
 })
 export class AppModule {}

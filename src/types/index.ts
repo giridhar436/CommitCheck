@@ -142,28 +142,45 @@ export interface VerificationResult {
   verifiedAt: string
 }
 
-// ——— Change Requests ———
-export type ChangeRequestStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'implemented'
+// ——— Change Requests (Phase 11) ———
+// Lifecycle: pending_approval → approved | rejected | clarification_requested.
+// Every field is authored by the backend from the originating commitment and
+// its Phase 10 verification — the client never supplies facts.
+export type ChangeRequestStatus =
+  | 'pending_approval'
+  | 'clarification_requested'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled'
+
+export interface ChangeRequestCommitmentContext {
+  id: string
+  title: string
+  speaker: string | null
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+  authorizationStatus: 'AUTHORIZED' | 'UNAUTHORIZED' | 'PENDING'
+  meetingId: string
+}
 
 export interface ChangeRequest {
   id: string
-  changeRequestId: string // e.g., "CR-3B7F21"
+  /** Display code derived from the id (e.g. "CR-3B7F21"). */
+  changeRequestId: string
   projectId: string
   commitmentId: string
+  /** The feature being approved — always the originating commitment's title. */
   title: string
-  feature: string
-  source: string
-  committedBy: string
-  promisedDeadline?: string
-  originalScope: string
-  estimatedEffort?: string
-  impact: string
+  /** What was promised and why it requires approval (backend-authored). */
+  description: string | null
   status: ChangeRequestStatus
-  approvedBy?: string
-  approvedAt?: string
-  rejectedBy?: string
-  rejectedAt?: string
-  rejectionReason?: string
+  /** Optional reason captured with the approve/reject decision. */
+  decisionReason: string | null
+  /** Accumulated clarification thread — previous requests are preserved. */
+  clarificationComment: string | null
+  /** Detail-only context; list items carry null. */
+  commitment: ChangeRequestCommitmentContext | null
+  /** Source meeting title (the "source" of the promise). */
+  meetingTitle: string | null
   createdAt: string
   updatedAt: string
 }

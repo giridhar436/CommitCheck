@@ -10,6 +10,7 @@
  * —————————————————————————————————————————————————— */
 
 import type {
+  ChangeRequest,
   Commitment,
   Meeting,
   Project,
@@ -121,6 +122,29 @@ export interface BackendEvidence {
   timestamp: string | null
   source: 'TRANSCRIPT' | 'SUMMARY' | 'NOTES' | 'RECORDING' | 'DOCUMENT' | 'OTHER'
   createdAt: string
+}
+
+export interface BackendChangeRequest {
+  id: string
+  projectId: string
+  commitmentId: string
+  title: string
+  description: string | null
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'CLARIFICATION_REQUESTED'
+  approvalReason: string | null
+  clarificationComment: string | null
+  createdAt: string
+  updatedAt: string
+  /** Detail-only: originating commitment + meeting context. */
+  commitment?: {
+    id: string
+    title: string
+    speaker: string | null
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+    authorizationStatus: 'AUTHORIZED' | 'UNAUTHORIZED' | 'PENDING'
+    meetingId: string
+  } | null
+  meetingTitle?: string | null
 }
 
 // ——— Envelope unwrapping ———
@@ -351,5 +375,46 @@ export function mapCommitmentDetail(
     ...base,
     evidence: evidence[0]?.quote ?? '',
     aiExplanation: dto.description ?? base.aiExplanation,
+  }
+}
+
+/** Stable, readable display code derived from the CR UUID (e.g. CR-3B7F21). */
+export function changeRequestDisplayCode(id: string): string {
+  return `CR-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`
+}
+
+function mapChangeRequestStatus(
+  status: BackendChangeRequest['status'],
+): ChangeRequest['status'] {
+  switch (status) {
+    case 'PENDING':
+      return 'pending_approval'
+    case 'CLARIFICATION_REQUESTED':
+      return 'clarification_requested'
+    case 'APPROVED':
+      return 'approved'
+    case 'REJECTED':
+      return 'rejected'
+    case 'CANCELLED':
+      return 'cancelled'
+  }
+}
+
+/** Map a backend change request onto the frontend domain type. */
+export function mapChangeRequest(dto: BackendChangeRequest): ChangeRequest {
+  return {
+    id: dto.id,
+    changeRequestId: changeRequestDisplayCode(dto.id),
+    projectId: dto.projectId,
+    commitmentId: dto.commitmentId,
+    title: dto.title,
+    description: dto.description,
+    status: mapChangeRequestStatus(dto.status),
+    decisionReason: dto.approvalReason,
+    clarificationComment: dto.clarificationComment,
+    commitment: dto.commitment ?? null,
+    meetingTitle: dto.meetingTitle ?? null,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
   }
 }

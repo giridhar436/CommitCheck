@@ -22,9 +22,7 @@ export function ClarificationModal({
   onOpenChange,
   onConfirm,
 }: ClarificationModalProps) {
-  const [notes, setNotes] = useState(
-    'Please clarify if Google OAuth credentials and consent screen verification will be provided by client IT or if agency setup is billable under this addendum.',
-  )
+  const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSend = async () => {
