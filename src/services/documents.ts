@@ -1,29 +1,49 @@
 /* ——————————————————————————————————————————————————
  * CommitCheck — Documents Service
  *
- * Dual-mode service: mock store for demo, real
- * NestJS backend when VITE_API_MODE=remote.
- * Supports FormData multipart upload for PDFs & contracts.
+ * ⚠️ LOCAL-ONLY: the backend has no Documents module yet
+ * (the Prisma model exists but no controller/service and
+ * no storage uploads). Until that module ships, documents
+ * run on an in-memory store seeded below.
  * —————————————————————————————————————————————————— */
 
 import type { ProjectDocument } from '@/types'
-import { mockDocuments } from '@/mocks/data'
-import { isMockMode, apiClient } from '@/services/api/client'
-import { endpoints } from '@/services/api/endpoints'
 
-// ——— Helpers ———
+let documentsStore: ProjectDocument[] = [
+  {
+    id: 'doc-sow-v1',
+    projectId: 'proj-abc-ecommerce',
+    name: 'ABC_Ecommerce_Statement_of_Work_Final_v1.2.pdf',
+    type: 'sow',
+    processingStatus: 'processed',
+    uploadDate: '2025-02-01T10:00:00Z',
+    source: 'Client SOW Signed Contract',
+    size: 2450000,
+  },
+  {
+    id: 'doc-tech-spec',
+    projectId: 'proj-abc-ecommerce',
+    name: 'Technical_Architecture_and_API_Spec_v1.0.pdf',
+    type: 'requirements',
+    processingStatus: 'processed',
+    uploadDate: '2025-02-03T14:20:00Z',
+    source: 'Internal Architecture Spec',
+    size: 1820000,
+  },
+  {
+    id: 'doc-scope-matrix',
+    projectId: 'proj-abc-ecommerce',
+    name: 'Scope_Traceability_Matrix_March2025.pdf',
+    type: 'scope',
+    processingStatus: 'processed',
+    uploadDate: '2025-03-01T09:15:00Z',
+    source: 'Sprint 2 Scope Addendum',
+    size: 980000,
+  },
+]
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// ——— Mock Implementation ———
-
-let documentsStore = [...mockDocuments]
-
-const mockDocumentService = {
+export const documentService = {
   async getAll(projectId: string): Promise<ProjectDocument[]> {
-    await delay(200)
     return documentsStore.filter((d) => d.projectId === projectId)
   },
 
@@ -32,7 +52,6 @@ const mockDocumentService = {
     file: File,
     type: ProjectDocument['type'],
   ): Promise<ProjectDocument> {
-    await delay(800)
     const newDoc: ProjectDocument = {
       id: `doc-${Date.now()}`,
       projectId,
@@ -48,49 +67,6 @@ const mockDocumentService = {
   },
 
   async delete(id: string): Promise<void> {
-    await delay(200)
     documentsStore = documentsStore.filter((d) => d.id !== id)
   },
-}
-
-// ——— Remote Implementation ———
-
-const remoteDocumentService = {
-  async getAll(projectId: string): Promise<ProjectDocument[]> {
-    return apiClient.get<ProjectDocument[]>(endpoints.documents.list(projectId))
-  },
-
-  async upload(
-    projectId: string,
-    file: File,
-    type: ProjectDocument['type'],
-  ): Promise<ProjectDocument> {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', type)
-
-    return apiClient.post<ProjectDocument>(
-      endpoints.documents.upload(projectId),
-      formData,
-    )
-  },
-
-  async delete(id: string): Promise<void> {
-    return apiClient.delete<void>(endpoints.documents.delete(id))
-  },
-}
-
-// ——— Exported Service (mode aware) ———
-
-export const documentService = {
-  getAll: (projectId: string) =>
-    isMockMode()
-      ? mockDocumentService.getAll(projectId)
-      : remoteDocumentService.getAll(projectId),
-  upload: (projectId: string, file: File, type: ProjectDocument['type']) =>
-    isMockMode()
-      ? mockDocumentService.upload(projectId, file, type)
-      : remoteDocumentService.upload(projectId, file, type),
-  delete: (id: string) =>
-    isMockMode() ? mockDocumentService.delete(id) : remoteDocumentService.delete(id),
 }

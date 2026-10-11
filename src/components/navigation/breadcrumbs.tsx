@@ -16,10 +16,6 @@ const routeNameMap: Record<string, string> = {
   commitments: 'Commitments',
   'change-requests': 'Change Requests',
   settings: 'Settings',
-  'proj-abc-ecommerce': 'ABC E-Commerce',
-  'proj-fintech-portal': 'Apex Wealth Portal',
-  'proj-health-telemed': 'CareSync Telehealth',
-  'proj-logistics-fleet': 'OmniTrack Fleet',
 }
 
 export function Breadcrumbs({ items }: { items?: BreadcrumbItem[] }) {

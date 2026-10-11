@@ -89,7 +89,7 @@ export function ChangeRequestDetailPage() {
 
       // Also mark linked commitment authorized if present
       if (commitment) {
-        await commitmentService.updateStatus(commitment.id, 'authorized')
+        await commitmentService.updateStatus(commitment.projectId, commitment.id, 'authorized')
       }
 
       // Update approved scope baseline
@@ -99,7 +99,7 @@ export function ChangeRequestDetailPage() {
           (r) => r.id === 'req-google-login-excluded' || r.name.toLowerCase().includes('google'),
         )
         if (match) {
-          await scopeService.updateRequirement(match.id, {
+          await scopeService.updateRequirement(changeRequest.projectId, match.id, {
             status: 'approved',
             source: `Change Order ${updated.changeRequestId} (Signed by Marcus Vance)`,
             description: `${match.description} — Officially approved and funded via Change Request ${updated.changeRequestId}.`,

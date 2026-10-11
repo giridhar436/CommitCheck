@@ -130,9 +130,9 @@ export function ActivityPage() {
     if (item.relatedType === 'meeting') {
       navigate(`/projects/${project?.id}/meetings`)
     } else if (item.relatedType === 'commitment') {
-      navigate(`/commitments/${item.relatedId || 'comm-google-login'}`)
+      navigate(item.relatedId ? `/commitments/${item.relatedId}` : '/commitments')
     } else if (item.relatedType === 'change_request') {
-      navigate(`/change-requests/${item.relatedId || 'cr-google-login'}`)
+      navigate(item.relatedId ? `/change-requests/${item.relatedId}` : '/change-requests')
     }
   }
 

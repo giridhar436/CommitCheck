@@ -1,127 +1,99 @@
 /* ——————————————————————————————————————————————————
  * CommitCheck — Commitments Service
  *
- * Dual-mode service: mock store for demo, real
- * NestJS backend when VITE_API_MODE=remote.
+ * Talks to the live NestJS backend nested routes
+ * (GET/POST/PATCH/DELETE /projects/:projectId/commitments).
+ * The backend has no flat commitments surface, so calls
+ * without a projectId fan out across the user's projects.
+ * List/detail payloads carry no evidence rows, so the
+ * first verbatim evidence quote is fetched per commitment
+ * from the evidence endpoints.
  * —————————————————————————————————————————————————— */
 
 import type { Commitment, CommitmentStatus } from '@/types'
-import { mockCommitments } from '@/mocks/data'
-import { isMockMode, apiClient } from '@/services/api/client'
+import { apiClient } from '@/services/api/client'
 import { endpoints } from '@/services/api/endpoints'
+import { evidenceService } from '@/services/evidence'
+import { projectService } from '@/services/projects'
+import {
+  unwrap,
+  unwrapList,
+  mapCommitment,
+  mapCommitmentDetail,
+  mapCommitmentStatusToBackend,
+  type BackendEnvelope,
+  type BackendPaginated,
+  type BackendCommitment,
+} from '@/services/api/adapters'
 
-// ——— Helpers ———
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// ——— Mock Implementation ———
-
-let commitmentsStore = [...mockCommitments]
-
-const mockCommitmentService = {
-  async getAll(projectId?: string): Promise<Commitment[]> {
-    await delay(200)
-    if (!projectId) return [...commitmentsStore]
-    return commitmentsStore.filter((c) => c.projectId === projectId)
-  },
-
-  async getById(id: string): Promise<Commitment | null> {
-    await delay(150)
-    return commitmentsStore.find((c) => c.id === id || c.commitmentId === id) ?? null
-  },
-
-  async updateStatus(id: string, status: CommitmentStatus): Promise<Commitment> {
-    await delay(200)
-    const index = commitmentsStore.findIndex((c) => c.id === id || c.commitmentId === id)
-    if (index === -1) throw new Error('Commitment not found')
-    commitmentsStore[index] = {
-      ...commitmentsStore[index],
-      status,
-      authorization: status === 'authorized' ? 'authorized' : commitmentsStore[index].authorization,
-      updatedAt: new Date().toISOString(),
-    }
-    return commitmentsStore[index]
-  },
-
-  async addCommitments(newCommitments: Commitment[]): Promise<void> {
-    await delay(100)
-    commitmentsStore = [...newCommitments, ...commitmentsStore]
-  },
-
-  async linkChangeRequest(id: string, changeRequestId: string): Promise<Commitment> {
-    await delay(150)
-    const index = commitmentsStore.findIndex((c) => c.id === id || c.commitmentId === id)
-    if (index === -1) throw new Error('Commitment not found')
-    commitmentsStore[index] = {
-      ...commitmentsStore[index],
-      status: 'change_request_created',
-      changeRequestId,
-      updatedAt: new Date().toISOString(),
-    }
-    return commitmentsStore[index]
-  },
-
-  reset(): void {
-    commitmentsStore = [...mockCommitments]
-  },
-}
-
-// ——— Remote Implementation ———
-
-const remoteCommitmentService = {
-  async getAll(projectId?: string): Promise<Commitment[]> {
-    if (projectId) {
-      return apiClient.get<Commitment[]>(endpoints.commitments.list(projectId))
-    }
-    return apiClient.get<Commitment[]>('/commitments')
-  },
-
-  async getById(id: string): Promise<Commitment | null> {
-    try {
-      return await apiClient.get<Commitment>(endpoints.commitments.detail(id))
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
-        return null
+/** Fill in the first verbatim evidence quote for each commitment. */
+async function withEvidenceQuotes(commitments: Commitment[]): Promise<Commitment[]> {
+  return Promise.all(
+    commitments.map(async (comm) => {
+      try {
+        const evidence = await evidenceService.getAll(comm.projectId, comm.id)
+        return { ...comm, evidence: evidence[0]?.quote ?? '' }
+      } catch {
+        // Evidence display is cosmetic; never fail the list over it
+        return comm
       }
-      throw err
-    }
-  },
-
-  async updateStatus(id: string, status: CommitmentStatus): Promise<Commitment> {
-    return apiClient.patch<Commitment>(endpoints.commitments.update(id), {
-      status,
-      ...(status === 'authorized' ? { authorization: 'authorized' } : {}),
-    })
-  },
-
-  async addCommitments(newCommitments: Commitment[]): Promise<void> {
-    await apiClient.post<void>('/commitments/batch', { commitments: newCommitments })
-  },
-
-  async linkChangeRequest(id: string, changeRequestId: string): Promise<Commitment> {
-    return apiClient.patch<Commitment>(endpoints.commitments.update(id), {
-      status: 'change_request_created',
-      changeRequestId,
-    })
-  },
+    }),
+  )
 }
 
-// ——— Exported Service (mode aware) ———
+async function fetchProjectPage(projectId: string): Promise<Commitment[]> {
+  const envelope = await apiClient.get<
+    BackendEnvelope<BackendPaginated<BackendCommitment>>
+  >(endpoints.commitments.list(projectId), { params: { limit: 100 } })
+  return unwrapList(envelope).map(mapCommitment)
+}
 
 export const commitmentService = {
-  getAll: (projectId?: string) =>
-    isMockMode() ? mockCommitmentService.getAll(projectId) : remoteCommitmentService.getAll(projectId),
-  getById: (id: string) =>
-    isMockMode() ? mockCommitmentService.getById(id) : remoteCommitmentService.getById(id),
-  updateStatus: (id: string, status: CommitmentStatus) =>
-    isMockMode() ? mockCommitmentService.updateStatus(id, status) : remoteCommitmentService.updateStatus(id, status),
-  addCommitments: (newCommitments: Commitment[]) =>
-    isMockMode() ? mockCommitmentService.addCommitments(newCommitments) : remoteCommitmentService.addCommitments(newCommitments),
-  linkChangeRequest: (id: string, changeRequestId: string) =>
-    isMockMode()
-      ? mockCommitmentService.linkChangeRequest(id, changeRequestId)
-      : remoteCommitmentService.linkChangeRequest(id, changeRequestId),
-  reset: () => mockCommitmentService.reset(),
+  /** Commitments for one project (evidence-enriched), or across all
+   *  projects when no projectId is given (dashboard aggregates). */
+  async getAll(projectId?: string): Promise<Commitment[]> {
+    if (projectId) {
+      return withEvidenceQuotes(await fetchProjectPage(projectId))
+    }
+
+    const projects = await projectService.getAll()
+    const pages = await Promise.all(projects.map((p) => fetchProjectPage(p.id)))
+    return pages.flat()
+  },
+
+  /** The backend only exposes commitments nested under their project, but
+   *  the detail page routes by commitment id alone — resolve the project
+   *  by probing each project's commitments. */
+  async getById(id: string): Promise<Commitment | null> {
+    const projects = await projectService.getAll()
+
+    const probes = await Promise.allSettled(
+      projects.map(async (p) => {
+        const envelope = await apiClient.get<BackendEnvelope<BackendCommitment>>(
+          endpoints.commitments.detail(p.id, id),
+        )
+        return unwrap(envelope)
+      }),
+    )
+    const hit = probes.find(
+      (r) => r.status === 'fulfilled',
+    ) as PromiseFulfilledResult<BackendCommitment> | undefined
+    if (!hit) return null
+
+    const detail = hit.value
+    const evidence = await evidenceService.getAll(detail.projectId, detail.id).catch(() => [])
+    return mapCommitmentDetail(detail, evidence)
+  },
+
+  async updateStatus(
+    projectId: string,
+    id: string,
+    status: CommitmentStatus,
+  ): Promise<Commitment> {
+    const envelope = await apiClient.patch<BackendEnvelope<BackendCommitment>>(
+      endpoints.commitments.update(projectId, id),
+      { authorizationStatus: mapCommitmentStatusToBackend(status) },
+    )
+    return mapCommitment(unwrap(envelope))
+  },
 }

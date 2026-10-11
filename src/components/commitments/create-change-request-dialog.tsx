@@ -20,7 +20,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { changeRequestService } from '@/services/changeRequests'
-import { commitmentService } from '@/services/commitments'
 import type { Commitment, ChangeRequest } from '@/types'
 
 interface CreateChangeRequestDialogProps {
@@ -94,9 +93,6 @@ export function CreateChangeRequestDialog({
         impact,
         status: 'pending_approval',
       })
-
-      // Link commitment to CR
-      await commitmentService.linkChangeRequest(commitment.id, newCr.changeRequestId)
 
       toast.success(`Change Request ${newCr.changeRequestId} created successfully!`)
       onOpenChange(false)

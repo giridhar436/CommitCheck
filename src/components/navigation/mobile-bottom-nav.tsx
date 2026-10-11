@@ -16,7 +16,9 @@ export function MobileBottomNav({ onOpenDrawer }: MobileBottomNavProps) {
   const location = useLocation()
 
   const projectMatch = location.pathname.match(/\/projects\/([^/]+)/)
-  const currentProjectId = projectMatch ? projectMatch[1] : 'proj-abc-ecommerce'
+  const currentProjectId = projectMatch ? projectMatch[1] : null
+  const projectHref = (tab: string) =>
+    currentProjectId ? `/projects/${currentProjectId}/${tab}` : `/${tab}`
 
   const items = [
     {
@@ -29,25 +31,23 @@ export function MobileBottomNav({ onOpenDrawer }: MobileBottomNavProps) {
     {
       id: 'projects',
       label: 'Projects',
-      href: `/projects/${currentProjectId}`,
+      href: '/projects',
       icon: FolderKanban,
       isActive:
         location.pathname === '/projects' ||
-        location.pathname === `/projects/${currentProjectId}`,
+        location.pathname.startsWith('/projects/'),
     },
     {
       id: 'commitments',
       label: 'Commitments',
-      href: `/projects/${currentProjectId}/commitments`,
+      href: projectHref('commitments'),
       icon: ClipboardCheck,
-      badge: '2',
-      badgeClass: 'bg-red-500 text-white font-bold',
       isActive: location.pathname.includes('/commitments'),
     },
     {
       id: 'meetings',
       label: 'Meetings',
-      href: `/projects/${currentProjectId}/meetings`,
+      href: projectHref('meetings'),
       icon: Video,
       isActive: location.pathname.includes('/meetings'),
     },
@@ -80,16 +80,6 @@ export function MobileBottomNav({ onOpenDrawer }: MobileBottomNavProps) {
                   )}
                   strokeWidth={1.8}
                 />
-                {item.badge && (
-                  <span
-                    className={cn(
-                      'absolute -top-1 -right-2.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] leading-none shadow-xs',
-                      item.badgeClass,
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                )}
               </div>
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[64px]">
                 {item.label}

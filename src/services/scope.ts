@@ -1,122 +1,87 @@
 /* ——————————————————————————————————————————————————
  * CommitCheck — Scope / Requirements Service
  *
- * Dual-mode service: mock store for demo, real
- * NestJS backend when VITE_API_MODE=remote.
+ * Talks to the live NestJS backend nested routes
+ * (GET/POST /projects/:projectId/scope,
+ *  GET/PATCH/DELETE /projects/:projectId/scope/:id).
  * —————————————————————————————————————————————————— */
 
 import type { Requirement } from '@/types'
-import { mockRequirements } from '@/mocks/data'
-import { isMockMode, apiClient } from '@/services/api/client'
+import { apiClient } from '@/services/api/client'
 import { endpoints } from '@/services/api/endpoints'
+import {
+  unwrap,
+  unwrapList,
+  mapRequirement,
+  mapRequirementStatusToBackend,
+  type BackendEnvelope,
+  type BackendPaginated,
+  type BackendRequirement,
+} from '@/services/api/adapters'
 
-// ——— Helpers ———
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+function toCreateUpdatePayload(data: Partial<Requirement>) {
+  return {
+    ...(data.name !== undefined ? { title: data.name } : {}),
+    ...(data.description !== undefined ? { description: data.description } : {}),
+    ...(data.category !== undefined ? { category: data.category } : {}),
+    ...(data.priority !== undefined
+      ? { priority: data.priority.toUpperCase() }
+      : {}),
+    ...(data.status !== undefined
+      ? { approvalStatus: mapRequirementStatusToBackend(data.status) }
+      : {}),
+    ...(data.source !== undefined ? { sourceClause: data.source } : {}),
+  }
 }
-
-// ——— Mock Implementation ———
-
-let requirementsStore = [...mockRequirements]
-
-const mockScopeService = {
-  async getRequirements(projectId: string): Promise<Requirement[]> {
-    await delay(200)
-    return requirementsStore.filter((r) => r.projectId === projectId)
-  },
-
-  async addRequirement(
-    projectId: string,
-    data: Partial<Requirement>,
-  ): Promise<Requirement> {
-    await delay(300)
-    const newReq: Requirement = {
-      id: `req-${Date.now()}`,
-      projectId,
-      name: data.name ?? 'New Requirement',
-      description: data.description ?? '',
-      category: data.category ?? 'General',
-      priority: data.priority ?? 'medium',
-      status: data.status ?? 'approved',
-      source: data.source ?? 'Manual Entry',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...data,
-    }
-    requirementsStore.push(newReq)
-    return newReq
-  },
-
-  async updateRequirement(
-    id: string,
-    data: Partial<Requirement>,
-  ): Promise<Requirement> {
-    await delay(200)
-    const index = requirementsStore.findIndex((r) => r.id === id)
-    if (index === -1) throw new Error('Requirement not found')
-    requirementsStore[index] = {
-      ...requirementsStore[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    }
-    return requirementsStore[index]
-  },
-
-  async deleteRequirement(id: string): Promise<void> {
-    await delay(200)
-    requirementsStore = requirementsStore.filter((r) => r.id !== id)
-  },
-
-  reset(): void {
-    requirementsStore = [...mockRequirements]
-  },
-}
-
-// ——— Remote Implementation ———
-
-const remoteScopeService = {
-  async getRequirements(projectId: string): Promise<Requirement[]> {
-    return apiClient.get<Requirement[]>(endpoints.scope.list(projectId))
-  },
-
-  async addRequirement(
-    projectId: string,
-    data: Partial<Requirement>,
-  ): Promise<Requirement> {
-    return apiClient.post<Requirement>(endpoints.scope.create(projectId), data)
-  },
-
-  async updateRequirement(
-    id: string,
-    data: Partial<Requirement>,
-  ): Promise<Requirement> {
-    return apiClient.patch<Requirement>(endpoints.scope.update(id), data)
-  },
-
-  async deleteRequirement(id: string): Promise<void> {
-    return apiClient.delete<void>(endpoints.scope.delete(id))
-  },
-}
-
-// ——— Exported Service (mode aware) ———
 
 export const scopeService = {
-  getRequirements: (projectId: string) =>
-    isMockMode()
-      ? mockScopeService.getRequirements(projectId)
-      : remoteScopeService.getRequirements(projectId),
-  addRequirement: (projectId: string, data: Partial<Requirement>) =>
-    isMockMode()
-      ? mockScopeService.addRequirement(projectId, data)
-      : remoteScopeService.addRequirement(projectId, data),
-  updateRequirement: (id: string, data: Partial<Requirement>) =>
-    isMockMode()
-      ? mockScopeService.updateRequirement(id, data)
-      : remoteScopeService.updateRequirement(id, data),
-  deleteRequirement: (id: string) =>
-    isMockMode()
-      ? mockScopeService.deleteRequirement(id)
-      : remoteScopeService.deleteRequirement(id),
-  reset: () => mockScopeService.reset(),
+  /** Full requirement list for a project. The UI computes its stats badges
+   *  and multi-field search/sort client-side, so we fetch the entire set. */
+  async getRequirements(projectId: string): Promise<Requirement[]> {
+    const envelope = await apiClient.get<
+      BackendEnvelope<BackendPaginated<BackendRequirement>>
+    >(endpoints.scope.list(projectId), { params: { limit: 100 } })
+    return unwrapList(envelope).map(mapRequirement)
+  },
+
+  async getRequirement(projectId: string, id: string): Promise<Requirement | null> {
+    try {
+      const envelope = await apiClient.get<BackendEnvelope<BackendRequirement>>(
+        endpoints.scope.detail(projectId, id),
+      )
+      return mapRequirement(unwrap(envelope))
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
+        return null
+      }
+      throw err
+    }
+  },
+
+  async addRequirement(
+    projectId: string,
+    data: Partial<Requirement>,
+  ): Promise<Requirement> {
+    const envelope = await apiClient.post<BackendEnvelope<BackendRequirement>>(
+      endpoints.scope.create(projectId),
+      toCreateUpdatePayload(data),
+    )
+    return mapRequirement(unwrap(envelope))
+  },
+
+  async updateRequirement(
+    projectId: string,
+    id: string,
+    data: Partial<Requirement>,
+  ): Promise<Requirement> {
+    const envelope = await apiClient.patch<BackendEnvelope<BackendRequirement>>(
+      endpoints.scope.update(projectId, id),
+      toCreateUpdatePayload(data),
+    )
+    return mapRequirement(unwrap(envelope))
+  },
+
+  async deleteRequirement(projectId: string, id: string): Promise<void> {
+    await apiClient.delete<BackendEnvelope<null>>(endpoints.scope.delete(projectId, id))
+  },
 }

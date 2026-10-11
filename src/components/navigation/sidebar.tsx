@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { ProjectSwitcher } from './project-switcher'
 import { UserMenu } from './user-menu'
+import { useAuth } from '@/hooks/useAuth'
 
 export interface SidebarProps {
   collapsed: boolean
@@ -24,10 +25,14 @@ export interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps) {
   const location = useLocation()
+  const { user } = useAuth()
 
-  // Match active project ID from route if present, or fallback to default primary demo project
+  // Match active project ID from route if present; top-level tab routes
+  // (/commitments, /scope, …) resolve the first project server-side.
   const projectMatch = location.pathname.match(/\/projects\/([^/]+)/)
-  const currentProjectId = projectMatch ? projectMatch[1] : 'proj-abc-ecommerce'
+  const currentProjectId = projectMatch ? projectMatch[1] : null
+  const projectHref = (tab: string) =>
+    currentProjectId ? `/projects/${currentProjectId}/${tab}` : `/${tab}`
 
   const mainNav = [
     {
@@ -40,40 +45,40 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
       title: 'All Projects',
       href: '/projects',
       icon: FolderKanban,
-      badge: '4',
+      badge: undefined,
     },
   ]
 
   const projectNav = [
     {
       title: 'Commitments',
-      href: `/projects/${currentProjectId}/commitments`,
+      href: projectHref('commitments'),
       icon: ClipboardCheck,
-      badge: '2',
-      badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400 font-bold',
+      badge: undefined,
+      badgeClass: undefined,
     },
     {
       title: 'Change Requests',
-      href: `/projects/${currentProjectId}/change-requests`,
+      href: projectHref('change-requests'),
       icon: FilePenLine,
-      badge: '1',
-      badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+      badge: undefined,
+      badgeClass: undefined,
     },
     {
       title: 'Meeting Analysis',
-      href: `/projects/${currentProjectId}/meetings`,
+      href: projectHref('meetings'),
       icon: Video,
       badge: undefined,
     },
     {
       title: 'Approved Scope',
-      href: `/projects/${currentProjectId}/scope`,
+      href: projectHref('scope'),
       icon: FileCheck2,
-      badge: '5',
+      badge: undefined,
     },
     {
       title: 'Scope Documents',
-      href: `/projects/${currentProjectId}/documents`,
+      href: projectHref('documents'),
       icon: Files,
       badge: undefined,
     },
@@ -263,8 +268,8 @@ export function Sidebar({ collapsed, onToggleCollapse, className }: SidebarProps
             <div className="flex items-center gap-2 min-w-0">
               <UserMenu />
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold text-foreground truncate">Rahul Mehta</div>
-                <div className="text-[10px] text-muted-foreground truncate">PixelForge Studios</div>
+                <div className="text-xs font-semibold text-foreground truncate">{user?.name ?? 'Rahul Mehta'}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{user?.organization ?? 'PixelForge Studios'}</div>
               </div>
             </div>
           )}

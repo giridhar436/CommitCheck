@@ -86,7 +86,7 @@ export function AddRequirementDialog({
     setLoading(true)
     try {
       if (requirementToEdit) {
-        const updated = await scopeService.updateRequirement(requirementToEdit.id, {
+        const updated = await scopeService.updateRequirement(projectId, requirementToEdit.id, {
           name,
           description,
           category,

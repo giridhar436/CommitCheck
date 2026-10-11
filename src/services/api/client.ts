@@ -3,27 +3,14 @@
  *
  * Centralized HTTP client with interceptor pipeline,
  * automatic retry, and token management. All service
- * modules go through this so swapping to the real
- * NestJS backend requires zero changes in components.
- *
- * Toggle VITE_API_MODE in .env between:
- *   "mock"   → in-memory demo stores (default)
- *   "remote" → real NestJS backend
+ * modules go through this so every component talks to
+ * the real NestJS backend (base URL: VITE_API_URL).
  * —————————————————————————————————————————————————— */
 
 // ——— Configuration ———
 
-export type ApiMode = 'mock' | 'remote'
-
-export const API_MODE: ApiMode =
-  (import.meta.env.VITE_API_MODE as ApiMode) ?? 'mock'
-
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
-
-export function isMockMode(): boolean {
-  return API_MODE === 'mock'
-}
 
 // ——— Error ———
 

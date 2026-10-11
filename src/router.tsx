@@ -1,5 +1,6 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
+import { FirstProjectRedirect } from '@/components/routing/first-project-redirect'
 import { PhaseOneFoundationPage } from '@/pages/PhaseOneFoundationPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
@@ -85,27 +86,27 @@ export const router = createBrowserRouter([
       },
       {
         path: '/commitments',
-        element: <Navigate to="/projects/proj-abc-ecommerce/commitments" replace />,
+        element: <FirstProjectRedirect tab="commitments" />,
       },
       {
         path: '/change-requests',
-        element: <Navigate to="/projects/proj-abc-ecommerce/change-requests" replace />,
+        element: <FirstProjectRedirect tab="change-requests" />,
       },
       {
         path: '/meetings',
-        element: <Navigate to="/projects/proj-abc-ecommerce/meetings" replace />,
+        element: <FirstProjectRedirect tab="meetings" />,
       },
       {
         path: '/scope',
-        element: <Navigate to="/projects/proj-abc-ecommerce/scope" replace />,
+        element: <FirstProjectRedirect tab="scope" />,
       },
       {
         path: '/documents',
-        element: <Navigate to="/projects/proj-abc-ecommerce/documents" replace />,
+        element: <FirstProjectRedirect tab="documents" />,
       },
       {
         path: '/activity',
-        element: <Navigate to="/projects/proj-abc-ecommerce/activity" replace />,
+        element: <FirstProjectRedirect tab="activity" />,
       },
       {
         path: '/commitments/:id',

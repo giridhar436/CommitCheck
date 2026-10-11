@@ -64,7 +64,7 @@ export function CommitmentDetailPage() {
       // Fetch related project, meeting, and change request in parallel
       const [proj, meet, crs] = await Promise.all([
         projectService.getById(comm.projectId),
-        meetingService.getById(comm.meetingId),
+        meetingService.getById(comm.projectId, comm.meetingId),
         changeRequestService.getAll(comm.projectId),
       ])
 
@@ -91,7 +91,7 @@ export function CommitmentDetailPage() {
   const handleMarkAuthorized = async () => {
     if (!commitment) return
     try {
-      const updated = await commitmentService.updateStatus(commitment.id, 'authorized')
+      const updated = await commitmentService.updateStatus(commitment.projectId, commitment.id, 'authorized')
       setCommitment(updated)
       toast.success('Commitment marked as Authorized. Scope baseline updated.')
     } catch {
@@ -103,7 +103,7 @@ export function CommitmentDetailPage() {
   const handleDismiss = async () => {
     if (!commitment) return
     try {
-      const updated = await commitmentService.updateStatus(commitment.id, 'dismissed')
+      const updated = await commitmentService.updateStatus(commitment.projectId, commitment.id, 'dismissed')
       setCommitment(updated)
       toast.info('Commitment dismissed from active scope creep tracking.')
     } catch {
@@ -115,7 +115,7 @@ export function CommitmentDetailPage() {
   const handleResetReview = async () => {
     if (!commitment) return
     try {
-      const updated = await commitmentService.updateStatus(commitment.id, 'needs_review')
+      const updated = await commitmentService.updateStatus(commitment.projectId, commitment.id, 'needs_review')
       setCommitment(updated)
       toast.info('Status reset to Needs Review.')
     } catch {

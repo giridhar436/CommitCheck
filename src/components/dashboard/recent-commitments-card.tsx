@@ -20,7 +20,7 @@ export function RecentCommitmentsCard({ commitments }: { commitments: Commitment
           </CardTitle>
         </div>
         <button
-          onClick={() => navigate('/projects/proj-abc-ecommerce/commitments')}
+          onClick={() => navigate('/commitments')}
           className="text-xs font-semibold text-primary hover:underline cursor-pointer"
         >
           View all commitments →

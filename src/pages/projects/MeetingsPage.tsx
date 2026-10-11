@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Video,
   Sparkles,
-  Play,
   ClipboardCheck,
   Users,
   Upload,
@@ -35,19 +34,6 @@ import { meetingService } from '@/services/meetings'
 import { formatDate } from '@/lib/utils'
 import type { Project, Meeting, MeetingAnalysisState } from '@/types'
 
-// Demo Scenario pre-fill data
-const DEMO_MEETING_DATA = {
-  title: 'Sprint 3 Check-in & Checkout Flow Review',
-  date: new Date().toISOString().split('T')[0],
-  participants: ['Marcus Vance (Client VP)', 'Sarah Chen (Acme PM)', 'Rahul Mehta (Tech Lead)'],
-  summary:
-    'Walked through Stripe checkout integration and mobile cart responsiveness. Client requested adding Google OAuth login to decrease checkout friction before Friday launch demo. Tech lead tentatively agreed to wire it up by Friday.',
-  transcript: `Marcus Vance (09:14): The checkout flow looks solid, but we're worried users will drop off if they have to create a brand new password during checkout. Can we also add Google Login?
-Rahul Mehta (09:15): Sure, I'll add it by Friday. It shouldn't take more than a couple of days to wire up the OAuth callbacks.
-Sarah Chen (09:16): That would be huge for conversion. Let's make sure it's on staging by Thursday evening if possible.
-Rahul Mehta (09:17): Understood, I'll prioritize that right after the webhook testing.`,
-}
-
 export function MeetingsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -61,10 +47,7 @@ export function MeetingsPage() {
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [participantInput, setParticipantInput] = useState('')
-  const [participants, setParticipants] = useState<string[]>([
-    'Sarah Chen (Acme PM)',
-    'Rahul Mehta (Tech Lead)',
-  ])
+  const [participants, setParticipants] = useState<string[]>([])
   const [summary, setSummary] = useState('')
   const [transcript, setTranscript] = useState('')
   const [activeTab, setActiveTab] = useState<'summary' | 'transcript'>('summary')
@@ -108,23 +91,11 @@ export function MeetingsPage() {
     fetchData()
   }, [id])
 
-  // Pre-fill demo meeting
-  const handleLoadDemoMeeting = () => {
-    setTitle(DEMO_MEETING_DATA.title)
-    setDate(DEMO_MEETING_DATA.date)
-    setParticipants(DEMO_MEETING_DATA.participants)
-    setSummary(DEMO_MEETING_DATA.summary)
-    setTranscript(DEMO_MEETING_DATA.transcript)
-    setUploadedDocName('Sprint_3_Meeting_Notes.docx')
-    setUploadedImageName('Slack_Chat_Export_March12.png')
-    toast.success('Loaded benchmark demo meeting with Google Login commitment')
-  }
-
   // Clear form
   const handleClearForm = () => {
     setTitle('')
     setDate(new Date().toISOString().split('T')[0])
-    setParticipants(['Sarah Chen (Acme PM)', 'Rahul Mehta (Tech Lead)'])
+    setParticipants([])
     setSummary('')
     setTranscript('')
     setUploadedDocName(null)
@@ -196,7 +167,11 @@ export function MeetingsPage() {
       // Refresh meetings list
       const updatedMeetings = await meetingService.getAll(id)
       setMeetings(updatedMeetings)
-      toast.success(`Analysis complete: ${result.commitments.length} commitments detected!`)
+      toast.success(
+        result.commitments.length > 0
+          ? `Analysis complete: ${result.commitments.length} commitments detected!`
+          : 'Meeting saved. Automatic commitment detection is not connected yet — review the commitments tab to add entries manually.',
+      )
     } catch {
       toast.error('Meeting analysis failed')
       setAnalysisState((prev) => ({ ...prev, status: 'error', error: 'Analysis failed' }))
@@ -205,7 +180,7 @@ export function MeetingsPage() {
 
   // Delete meeting
   const handleDeleteMeeting = async (meetingId: string) => {
-    const ok = await meetingService.delete(meetingId)
+    const ok = await meetingService.delete(id!, meetingId)
     if (ok) {
       setMeetings((prev) => prev.filter((m) => m.id !== meetingId))
       if (inspectingMeeting?.id === meetingId) {
@@ -252,18 +227,6 @@ export function MeetingsPage() {
           </p>
         </div>
 
-        {/* Quick Demo Pre-fill CTA */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLoadDemoMeeting}
-            className="gap-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary font-medium text-xs shadow-2xs"
-          >
-            <Play className="h-3.5 w-3.5" strokeWidth={1.8} />
-            <span>Load Demo Sprint 3 Meeting</span>
-          </Button>
-        </div>
       </div>
 
       {/* Project Navigation Tabs */}

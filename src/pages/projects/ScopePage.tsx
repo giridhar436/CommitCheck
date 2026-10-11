@@ -169,7 +169,7 @@ export function ScopePage() {
 
   const handleDelete = async (req: Requirement) => {
     try {
-      await scopeService.deleteRequirement(req.id)
+      await scopeService.deleteRequirement(id!, req.id)
       setRequirements((prev) => prev.filter((r) => r.id !== req.id))
       setInspecting(null)
       toast.success(`Requirement "${req.name}" removed from scope.`)

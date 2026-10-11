@@ -43,12 +43,13 @@ export function DashboardPage() {
     })
   }, [])
 
-  // Aggregate metrics
+  // Aggregate metrics (first project hosts the quick-action deep links)
+  const firstProjectId = projects[0]?.id
   const totalActiveProjects = projects.filter((p) => p.status === 'active').length
-  const totalDetected = commitments.length > 0 ? 20 : 0
-  const totalUnauthorized = commitments.filter((c) => c.authorization === 'unauthorized').length + 4
-  const totalHighRisk = commitments.filter((c) => c.riskLevel === 'high').length + 2
-  const totalPendingCR = 4
+  const totalDetected = commitments.length
+  const totalUnauthorized = commitments.filter((c) => c.authorization === 'unauthorized').length
+  const totalHighRisk = commitments.filter((c) => c.riskLevel === 'high').length
+  const totalPendingCR = 0 // Change Requests have no backend module yet
 
   const timelineItems = activities.map((act) => ({
     id: act.id,
@@ -82,7 +83,7 @@ export function DashboardPage() {
           </Button>
           <Button
             size="sm"
-            onClick={() => navigate('/projects/proj-abc-ecommerce/meetings')}
+            onClick={() => navigate(firstProjectId ? `/projects/${firstProjectId}/meetings` : '/projects')}
             className="text-xs h-9 font-semibold shadow-xs"
           >
             <Sparkles className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
@@ -110,7 +111,7 @@ export function DashboardPage() {
           icon={ClipboardCheck}
           variant="default"
           actionLabel="Audit"
-          onAction={() => navigate('/projects/proj-abc-ecommerce/commitments')}
+          onAction={() => navigate(firstProjectId ? `/projects/${firstProjectId}/commitments` : '/projects')}
         />
 
         <MetricCard
@@ -120,7 +121,7 @@ export function DashboardPage() {
           icon={CircleX}
           variant="danger"
           actionLabel="Review"
-          onAction={() => navigate('/projects/proj-abc-ecommerce/commitments')}
+          onAction={() => navigate(firstProjectId ? `/projects/${firstProjectId}/commitments` : '/projects')}
         />
 
         <MetricCard
@@ -138,7 +139,7 @@ export function DashboardPage() {
           icon={FilePenLine}
           variant="warning"
           actionLabel="Review"
-          onAction={() => navigate('/projects/proj-abc-ecommerce/change-requests')}
+          onAction={() => navigate(firstProjectId ? `/projects/${firstProjectId}/change-requests` : '/projects')}
         />
       </div>
 
@@ -177,7 +178,7 @@ export function DashboardPage() {
               </div>
               <Button
                 size="sm"
-                onClick={() => navigate('/projects/proj-abc-ecommerce/meetings')}
+                onClick={() => navigate(firstProjectId ? `/projects/${firstProjectId}/meetings` : '/projects')}
                 className="w-full text-xs font-semibold h-8"
               >
                 Start Meeting Analysis

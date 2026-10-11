@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils'
 import { ProjectSwitcher } from './project-switcher'
 import { UserMenu } from './user-menu'
+import { useAuth } from '@/hooks/useAuth'
 
 interface MobileNavProps {
   open: boolean
@@ -24,6 +25,7 @@ interface MobileNavProps {
 
 export function MobileNav({ open, onClose }: MobileNavProps) {
   const location = useLocation()
+  const { user } = useAuth()
 
   // Close drawer automatically when route changes
   useEffect(() => {
@@ -33,43 +35,41 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   if (!open) return null
 
   const projectMatch = location.pathname.match(/\/projects\/([^/]+)/)
-  const currentProjectId = projectMatch ? projectMatch[1] : 'proj-abc-ecommerce'
+  const currentProjectId = projectMatch ? projectMatch[1] : null
+  const projectHref = (tab: string) =>
+    currentProjectId ? `/projects/${currentProjectId}/${tab}` : `/${tab}`
 
   const links = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { title: 'All Projects', href: '/projects', icon: FolderKanban },
     {
       title: 'Commitments',
-      href: `/projects/${currentProjectId}/commitments`,
+      href: projectHref('commitments'),
       icon: ClipboardCheck,
-      badge: '2 High Risk',
-      badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400 font-bold',
     },
     {
       title: 'Change Requests',
-      href: `/projects/${currentProjectId}/change-requests`,
+      href: projectHref('change-requests'),
       icon: FilePenLine,
-      badge: '1 Pending',
-      badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     },
     {
       title: 'Meeting Analysis',
-      href: `/projects/${currentProjectId}/meetings`,
+      href: projectHref('meetings'),
       icon: Video,
     },
     {
       title: 'Approved Scope',
-      href: `/projects/${currentProjectId}/scope`,
+      href: projectHref('scope'),
       icon: FileCheck2,
     },
     {
       title: 'Scope Documents',
-      href: `/projects/${currentProjectId}/documents`,
+      href: projectHref('documents'),
       icon: Files,
     },
     {
       title: 'Activity & Audit',
-      href: `/projects/${currentProjectId}/activity`,
+      href: projectHref('activity'),
       icon: Activity,
     },
     { title: 'Settings', href: '/settings', icon: Settings },
@@ -136,16 +136,6 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
                   <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground')} strokeWidth={1.8} />
                   <span>{item.title}</span>
                 </div>
-                {item.badge && (
-                  <span
-                    className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px]',
-                      item.badgeClass || 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             )
           })}
@@ -157,8 +147,8 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
             <div className="flex items-center gap-2 min-w-0">
               <UserMenu />
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold text-foreground truncate">Rahul Mehta</div>
-                <div className="text-[10px] text-muted-foreground truncate">PixelForge Studios</div>
+                <div className="text-xs font-semibold text-foreground truncate">{user?.name ?? 'Rahul Mehta'}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{user?.organization ?? 'PixelForge Studios'}</div>
               </div>
             </div>
           </div>

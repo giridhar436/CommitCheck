@@ -1,21 +1,13 @@
 /* ——————————————————————————————————————————————————
  * CommitCheck — API Endpoint Paths
  *
- * Type-safe endpoint constants matching PRD §36.
- * All service modules import paths from here
- * instead of duplicating string literals.
+ * Mirrors the live NestJS backend route map exactly.
+ * The backend exposes nested resource routes only
+ * (e.g. commitments always live under a project), so
+ * every path here carries its parent resource ids.
  * —————————————————————————————————————————————————— */
 
 export const endpoints = {
-  // ——— Auth ———
-  auth: {
-    signup: '/auth/signup',
-    login: '/auth/login',
-    logout: '/auth/logout',
-    profile: '/auth/profile',
-    forgotPassword: '/auth/forgot-password',
-  },
-
   // ——— Projects ———
   projects: {
     list: '/projects',
@@ -25,58 +17,58 @@ export const endpoints = {
     delete: (id: string) => `/projects/${id}`,
   },
 
-  // ——— Documents ———
-  documents: {
-    list: (projectId: string) => `/projects/${projectId}/documents`,
-    upload: (projectId: string) => `/projects/${projectId}/documents`,
-    delete: (id: string) => `/documents/${id}`,
+  // ——— Scope / Requirements (nested under project) ———
+  scope: {
+    list: (projectId: string) => `/projects/${projectId}/scope`,
+    detail: (projectId: string, id: string) => `/projects/${projectId}/scope/${id}`,
+    create: (projectId: string) => `/projects/${projectId}/scope`,
+    update: (projectId: string, id: string) => `/projects/${projectId}/scope/${id}`,
+    delete: (projectId: string, id: string) => `/projects/${projectId}/scope/${id}`,
   },
 
-  // ——— Meetings / Conversations ———
+  // ——— Meetings (nested under project) ———
   meetings: {
-    list: (projectId: string) => `/projects/${projectId}/conversations`,
-    detail: (id: string) => `/conversations/${id}`,
-    create: (projectId: string) => `/projects/${projectId}/conversations`,
-    analyze: (id: string) => `/conversations/${id}/analyze`,
-    delete: (id: string) => `/conversations/${id}`,
+    list: (projectId: string) => `/projects/${projectId}/meetings`,
+    detail: (projectId: string, id: string) => `/projects/${projectId}/meetings/${id}`,
+    create: (projectId: string) => `/projects/${projectId}/meetings`,
+    update: (projectId: string, id: string) => `/projects/${projectId}/meetings/${id}`,
+    delete: (projectId: string, id: string) => `/projects/${projectId}/meetings/${id}`,
   },
 
-  // ——— Commitments ———
+  // ——— Meeting Attachments (nested under project + meeting) ———
+  attachments: {
+    list: (projectId: string, meetingId: string) =>
+      `/projects/${projectId}/meetings/${meetingId}/attachments`,
+    detail: (projectId: string, meetingId: string, id: string) =>
+      `/projects/${projectId}/meetings/${meetingId}/attachments/${id}`,
+    create: (projectId: string, meetingId: string) =>
+      `/projects/${projectId}/meetings/${meetingId}/attachments`,
+    update: (projectId: string, meetingId: string, id: string) =>
+      `/projects/${projectId}/meetings/${meetingId}/attachments/${id}`,
+    delete: (projectId: string, meetingId: string, id: string) =>
+      `/projects/${projectId}/meetings/${meetingId}/attachments/${id}`,
+  },
+
+  // ——— Commitments (nested under project) ———
   commitments: {
     list: (projectId: string) => `/projects/${projectId}/commitments`,
-    detail: (id: string) => `/commitments/${id}`,
-    update: (id: string) => `/commitments/${id}`,
+    detail: (projectId: string, id: string) => `/projects/${projectId}/commitments/${id}`,
+    create: (projectId: string) => `/projects/${projectId}/commitments`,
+    update: (projectId: string, id: string) => `/projects/${projectId}/commitments/${id}`,
+    delete: (projectId: string, id: string) => `/projects/${projectId}/commitments/${id}`,
+    // Read-only meeting-scoped surface
+    listByMeeting: (meetingId: string) => `/meetings/${meetingId}/commitments`,
   },
 
-  // ——— Change Requests ———
-  changeRequests: {
-    list: (projectId: string) => `/projects/${projectId}/change-requests`,
-    detail: (id: string) => `/change-requests/${id}`,
-    create: (commitmentId: string) => `/commitments/${commitmentId}/change-request`,
-    update: (id: string) => `/change-requests/${id}`,
-    approve: (id: string) => `/change-requests/${id}/approve`,
-    reject: (id: string) => `/change-requests/${id}/reject`,
-    clarification: (id: string) => `/change-requests/${id}/clarification`,
-  },
-
-  // ——— Scope / Requirements ———
-  scope: {
-    list: (projectId: string) => `/projects/${projectId}/requirements`,
-    create: (projectId: string) => `/projects/${projectId}/requirements`,
-    update: (id: string) => `/requirements/${id}`,
-    delete: (id: string) => `/requirements/${id}`,
-  },
-
-  // ——— Notifications ———
-  notifications: {
-    list: '/notifications',
-    markRead: (id: string) => `/notifications/${id}/read`,
-    markAllRead: '/notifications/read-all',
-  },
-
-  // ——— Activity / Audit ———
-  activity: {
-    list: (projectId: string) => `/projects/${projectId}/activity`,
-    record: (projectId: string) => `/projects/${projectId}/activity`,
+  // ——— Commitment Evidence (nested under project + commitment; immutable) ———
+  evidence: {
+    list: (projectId: string, commitmentId: string) =>
+      `/projects/${projectId}/commitments/${commitmentId}/evidence`,
+    detail: (projectId: string, commitmentId: string, id: string) =>
+      `/projects/${projectId}/commitments/${commitmentId}/evidence/${id}`,
+    create: (projectId: string, commitmentId: string) =>
+      `/projects/${projectId}/commitments/${commitmentId}/evidence`,
+    delete: (projectId: string, commitmentId: string, id: string) =>
+      `/projects/${projectId}/commitments/${commitmentId}/evidence/${id}`,
   },
 } as const

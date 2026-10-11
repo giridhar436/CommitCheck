@@ -1,28 +1,74 @@
 /* ——————————————————————————————————————————————————
  * CommitCheck — Activity Service
  *
- * Dual-mode service: mock store for demo, real
- * NestJS backend when VITE_API_MODE=remote.
+ * ⚠️ LOCAL-ONLY: the backend writes an Activity audit trail
+ * transactionally on every mutation but does not expose a
+ * GET /activity endpoint yet. Until it does, the timeline
+ * reads from an in-memory store seeded below.
  * —————————————————————————————————————————————————— */
 
 import type { ActivityItem } from '@/types'
-import { mockActivity } from '@/mocks/data'
-import { isMockMode, apiClient } from '@/services/api/client'
-import { endpoints } from '@/services/api/endpoints'
 
-// ——— Helpers ———
+let activityStore: ActivityItem[] = [
+  {
+    id: 'act-1',
+    projectId: 'proj-abc-ecommerce',
+    type: 'meeting_analyzed',
+    title: 'Sprint 3 Check-in Meeting analyzed',
+    description: 'Meeting summary and transcript ingested. AI commitment extraction initiated.',
+    relatedId: 'meet-sync-march12',
+    relatedType: 'meeting',
+    timestamp: '2025-03-12T10:32:00Z',
+    actor: 'Rahul Mehta',
+  },
+  {
+    id: 'act-2',
+    projectId: 'proj-abc-ecommerce',
+    type: 'commitment_detected',
+    title: '2 commitments detected',
+    description: 'Extracted Google OAuth login commitment and multi-currency pricing commitment from transcript.',
+    relatedId: 'comm-google-login',
+    relatedType: 'commitment',
+    timestamp: '2025-03-12T10:33:00Z',
+    actor: 'CommitCheck Engine',
+  },
+  {
+    id: 'act-3',
+    projectId: 'proj-abc-ecommerce',
+    type: 'commitment_flagged',
+    title: 'Google Login flagged as HIGH RISK scope creep',
+    description: 'Commitment not found in approved SOW Section 3.1. Marked as unauthorized work.',
+    relatedId: 'comm-google-login',
+    relatedType: 'commitment',
+    timestamp: '2025-03-12T10:33:30Z',
+    actor: 'CommitCheck Engine',
+  },
+  {
+    id: 'act-4',
+    projectId: 'proj-abc-ecommerce',
+    type: 'change_request_created',
+    title: 'Change Request CR-3B7F21 created',
+    description: 'Structured change request generated for Google OAuth integration ($2,250 / 18h).',
+    relatedId: 'cr-google-login',
+    relatedType: 'change_request',
+    timestamp: '2025-03-12T10:35:00Z',
+    actor: 'Rahul Mehta',
+  },
+  {
+    id: 'act-5',
+    projectId: 'proj-abc-ecommerce',
+    type: 'change_request_approved',
+    title: 'Change Request CR-3B7F21 approved',
+    description: 'Marcus Vance (Client VP) authorized $2,250 budget addendum into approved baseline.',
+    relatedId: 'cr-google-login',
+    relatedType: 'change_request',
+    timestamp: '2025-03-12T10:41:00Z',
+    actor: 'Marcus Vance (Client VP)',
+  },
+]
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// ——— Mock Implementation ———
-
-let activityStore = [...mockActivity]
-
-const mockActivityService = {
+export const activityService = {
   async getAll(projectId?: string): Promise<ActivityItem[]> {
-    await delay(150)
     if (!projectId) return [...activityStore]
     return activityStore.filter((a) => a.projectId === projectId)
   },
@@ -38,38 +84,4 @@ const mockActivityService = {
     activityStore.unshift(newItem)
     return newItem
   },
-}
-
-// ——— Remote Implementation ———
-
-const remoteActivityService = {
-  async getAll(projectId?: string): Promise<ActivityItem[]> {
-    if (projectId) {
-      return apiClient.get<ActivityItem[]>(endpoints.activity.list(projectId))
-    }
-    return apiClient.get<ActivityItem[]>('/activity')
-  },
-
-  async record(
-    item: Omit<ActivityItem, 'id' | 'timestamp'>,
-  ): Promise<ActivityItem> {
-    const projectId = item.projectId || 'general'
-    return apiClient.post<ActivityItem>(
-      endpoints.activity.record(projectId),
-      item,
-    )
-  },
-}
-
-// ——— Exported Service (mode aware) ———
-
-export const activityService = {
-  getAll: (projectId?: string) =>
-    isMockMode()
-      ? mockActivityService.getAll(projectId)
-      : remoteActivityService.getAll(projectId),
-  record: (item: Omit<ActivityItem, 'id' | 'timestamp'>) =>
-    isMockMode()
-      ? mockActivityService.record(item)
-      : remoteActivityService.record(item),
 }

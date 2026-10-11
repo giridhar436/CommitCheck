@@ -47,9 +47,9 @@ export function NotificationsPopover() {
     loadNotifications()
 
     if (notif.relatedType === 'commitment') {
-      navigate(`/commitments/${notif.relatedId || 'comm-google-login'}`)
+      navigate(notif.relatedId ? `/commitments/${notif.relatedId}` : '/commitments')
     } else if (notif.relatedType === 'change_request') {
-      navigate(`/change-requests/${notif.relatedId || 'cr-google-login'}`)
+      navigate(notif.relatedId ? `/change-requests/${notif.relatedId}` : '/change-requests')
     } else {
       navigate('/dashboard')
     }

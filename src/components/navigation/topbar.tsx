@@ -1,5 +1,4 @@
-import { Menu, Search, ShieldCheck, Play } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Menu, Search, ShieldCheck } from 'lucide-react'
 import { Breadcrumbs } from './breadcrumbs'
 import { NotificationsPopover } from './notifications-popover'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -46,15 +45,6 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
           <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
           <span>Scope Protected</span>
         </div>
-
-        {/* Demo Flow Pill */}
-        <Link
-          to="/projects/proj-abc-ecommerce"
-          className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors"
-        >
-          <Play className="h-3 w-3 text-primary" strokeWidth={1.8} />
-          <span>Demo</span>
-        </Link>
 
         {/* Notifications */}
         <NotificationsPopover />

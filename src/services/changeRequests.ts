@@ -1,35 +1,45 @@
 /* ——————————————————————————————————————————————————
  * CommitCheck — Change Requests Service
  *
- * Dual-mode service: mock store for demo, real
- * NestJS backend when VITE_API_MODE=remote.
+ * ⚠️ LOCAL-ONLY: the backend has no Change Requests module
+ * yet (the Prisma model exists but no controller/service).
+ * Until that module ships, change requests run on an
+ * in-memory store seeded below. Replace with real API
+ * calls once /projects/:projectId/change-requests exists.
  * —————————————————————————————————————————————————— */
 
 import type { ChangeRequest, ChangeRequestStatus } from '@/types'
-import { mockChangeRequests } from '@/mocks/data'
 import { generateId } from '@/lib/utils'
-import { isMockMode, apiClient } from '@/services/api/client'
-import { endpoints } from '@/services/api/endpoints'
 
-// ——— Helpers ———
+let changeRequestsStore: ChangeRequest[] = [
+  {
+    id: 'cr-google-login',
+    changeRequestId: 'CR-3B7F21',
+    projectId: 'proj-abc-ecommerce',
+    commitmentId: 'comm-google-login',
+    title: 'Google OAuth Single Sign-On Integration',
+    feature: 'Google OAuth 2.0 Login & Account Linking',
+    source: 'Sprint 3 Check-in Meeting (March 12, 2025)',
+    committedBy: 'Rahul Mehta',
+    promisedDeadline: 'Friday, March 14',
+    originalScope:
+      'SOW Section 3.1 covers Email and Password authentication only. Third-party federated identity providers were excluded from Phase 1.',
+    estimatedEffort: '18 hours (2.5 engineering days)',
+    impact:
+      'Requires Google Cloud Console OAuth consent screen verification, Passport.js/OAuth strategy integration, database user schema migration to store federated sub IDs, and checkout login modal UI changes.',
+    status: 'pending_approval',
+    createdAt: '2025-03-12T10:35:00Z',
+    updatedAt: '2025-03-12T10:35:00Z',
+  },
+]
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// ——— Mock Implementation ———
-
-let changeRequestsStore = [...mockChangeRequests]
-
-const mockChangeRequestService = {
+export const changeRequestService = {
   async getAll(projectId?: string): Promise<ChangeRequest[]> {
-    await delay(200)
     if (!projectId) return [...changeRequestsStore]
     return changeRequestsStore.filter((cr) => cr.projectId === projectId)
   },
 
   async getById(id: string): Promise<ChangeRequest | null> {
-    await delay(150)
     return (
       changeRequestsStore.find(
         (cr) => cr.id === id || cr.changeRequestId === id,
@@ -38,7 +48,6 @@ const mockChangeRequestService = {
   },
 
   async create(data: Partial<ChangeRequest>): Promise<ChangeRequest> {
-    await delay(300)
     const newCr: ChangeRequest = {
       id: `cr-${Date.now()}`,
       changeRequestId: generateId('CR'),
@@ -66,7 +75,6 @@ const mockChangeRequestService = {
     status: ChangeRequestStatus,
     reason?: string,
   ): Promise<ChangeRequest> {
-    await delay(250)
     const index = changeRequestsStore.findIndex(
       (cr) => cr.id === id || cr.changeRequestId === id,
     )
@@ -95,73 +103,4 @@ const mockChangeRequestService = {
     changeRequestsStore[index] = updated
     return updated
   },
-
-  reset(): void {
-    changeRequestsStore = [...mockChangeRequests]
-  },
-}
-
-// ——— Remote Implementation ———
-
-const remoteChangeRequestService = {
-  async getAll(projectId?: string): Promise<ChangeRequest[]> {
-    if (projectId) {
-      return apiClient.get<ChangeRequest[]>(endpoints.changeRequests.list(projectId))
-    }
-    return apiClient.get<ChangeRequest[]>('/change-requests')
-  },
-
-  async getById(id: string): Promise<ChangeRequest | null> {
-    try {
-      return await apiClient.get<ChangeRequest>(endpoints.changeRequests.detail(id))
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 404) {
-        return null
-      }
-      throw err
-    }
-  },
-
-  async create(data: Partial<ChangeRequest>): Promise<ChangeRequest> {
-    if (data.commitmentId) {
-      return apiClient.post<ChangeRequest>(endpoints.changeRequests.create(data.commitmentId), data)
-    }
-    if (data.projectId) {
-      return apiClient.post<ChangeRequest>(endpoints.changeRequests.list(data.projectId), data)
-    }
-    return apiClient.post<ChangeRequest>('/change-requests', data)
-  },
-
-  async updateStatus(
-    id: string,
-    status: ChangeRequestStatus,
-    reason?: string,
-  ): Promise<ChangeRequest> {
-    if (status === 'approved') {
-      return apiClient.post<ChangeRequest>(endpoints.changeRequests.approve(id))
-    }
-    if (status === 'rejected') {
-      return apiClient.post<ChangeRequest>(endpoints.changeRequests.reject(id), { reason })
-    }
-    return apiClient.patch<ChangeRequest>(endpoints.changeRequests.update(id), {
-      status,
-      reason,
-    })
-  },
-}
-
-// ——— Exported Service (mode aware) ———
-
-export const changeRequestService = {
-  getAll: (projectId?: string) =>
-    isMockMode() ? mockChangeRequestService.getAll(projectId) : remoteChangeRequestService.getAll(projectId),
-  getById: (id: string) =>
-    isMockMode() ? mockChangeRequestService.getById(id) : remoteChangeRequestService.getById(id),
-  create: (data: Partial<ChangeRequest>) =>
-    isMockMode() ? mockChangeRequestService.create(data) : remoteChangeRequestService.create(data),
-  updateStatus: (id: string, status: ChangeRequestStatus, reason?: string) =>
-    isMockMode()
-      ? mockChangeRequestService.updateStatus(id, status, reason)
-      : remoteChangeRequestService.updateStatus(id, status, reason),
-  reset: () => mockChangeRequestService.reset(),
 }
