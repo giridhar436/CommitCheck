@@ -1,44 +1,22 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  ShieldAlert,
-  ArrowRight,
-  Clock,
-  ArrowUpRight,
-} from 'lucide-react'
+import { ShieldAlert, ArrowRight, Clock, ArrowUpRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { RiskBadge } from '@/components/ui/risk-badge'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { CopyButton } from '@/components/copy-button'
-import { commitmentService } from '@/services/commitments'
-import { projectService } from '@/services/projects'
 import { formatRelativeTime } from '@/lib/utils'
-import type { Commitment, Project } from '@/types'
+import type { AlertItem } from '@/types'
 
-/** Urgent unauthorized / unreviewed commitments, pulled live from the backend. */
-export function NeedsAttention() {
+/** Attention item enriched with project context by the caller (dashboard or
+ *  project overview — both feed from the Phase 12 dashboard/alerts data). */
+export type AttentionEntry = AlertItem & { projectId: string; projectName?: string }
+
+/**
+ * Prominent attention section driven by the backend's deterministic
+ * attention items (high-risk unauthorized commitments, ambiguous
+ * verifications, open change requests). Pure presentation — the caller
+ * supplies the data, so nothing here is recomputed client-side.
+ */
+export function NeedsAttention({ items }: { items: AttentionEntry[] }) {
   const navigate = useNavigate()
-  const [items, setItems] = useState<Commitment[]>([])
-  const [projects, setProjects] = useState<Record<string, Project>>({})
-
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([commitmentService.getAll(), projectService.getAll()]).then(
-      ([commitments, projectList]) => {
-        if (cancelled) return
-        const attention = commitments
-          .filter((c) => c.authorization === 'unauthorized' || c.status === 'needs_review')
-          .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
-          .slice(0, 2)
-        setItems(attention)
-        setProjects(Object.fromEntries(projectList.map((p) => [p.id, p])))
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   if (items.length === 0) return null
 
@@ -61,76 +39,81 @@ export function NeedsAttention() {
       </CardHeader>
 
       <CardContent className="p-4 sm:p-5 space-y-4">
-        {items.map((comm, idx) => {
-          const project = projects[comm.projectId]
+        {items.map((item, idx) => {
+          const isCommitment = Boolean(item.commitmentId)
 
           return (
             <div
-              key={comm.id}
+              key={item.id}
               className={`rounded-lg border bg-background p-4 shadow-2xs space-y-3 ${
-                idx === 0 ? 'border-red-500/25' : 'border-amber-500/25'
+                item.severity === 'HIGH' ? 'border-red-500/25' : 'border-amber-500/25'
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <RiskBadge level={comm.riskLevel} />
-                  <span className="font-mono text-xs font-semibold text-foreground">
-                    {comm.commitmentId}
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      item.severity === 'HIGH'
+                        ? 'bg-red-500/15 text-red-600 dark:text-red-400'
+                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {item.severity} Priority
                   </span>
-                  <CopyButton text={comm.commitmentId} variant="ghost" size="icon" />
-                  {project && (
-                    <span className="text-xs text-muted-foreground">
-                      • {project.name} ({project.client})
-                    </span>
+                  <span className="text-[11px] font-semibold text-muted-foreground">
+                    {item.type === 'UNAUTHORIZED_COMMITMENT'
+                      ? 'Unauthorized Scope Creep'
+                      : item.type === 'AMBIGUOUS_VERIFICATION'
+                        ? 'Ambiguous Verification'
+                        : item.type === 'PENDING_CHANGE_REQUEST'
+                          ? 'Change Request Pending'
+                          : 'Clarification Requested'}
+                  </span>
+                  {item.projectName && (
+                    <span className="text-xs text-muted-foreground">• {item.projectName}</span>
                   )}
                 </div>
-                <StatusBadge status={comm.status} />
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-foreground">
-                  {comm.commitment}
-                </h4>
+                <h4 className="text-sm font-bold text-foreground">{item.title}</h4>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Committed by <strong className="text-foreground">{comm.committedBy}</strong>
-                  {comm.deadline && (
-                    <>
-                      {' '}for deadline <strong className="text-foreground">{comm.deadline}</strong>:
-                    </>
-                  )}
-                  {comm.evidence && (
-                    <span className="italic block mt-1 text-foreground/90 bg-muted/40 p-2 rounded border border-border/40 font-mono text-[11px]">
-                      {comm.evidence}
-                    </span>
-                  )}
-                </p>
-                <p className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
-                  Not found in the approved SOW baseline. No signed change order or budget approval found.
+                  {item.description}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/40">
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
-                  <span>Flagged {formatRelativeTime(comm.updatedAt)}</span>
+                  <span>Updated {formatRelativeTime(item.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {idx === 0 ? (
                     <>
+                      {isCommitment && item.type === 'UNAUTHORIZED_COMMITMENT' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/projects/${item.projectId}/change-requests`)}
+                          className="h-8 text-xs font-medium"
+                        >
+                          Create Change Request
+                        </Button>
+                      )}
                       <Button
-                        variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/projects/${comm.projectId}/change-requests`)}
-                        className="h-8 text-xs font-medium"
+                        onClick={() =>
+                          isCommitment
+                            ? navigate(`/commitments/${item.commitmentId}`)
+                            : navigate(`/change-requests/${item.changeRequestId}`)
+                        }
+                        className={`h-8 text-xs font-semibold text-white ${
+                          item.severity === 'HIGH'
+                            ? 'bg-red-600 hover:bg-red-700 dark:bg-red-600'
+                            : ''
+                        }`}
                       >
-                        Create Change Request
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/commitments/${comm.id}`)}
-                        className="h-8 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 dark:bg-red-600"
-                      >
-                        Review Commitment
+                        {isCommitment ? 'Review Commitment' : 'Review Change Request'}
                         <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                       </Button>
                     </>
@@ -138,10 +121,14 @@ export function NeedsAttention() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/projects/${comm.projectId}/commitments`)}
+                      onClick={() =>
+                        isCommitment
+                          ? navigate(`/commitments/${item.commitmentId}`)
+                          : navigate(`/change-requests/${item.changeRequestId}`)
+                      }
                       className="h-8 text-xs font-medium"
                     >
-                      View in Commitments
+                      Inspect
                       <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                     </Button>
                   )}

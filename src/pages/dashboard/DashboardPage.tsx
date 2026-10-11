@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FolderKanban,
@@ -20,25 +20,31 @@ import { RecentCommitmentsCard } from '@/components/dashboard/recent-commitments
 import { ActivityTimeline } from '@/components/activity/activity-timeline'
 import { projectService } from '@/services/projects'
 import { commitmentService } from '@/services/commitments'
-import { activityService } from '@/services/activity'
-import type { Project, Commitment, ActivityItem } from '@/types'
+import { dashboardService } from '@/services/dashboard'
+import { formatActivityAction } from '@/lib/utils'
+import type { Project, Commitment, DashboardData } from '@/types'
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const [projects, setProjects] = useState<Project[]>([])
+  /** One Phase 12 dashboard aggregate per project (real counts, attention items). */
+  const [dashboards, setDashboards] = useState<DashboardData[]>([])
   const [commitments, setCommitments] = useState<Commitment[]>([])
-  const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       projectService.getAll(),
       commitmentService.getAll(),
-      activityService.getAll(),
-    ]).then(([projList, commList, actList]) => {
+    ]).then(async ([projList, commList]) => {
       setProjects(projList)
       setCommitments(commList)
-      setActivities(actList)
+      // Per-project aggregates (each is a single request; nothing here
+      // calls the AI provider — every number is database-derived).
+      const dashes = await Promise.all(
+        projList.map((p) => dashboardService.getOverview(p.id).catch(() => null)),
+      )
+      setDashboards(dashes.filter((d): d is DashboardData => d !== null))
       setLoading(false)
     })
   }, [])
@@ -46,17 +52,74 @@ export function DashboardPage() {
   // Aggregate metrics (first project hosts the quick-action deep links)
   const firstProjectId = projects[0]?.id
   const totalActiveProjects = projects.filter((p) => p.status === 'active').length
-  const totalDetected = commitments.length
-  const totalUnauthorized = commitments.filter((c) => c.authorization === 'unauthorized').length
-  const totalHighRisk = commitments.filter((c) => c.riskLevel === 'high').length
-  const totalPendingCR = 0 // Change Requests have no backend module yet
+  const totalDetected = dashboards.reduce((sum, d) => sum + d.summary.commitments, 0)
+  const totalUnauthorized = dashboards.reduce(
+    (sum, d) => sum + d.summary.unauthorizedCommitments,
+    0,
+  )
+  const totalHighRisk = dashboards.reduce((sum, d) => sum + d.summary.highRiskCommitments, 0)
+  const totalPendingCR = dashboards.reduce(
+    (sum, d) => sum + d.summary.pendingChangeRequests,
+    0,
+  )
 
-  const timelineItems = activities.map((act) => ({
+  // Attention items merged across projects — highest severity first, then newest.
+  const attentionItems = useMemo(() => {
+    const projectName = new Map(projects.map((p) => [p.id, p.name]))
+    return dashboards
+      .flatMap((d) =>
+        d.attentionItems.map((item) => ({
+          ...item,
+          projectId: d.project.id,
+          projectName: projectName.get(d.project.id),
+        })),
+      )
+      .sort((a, b) => {
+        if (a.severity !== b.severity) return a.severity === 'HIGH' ? -1 : 1
+        return a.createdAt < b.createdAt ? 1 : -1
+      })
+      .slice(0, 5)
+  }, [dashboards, projects])
+
+  // Cross-project audit trail — the newest entries from each project.
+  const recentActivity = useMemo(() => {
+    return dashboards
+      .flatMap((d) => d.recentActivity)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, 8)
+  }, [dashboards])
+
+  // Risk matrix fed from each project's real authorization breakdown.
+  const riskProjects = useMemo(
+    () =>
+      projects.map((p) => {
+        const dash = dashboards.find((d) => d.project.id === p.id)
+        if (!dash) return p
+        return {
+          ...p,
+          unauthorizedCommitments: dash.summary.unauthorizedCommitments,
+          riskLevel:
+            dash.summary.unauthorizedCommitments > 0
+              ? ('high' as const)
+              : dash.summary.commitments > 0
+                ? ('medium' as const)
+                : ('low' as const),
+        }
+      }),
+    [projects, dashboards],
+  )
+
+  const timelineItems = recentActivity.map((act) => ({
     id: act.id,
-    timestamp: act.timestamp,
-    title: act.title,
+    timestamp: act.createdAt,
+    title: act.entityTitle ?? formatActivityAction(act.action),
     description: act.description,
-    badge: act.type === 'commitment_flagged' ? 'unauthorized' : act.type === 'change_request_created' ? 'pending_approval' : undefined,
+    badge:
+      act.action === 'COMMITMENT_FLAGGED'
+        ? 'unauthorized'
+        : act.action === 'CHANGE_REQUEST_CREATED' || act.action === 'CHANGE_REQUEST_CLARIFICATION_REQUESTED'
+        ? 'pending_approval'
+        : undefined,
   }))
 
   return (
@@ -92,7 +155,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Metrics Bar */}
+      {/* KPI Metrics Bar — live aggregates from each project's dashboard */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard
           title="Active Projects"
@@ -147,14 +210,14 @@ export function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left 2 Columns: Urgent Attention & Primary Lists */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Urgent Attention Callouts */}
-          <NeedsAttention />
+          {/* Urgent Attention Callouts — backend attention items */}
+          <NeedsAttention items={attentionItems} />
 
           {/* Recent Detected Commitments Table */}
           <RecentCommitmentsCard commitments={commitments} />
 
           {/* Project Risk Summary Matrix */}
-          <ProjectRiskSummary projects={projects} />
+          <ProjectRiskSummary projects={riskProjects} />
         </div>
 
         {/* Right Column: Actions & Audit Timeline */}
@@ -187,7 +250,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Activity / Audit Timeline */}
+          {/* Activity / Audit Timeline — real backend activity */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">

@@ -10,8 +10,11 @@
  * —————————————————————————————————————————————————— */
 
 import type {
+  ActivityItem,
+  AlertItem,
   ChangeRequest,
   Commitment,
+  DashboardData,
   Meeting,
   Project,
   Requirement,
@@ -145,6 +148,63 @@ export interface BackendChangeRequest {
     meetingId: string
   } | null
   meetingTitle?: string | null
+}
+
+export interface BackendActivityItem {
+  id: string
+  action: string
+  entityType: string
+  entityId: string | null
+  entityTitle: string | null
+  description: string
+  projectId: string
+  meetingId: string | null
+  commitmentId: string | null
+  changeRequestId: string | null
+  createdAt: string
+}
+
+export interface BackendAlertItem {
+  id: string
+  type: 'UNAUTHORIZED_COMMITMENT' | 'AMBIGUOUS_VERIFICATION' | 'PENDING_CHANGE_REQUEST' | 'CLARIFICATION_REQUESTED'
+  severity: 'HIGH' | 'MEDIUM'
+  title: string
+  description: string
+  commitmentId: string | null
+  changeRequestId: string | null
+  meetingId: string | null
+  createdAt: string
+}
+
+export interface BackendDashboard {
+  project: { id: string; name: string }
+  summary: {
+    scopeRequirements: number
+    meetings: number
+    commitments: number
+    unauthorizedCommitments: number
+    highRiskCommitments: number
+    pendingChangeRequests: number
+    approvedChangeRequests: number
+    rejectedChangeRequests: number
+  }
+  commitments: {
+    total: number
+    authorized: number
+    unauthorized: number
+    pending: number
+    highRisk: number
+    mediumRisk: number
+    lowRisk: number
+  }
+  changeRequests: {
+    pending: number
+    clarificationRequested: number
+    approved: number
+    rejected: number
+  }
+  recentActivity: BackendActivityItem[]
+  attentionItems: BackendAlertItem[]
 }
 
 // ——— Envelope unwrapping ———
@@ -416,5 +476,25 @@ export function mapChangeRequest(dto: BackendChangeRequest): ChangeRequest {
     meetingTitle: dto.meetingTitle ?? null,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
+  }
+}
+
+// ——— Phase 12 (dashboard/activity/alerts) — the backend already emits
+// the frontend's exact enum casing, so these mappers are structural
+// checks more than transformations. ———
+
+export function mapActivityItem(dto: BackendActivityItem): ActivityItem {
+  return dto as ActivityItem
+}
+
+export function mapAlertItem(dto: BackendAlertItem): AlertItem {
+  return dto as AlertItem
+}
+
+export function mapDashboard(dto: BackendDashboard): DashboardData {
+  return {
+    ...dto,
+    recentActivity: dto.recentActivity.map(mapActivityItem),
+    attentionItems: dto.attentionItems.map(mapAlertItem),
   }
 }

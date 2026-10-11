@@ -62,3 +62,16 @@ export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength).trimEnd() + '…'
 }
+
+/**
+ * Humanize a backend ActivityAction ("CHANGE_REQUEST_CREATED" →
+ * "Change request created").
+ */
+export function formatActivityAction(action: string): string {
+  return action
+    .split('_')
+    .map((word, i) =>
+      i === 0 ? word.charAt(0) + word.slice(1).toLowerCase() : word.toLowerCase(),
+    )
+    .join(' ')
+}

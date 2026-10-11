@@ -21,31 +21,35 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { projectService } from '@/services/projects'
 import { commitmentService } from '@/services/commitments'
-import { activityService } from '@/services/activity'
-import { formatDate } from '@/lib/utils'
-import type { Project, Commitment, ActivityItem } from '@/types'
+import { dashboardService } from '@/services/dashboard'
+import { deriveProjectRiskLevel } from '@/services/api/adapters'
+import { formatDate, formatActivityAction } from '@/lib/utils'
+import type { Project, Commitment, DashboardData } from '@/types'
 
 export function ProjectOverviewPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [project, setProject] = useState<Project | null>(null)
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [commitments, setCommitments] = useState<Commitment[]>([])
-  const [activities, setActivities] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!id) return
 
     setLoading(true)
+    // The dashboard aggregate (Phase 12) supplies every number, the
+    // attention section and the audit timeline; commitments are still
+    // fetched separately for the recent-commitments table.
     Promise.all([
       projectService.getById(id),
+      dashboardService.getOverview(id).catch(() => null),
       commitmentService.getAll(id),
-      activityService.getAll(id),
-    ]).then(([proj, commList, actList]) => {
+    ]).then(([proj, dash, commList]) => {
       setProject(proj)
+      setDashboard(dash)
       setCommitments(commList)
-      setActivities(actList)
       setLoading(false)
     })
   }, [id])
@@ -68,17 +72,28 @@ export function ProjectOverviewPage() {
     )
   }
 
-  const timelineItems = activities.map((act) => ({
+  const summary = dashboard?.summary
+  const riskLevel = summary
+    ? deriveProjectRiskLevel(summary.unauthorizedCommitments, summary.commitments)
+    : project.riskLevel
+
+  const timelineItems = (dashboard?.recentActivity ?? []).map((act) => ({
     id: act.id,
-    timestamp: act.timestamp,
-    title: act.title,
+    timestamp: act.createdAt,
+    title: act.entityTitle ?? formatActivityAction(act.action),
     description: act.description,
     badge:
-      act.type === 'commitment_flagged'
+      act.action === 'COMMITMENT_FLAGGED'
         ? 'unauthorized'
-        : act.type === 'change_request_created'
+        : act.action === 'CHANGE_REQUEST_CREATED' || act.action === 'CHANGE_REQUEST_CLARIFICATION_REQUESTED'
         ? 'pending_approval'
         : undefined,
+  }))
+
+  const attentionEntries = (dashboard?.attentionItems ?? []).map((item) => ({
+    ...item,
+    projectId: project.id,
+    projectName: project.name,
   }))
 
   return (
@@ -91,7 +106,7 @@ export function ProjectOverviewPage() {
               {project.name}
             </h1>
             <StatusBadge status={project.status} />
-            <RiskBadge level={project.riskLevel} />
+            <RiskBadge level={riskLevel} />
           </div>
 
           <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
@@ -140,11 +155,11 @@ export function ProjectOverviewPage() {
       {/* Project Sub-Navigation Tabs */}
       <ProjectNavTabs projectId={project.id} />
 
-      {/* Overview Metrics Cards */}
+      {/* Overview Metrics Cards — live from the dashboard aggregate */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Approved Scope"
-          value={project.approvedRequirements}
+          value={summary ? summary.scopeRequirements : '…'}
           description="Signed SOW deliverables"
           icon={FileCheck2}
           variant="default"
@@ -154,7 +169,7 @@ export function ProjectOverviewPage() {
 
         <MetricCard
           title="Detected Commitments"
-          value={project.detectedCommitments}
+          value={summary ? summary.commitments : '…'}
           description="From analyzed meetings"
           icon={ClipboardCheck}
           variant="default"
@@ -164,20 +179,20 @@ export function ProjectOverviewPage() {
 
         <MetricCard
           title="Unauthorized Scope"
-          value={project.unauthorizedCommitments}
+          value={summary ? summary.unauthorizedCommitments : '…'}
           description="Missing change requests"
           icon={CircleX}
-          variant={project.unauthorizedCommitments > 0 ? 'danger' : 'default'}
+          variant={summary && summary.unauthorizedCommitments > 0 ? 'danger' : 'default'}
           actionLabel="Review"
           onAction={() => navigate(`/projects/${project.id}/commitments`)}
         />
 
         <MetricCard
           title="Pending Change Orders"
-          value={project.pendingChangeRequests}
+          value={summary ? summary.pendingChangeRequests : '…'}
           description="Awaiting client sign-off"
           icon={FilePenLine}
-          variant={project.pendingChangeRequests > 0 ? 'warning' : 'default'}
+          variant={summary && summary.pendingChangeRequests > 0 ? 'warning' : 'default'}
           actionLabel="Review"
           onAction={() => navigate(`/projects/${project.id}/change-requests`)}
         />
@@ -187,8 +202,8 @@ export function ProjectOverviewPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left 2 Columns */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Needs Attention Alert (Scoped to this project) */}
-          <NeedsAttention />
+          {/* Attention section from the backend's attentionItems */}
+          <NeedsAttention items={attentionEntries} />
 
           {/* Commitments Table */}
           <RecentCommitmentsCard commitments={commitments} />
@@ -196,14 +211,21 @@ export function ProjectOverviewPage() {
 
         {/* Right 1 Column: Activity Timeline & Details */}
         <div className="space-y-6">
-          {/* Audit Timeline */}
+          {/* Audit Timeline — real backend activity, newest first */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-bold text-foreground">
                   Project Audit Timeline
                 </CardTitle>
-                <span className="text-[10px] text-muted-foreground">Timescale</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[11px] text-muted-foreground"
+                  onClick={() => navigate(`/projects/${project.id}/activity`)}
+                >
+                  Full Timeline
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-4">

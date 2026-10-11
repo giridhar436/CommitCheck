@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   History,
@@ -7,11 +7,14 @@ import {
   ShieldAlert,
   FilePenLine,
   CircleCheck,
-  User,
   ArrowRight,
   Filter,
   Clock,
   Copy,
+  ChevronLeft,
+  ChevronRight,
+  ListChecks,
+  CircleX,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,124 +35,150 @@ import {
 } from '@/components/timescale'
 import { projectService } from '@/services/projects'
 import { activityService } from '@/services/activity'
-import { formatTime } from '@/lib/utils'
-import type { Project, ActivityItem } from '@/types'
+import { dashboardService } from '@/services/dashboard'
+import { formatTime, formatRelativeTime, formatActivityAction } from '@/lib/utils'
+import type { Project, ActivityItem, ActivityAction, DashboardData } from '@/types'
+
+const PAGE_SIZE = 15
+
+/** Server-side filter chips — each maps to one backend ActivityAction. */
+const ACTION_FILTERS: Array<{ label: string; action?: ActivityAction }> = [
+  { label: 'All Activity' },
+  { label: 'Meetings Analyzed', action: 'MEETING_ANALYZED' },
+  { label: 'Commitments Detected', action: 'COMMITMENT_DETECTED' },
+  { label: 'Scope Verifications', action: 'COMMITMENT_VERIFIED' },
+  { label: 'Creep Flags', action: 'COMMITMENT_FLAGGED' },
+  { label: 'Change Requests', action: 'CHANGE_REQUEST_CREATED' },
+  { label: 'Approvals', action: 'CHANGE_REQUEST_APPROVED' },
+]
+
+function getActivityIcon(action: ActivityItem['action']) {
+  switch (action) {
+    case 'MEETING_ANALYZED':
+      return Video
+    case 'COMMITMENT_DETECTED':
+    case 'COMMITMENT_CREATED':
+      return ClipboardCheck
+    case 'COMMITMENT_FLAGGED':
+      return ShieldAlert
+    case 'CHANGE_REQUEST_CREATED':
+      return FilePenLine
+    case 'CHANGE_REQUEST_APPROVED':
+      return CircleCheck
+    case 'COMMITMENT_VERIFIED':
+      return ListChecks
+    default:
+      return History
+  }
+}
+
+function getActivityColor(action: ActivityItem['action']) {
+  switch (action) {
+    case 'MEETING_ANALYZED':
+      return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
+    case 'COMMITMENT_DETECTED':
+    case 'COMMITMENT_CREATED':
+      return 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20'
+    case 'COMMITMENT_FLAGGED':
+      return 'text-red-500 bg-red-500/10 border-red-500/20'
+    case 'CHANGE_REQUEST_CREATED':
+      return 'text-violet-500 bg-violet-500/10 border-violet-500/20'
+    case 'CHANGE_REQUEST_APPROVED':
+      return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
+    case 'COMMITMENT_VERIFIED':
+      return 'text-teal-500 bg-teal-500/10 border-teal-500/20'
+    default:
+      return 'text-primary bg-primary/10 border-primary/20'
+  }
+}
 
 export function ActivityPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [project, setProject] = useState<Project | null>(null)
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([])
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [page, setPage] = useState(1)
+  const [filterType, setFilterType] = useState<'all' | ActivityAction>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Filter state
-  const [filterType, setFilterType] = useState<
-    'all' | 'meeting' | 'commitment' | 'change_request'
-  >('all')
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!id) return
     try {
       setLoading(true)
-      const [proj, acts] = await Promise.all([
-        projectService.getById(id),
-        activityService.getAll(id),
-      ])
-
+      const proj = await projectService.getById(id)
       if (!proj) {
         setError('Project not found')
         return
       }
-
       setProject(proj)
-      setActivityItems(acts)
+
+      // KPI numbers come from the aggregated dashboard endpoint; the
+      // timeline itself is the paginated audit trail.
+      const [dash, actPage] = await Promise.all([
+        dashboardService.getOverview(id).catch(() => null),
+        activityService.getPaginated(id, {
+          page,
+          limit: PAGE_SIZE,
+          action: filterType === 'all' ? undefined : filterType,
+        }),
+      ])
+      setDashboard(dash)
+      setActivityItems(actPage.items)
+      setTotalItems(actPage.totalItems)
+      setTotalPages(actPage.totalPages)
     } catch {
       setError('Failed to load activity timeline')
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, page, filterType])
 
   useEffect(() => {
     fetchData()
-  }, [id])
+  }, [fetchData])
 
-  // Filtered items
-  const filteredItems = useMemo(() => {
-    if (filterType === 'all') return activityItems
-
-    return activityItems.filter((item) => {
-      if (filterType === 'meeting') return item.type === 'meeting_analyzed'
-      if (filterType === 'commitment')
-        return item.type === 'commitment_detected' || item.type === 'commitment_flagged'
-      if (filterType === 'change_request')
-        return item.type === 'change_request_created' || item.type === 'change_request_approved'
-      return true
-    })
-  }, [activityItems, filterType])
-
-  // Get icon by activity type
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'meeting_analyzed':
-        return Video
-      case 'commitment_detected':
-        return ClipboardCheck
-      case 'commitment_flagged':
-        return ShieldAlert
-      case 'change_request_created':
-        return FilePenLine
-      case 'change_request_approved':
-        return CircleCheck
-      default:
-        return History
-    }
+  const setFilter = (next: 'all' | ActivityAction) => {
+    setFilterType(next)
+    setPage(1)
   }
 
-  const getActivityColor = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'meeting_analyzed':
-        return 'text-blue-500 bg-blue-500/10 border-blue-500/20'
-      case 'commitment_detected':
-        return 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20'
-      case 'commitment_flagged':
-        return 'text-red-500 bg-red-500/10 border-red-500/20'
-      case 'change_request_created':
-        return 'text-violet-500 bg-violet-500/10 border-violet-500/20'
-      case 'change_request_approved':
-        return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
-      default:
-        return 'text-primary bg-primary/10 border-primary/20'
-    }
-  }
-
-  // Handle jump navigation to related object
+  // Navigation to the related entity's existing page (no duplicate details).
   const handleJumpToRelated = (item: ActivityItem) => {
-    if (item.relatedType === 'meeting') {
-      navigate(`/projects/${project?.id}/meetings`)
-    } else if (item.relatedType === 'commitment') {
-      navigate(item.relatedId ? `/commitments/${item.relatedId}` : '/commitments')
-    } else if (item.relatedType === 'change_request') {
-      navigate(item.relatedId ? `/change-requests/${item.relatedId}` : '/change-requests')
+    if (item.commitmentId) {
+      navigate(`/commitments/${item.commitmentId}`)
+    } else if (item.changeRequestId) {
+      navigate(`/change-requests/${item.changeRequestId}`)
+    } else if (item.meetingId) {
+      navigate(`/projects/${item.projectId}/meetings`)
     }
   }
 
-  // Generate plain text log for copying
+  const canJump = (item: ActivityItem) =>
+    Boolean(item.commitmentId || item.changeRequestId || item.meetingId)
+
+  // Plain-text audit log for the visible page.
   const auditLogText = useMemo(() => {
     return activityItems
       .map(
         (a) =>
-          `[${formatTime(a.timestamp)}] ${a.title} - ${a.description} (Actor: ${a.actor || 'System'})`,
+          `[${formatTime(a.createdAt)}] ${formatActivityAction(a.action)}${a.entityTitle ? ` — ${a.entityTitle}` : ''}: ${a.description}`,
       )
       .join('\n')
   }, [activityItems])
 
-  if (loading) return <LoadingState message="Loading project audit timeline..." />
-  if (error || !project) {
-    return <ErrorState title="Failed to load project" message={error || 'Project not found'} onRetry={fetchData} />
+  if (loading && activityItems.length === 0) {
+    return <LoadingState message="Loading project audit timeline..." />
   }
+  if (error || !project) {
+    return <ErrorState title="Failed to load project" message={error || 'Project not found'} onRetry={() => { setPage(1); setFilterType('all'); fetchData() }} />
+  }
+
+  const summary = dashboard?.summary
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in max-w-5xl mx-auto">
@@ -179,7 +208,7 @@ export function ActivityPage() {
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl leading-relaxed">
-            Chronological audit log tracking meeting analyses, scope creep detections, change order requests, and client authorizations.
+            Chronological audit log written by the backend on every mutation — meeting analyses, scope verifications, scope creep detections, change orders, and client authorizations.
           </p>
         </div>
 
@@ -199,37 +228,37 @@ export function ActivityPage() {
       {/* Project Navigation Tabs */}
       <ProjectNavTabs projectId={project.id} />
 
-      {/* KPI Counters */}
+      {/* KPI Counters — live from the dashboard aggregate */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-border/80 bg-card p-4 shadow-2xs">
           <p className="text-xs font-medium text-muted-foreground">Total Logged Events</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-foreground">{activityItems.length}</span>
-            <span className="text-[11px] text-muted-foreground font-medium">Sprint 3 cycle</span>
+            <span className="text-2xl font-black text-foreground">{totalItems}</span>
+            <span className="text-[11px] text-muted-foreground font-medium">this project</span>
           </div>
         </div>
 
         <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1.5">
-            <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} /> Scope Creep Flagged
+            <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} /> High-Risk Commitments
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-red-600 dark:text-red-400">
-              {activityItems.filter((a) => a.type === 'commitment_flagged').length}
+              {summary ? summary.highRiskCommitments : '…'}
             </span>
-            <span className="text-[10px] uppercase font-bold text-red-600/80">Intercepted</span>
+            <span className="text-[10px] uppercase font-bold text-red-600/80">Detected</span>
           </div>
         </div>
 
         <div className="rounded-xl border border-violet-500/25 bg-violet-500/5 p-4 shadow-2xs">
           <p className="text-xs font-medium text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
-            <FilePenLine className="h-3.5 w-3.5" strokeWidth={1.8} /> Change Requests Created
+            <CircleX className="h-3.5 w-3.5" strokeWidth={1.8} /> Unauthorized Scope
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-violet-600 dark:text-violet-400">
-              {activityItems.filter((a) => a.type === 'change_request_created').length}
+              {summary ? summary.unauthorizedCommitments : '…'}
             </span>
-            <span className="text-[10px] uppercase font-bold text-violet-600/80">Formalized</span>
+            <span className="text-[10px] uppercase font-bold text-violet-600/80">Intercepted</span>
           </div>
         </div>
 
@@ -239,50 +268,29 @@ export function ActivityPage() {
           </p>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-              {activityItems.filter((a) => a.type === 'change_request_approved').length}
+              {summary ? summary.approvedChangeRequests : '…'}
             </span>
             <span className="text-[10px] uppercase font-bold text-emerald-600/80">Baselines Updated</span>
           </div>
         </div>
       </div>
 
-      {/* Filter Chips */}
+      {/* Filter Chips — server-side action filter */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
           <Filter className="h-3.5 w-3.5" strokeWidth={1.8} /> Filter:
         </span>
-        <Button
-          variant={filterType === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterType('all')}
-          className="h-7 text-xs font-medium rounded-lg"
-        >
-          All Activity
-        </Button>
-        <Button
-          variant={filterType === 'meeting' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterType('meeting')}
-          className="h-7 text-xs font-medium rounded-lg"
-        >
-          Meetings
-        </Button>
-        <Button
-          variant={filterType === 'commitment' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterType('commitment')}
-          className="h-7 text-xs font-medium rounded-lg"
-        >
-          Commitments & Flags
-        </Button>
-        <Button
-          variant={filterType === 'change_request' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterType('change_request')}
-          className="h-7 text-xs font-medium rounded-lg"
-        >
-          Change Requests
-        </Button>
+        {ACTION_FILTERS.map((f) => (
+          <Button
+            key={f.label}
+            variant={(f.action ?? 'all') === filterType ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter(f.action ?? 'all')}
+            className="h-7 text-xs font-medium rounded-lg shrink-0"
+          >
+            {f.label}
+          </Button>
+        ))}
       </div>
 
       {/* Timescale Activity Log Card */}
@@ -294,16 +302,16 @@ export function ActivityPage() {
               Verified Event Stream
             </CardTitle>
             <span className="text-xs text-muted-foreground font-mono">
-              March 12, 2025
+              Page {page} of {totalPages}
             </span>
           </div>
           <CardDescription className="text-xs">
-            Every promise, scope comparison, and approval logged with microsecond timestamps.
+            Every promise, scope comparison, and approval logged with backend timestamps — newest first.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="p-3 sm:p-6">
-          {filteredItems.length === 0 ? (
+          {activityItems.length === 0 ? (
             <EmptyState
               title="No events match this filter"
               description="Switch filters to view recorded meetings, promises, and approvals."
@@ -312,15 +320,15 @@ export function ActivityPage() {
             <TimescaleRoot orientation="vertical" className="w-full">
               <TimescaleRail />
               <TimescaleTrack>
-                {filteredItems.map((item) => {
-                  const Icon = getActivityIcon(item.type)
-                  const colorClass = getActivityColor(item.type)
+                {activityItems.map((item) => {
+                  const Icon = getActivityIcon(item.action)
+                  const colorClass = getActivityColor(item.action)
 
                   return (
                     <TimescaleItem key={item.id} className="pb-6">
                       <TimescaleTick />
                       <TimescaleAge className="text-xs font-mono font-bold text-muted-foreground pt-1">
-                        {formatTime(item.timestamp)}
+                        {formatTime(item.createdAt)}
                       </TimescaleAge>
                       <TimescaleContent className="pt-0.5">
                         <div className="rounded-xl border border-border/70 bg-card p-3 sm:p-4 shadow-2xs hover:border-border transition-colors group">
@@ -331,19 +339,16 @@ export function ActivityPage() {
                               </span>
                               <div>
                                 <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                                  {item.title}
+                                  {item.entityTitle ?? formatActivityAction(item.action)}
                                 </h4>
-                                {item.actor && (
-                                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                                    <User className="h-3 w-3" />
-                                    <span>Actor: {item.actor}</span>
-                                  </p>
-                                )}
+                                <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  {formatActivityAction(item.action)} • {formatRelativeTime(item.createdAt)}
+                                </p>
                               </div>
                             </div>
 
                             {/* Jump to Related Item Button */}
-                            {item.relatedType && (
+                            {canJump(item) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -366,6 +371,33 @@ export function ActivityPage() {
                 })}
               </TimescaleTrack>
             </TimescaleRoot>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/60">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-3.5 w-3.5 mr-0.5" /> Previous
+              </Button>
+              <span className="text-xs text-muted-foreground font-medium">
+                Showing {activityItems.length} of {totalItems} events
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1,87 +1,55 @@
 /* ——————————————————————————————————————————————————
- * CommitCheck — Activity Service
+ * CommitCheck — Activity Service (Phase 12)
  *
- * ⚠️ LOCAL-ONLY: the backend writes an Activity audit trail
- * transactionally on every mutation but does not expose a
- * GET /activity endpoint yet. Until it does, the timeline
- * reads from an in-memory store seeded below.
+ * Reads the backend's transactional audit trail:
+ *   GET /projects/:projectId/activity
+ *     ?page=&limit=&action=<ActivityAction>
+ * (paginated with the established { items, page, limit,
+ *  totalItems, totalPages } convention, newest-first).
+ * The audit trail is written by the backend on every
+ * mutation — nothing is recorded client-side.
  * —————————————————————————————————————————————————— */
 
-import type { ActivityItem } from '@/types'
+import type { ActivityAction, ActivityItem } from '@/types'
+import { apiClient } from '@/services/api/client'
+import { endpoints } from '@/services/api/endpoints'
+import {
+  mapActivityItem,
+  unwrap,
+  type BackendEnvelope,
+  type BackendPaginated,
+  type BackendActivityItem,
+} from '@/services/api/adapters'
 
-let activityStore: ActivityItem[] = [
-  {
-    id: 'act-1',
-    projectId: 'proj-abc-ecommerce',
-    type: 'meeting_analyzed',
-    title: 'Sprint 3 Check-in Meeting analyzed',
-    description: 'Meeting summary and transcript ingested. AI commitment extraction initiated.',
-    relatedId: 'meet-sync-march12',
-    relatedType: 'meeting',
-    timestamp: '2025-03-12T10:32:00Z',
-    actor: 'Rahul Mehta',
-  },
-  {
-    id: 'act-2',
-    projectId: 'proj-abc-ecommerce',
-    type: 'commitment_detected',
-    title: '2 commitments detected',
-    description: 'Extracted Google OAuth login commitment and multi-currency pricing commitment from transcript.',
-    relatedId: 'comm-google-login',
-    relatedType: 'commitment',
-    timestamp: '2025-03-12T10:33:00Z',
-    actor: 'CommitCheck Engine',
-  },
-  {
-    id: 'act-3',
-    projectId: 'proj-abc-ecommerce',
-    type: 'commitment_flagged',
-    title: 'Google Login flagged as HIGH RISK scope creep',
-    description: 'Commitment not found in approved SOW Section 3.1. Marked as unauthorized work.',
-    relatedId: 'comm-google-login',
-    relatedType: 'commitment',
-    timestamp: '2025-03-12T10:33:30Z',
-    actor: 'CommitCheck Engine',
-  },
-  {
-    id: 'act-4',
-    projectId: 'proj-abc-ecommerce',
-    type: 'change_request_created',
-    title: 'Change Request CR-3B7F21 created',
-    description: 'Structured change request generated for Google OAuth integration ($2,250 / 18h).',
-    relatedId: 'cr-google-login',
-    relatedType: 'change_request',
-    timestamp: '2025-03-12T10:35:00Z',
-    actor: 'Rahul Mehta',
-  },
-  {
-    id: 'act-5',
-    projectId: 'proj-abc-ecommerce',
-    type: 'change_request_approved',
-    title: 'Change Request CR-3B7F21 approved',
-    description: 'Marcus Vance (Client VP) authorized $2,250 budget addendum into approved baseline.',
-    relatedId: 'cr-google-login',
-    relatedType: 'change_request',
-    timestamp: '2025-03-12T10:41:00Z',
-    actor: 'Marcus Vance (Client VP)',
-  },
-]
+export interface ActivityQuery {
+  page?: number
+  limit?: number
+  action?: ActivityAction
+}
 
 export const activityService = {
-  async getAll(projectId?: string): Promise<ActivityItem[]> {
-    if (!projectId) return [...activityStore]
-    return activityStore.filter((a) => a.projectId === projectId)
+  /** One page of a project's audit trail, newest-first, with the
+   *  optional server-side action filter. */
+  async getPaginated(
+    projectId: string,
+    query: ActivityQuery = {},
+  ): Promise<BackendPaginated<ActivityItem>> {
+    const envelope = await apiClient.get<
+      BackendEnvelope<BackendPaginated<BackendActivityItem>>
+    >(endpoints.dashboard.activity(projectId), {
+      params: {
+        page: query.page,
+        limit: query.limit,
+        action: query.action,
+      },
+    })
+    const page = unwrap(envelope)
+    return { ...page, items: page.items.map(mapActivityItem) }
   },
 
-  async record(
-    item: Omit<ActivityItem, 'id' | 'timestamp'>,
-  ): Promise<ActivityItem> {
-    const newItem: ActivityItem = {
-      ...item,
-      id: `act-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-    }
-    activityStore.unshift(newItem)
-    return newItem
+  /** Convenience: the most recent entries (single request). */
+  async getRecent(projectId: string, limit = 10): Promise<ActivityItem[]> {
+    const page = await this.getPaginated(projectId, { page: 1, limit })
+    return page.items
   },
 }

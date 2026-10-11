@@ -89,4 +89,12 @@ export const endpoints = {
     clarification: (projectId: string, id: string) =>
       `/projects/${projectId}/change-requests/${id}/clarification`,
   },
+
+  // ——— Dashboard / Activity / Alerts (nested under project; Phase 12,
+  //     all read-only) ———
+  dashboard: {
+    overview: (projectId: string) => `/projects/${projectId}/dashboard`,
+    activity: (projectId: string) => `/projects/${projectId}/activity`,
+    alerts: (projectId: string) => `/projects/${projectId}/alerts`,
+  },
 } as const

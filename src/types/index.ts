@@ -185,28 +185,115 @@ export interface ChangeRequest {
   updatedAt: string
 }
 
-// ——— Activity / Audit ———
-export type ActivityType =
-  | 'meeting_analyzed'
-  | 'commitment_detected'
-  | 'commitment_flagged'
-  | 'change_request_created'
-  | 'change_request_approved'
-  | 'change_request_rejected'
-  | 'scope_updated'
-  | 'document_uploaded'
-  | 'project_created'
+// ——— Activity / Audit (Phase 12 — backend-backed) ———
+// Mirrors the backend ActivityAction enum — the audit trail is written
+// transactionally by the backend on every mutation.
+export type ActivityAction =
+  | 'PROJECT_CREATED'
+  | 'PROJECT_UPDATED'
+  | 'PROJECT_DELETED'
+  | 'SCOPE_UPDATED'
+  | 'SCOPE_REQUIREMENT_CREATED'
+  | 'SCOPE_REQUIREMENT_UPDATED'
+  | 'SCOPE_REQUIREMENT_DELETED'
+  | 'DOCUMENT_UPLOADED'
+  | 'MEETING_CREATED'
+  | 'MEETING_UPDATED'
+  | 'MEETING_DELETED'
+  | 'MEETING_ANALYZED'
+  | 'MEETING_ATTACHMENT_CREATED'
+  | 'MEETING_ATTACHMENT_UPDATED'
+  | 'MEETING_ATTACHMENT_DELETED'
+  | 'COMMITMENT_CREATED'
+  | 'COMMITMENT_UPDATED'
+  | 'COMMITMENT_DELETED'
+  | 'COMMITMENT_VERIFIED'
+  | 'EVIDENCE_ADDED'
+  | 'EVIDENCE_DELETED'
+  | 'COMMITMENT_DETECTED'
+  | 'COMMITMENT_FLAGGED'
+  | 'CHANGE_REQUEST_CREATED'
+  | 'CHANGE_REQUEST_APPROVED'
+  | 'CHANGE_REQUEST_REJECTED'
+  | 'CHANGE_REQUEST_CANCELLED'
+  | 'CHANGE_REQUEST_CLARIFICATION_REQUESTED'
 
+export type ActivityEntityType =
+  | 'PROJECT'
+  | 'SCOPE_REQUIREMENT'
+  | 'MEETING'
+  | 'MEETING_ATTACHMENT'
+  | 'COMMITMENT'
+  | 'CHANGE_REQUEST'
+  | 'DOCUMENT'
+
+/** One enriched audit entry (backend resolves entity titles/context in batch). */
 export interface ActivityItem {
   id: string
+  action: ActivityAction
+  entityType: ActivityEntityType
+  entityId: string | null
+  /** Title of the related entity (meeting title, commitment title, …). */
+  entityTitle: string | null
+  description: string
   projectId: string
-  type: ActivityType
+  /** Navigation ids for the related entity, resolved by the backend. */
+  meetingId: string | null
+  commitmentId: string | null
+  changeRequestId: string | null
+  createdAt: string
+}
+
+// ——— Dashboard & Alerts (Phase 12) ———
+export type AttentionItemType =
+  | 'UNAUTHORIZED_COMMITMENT'
+  | 'AMBIGUOUS_VERIFICATION'
+  | 'PENDING_CHANGE_REQUEST'
+  | 'CLARIFICATION_REQUESTED'
+
+/** Deterministic, database-backed alert — dashboard attention items and
+ *  the alerts endpoint share this shape (ids are navigation-ready). */
+export interface AlertItem {
+  id: string
+  type: AttentionItemType
+  severity: 'HIGH' | 'MEDIUM'
   title: string
   description: string
-  relatedId?: string
-  relatedType?: 'commitment' | 'change_request' | 'meeting' | 'document'
-  timestamp: string
-  actor?: string
+  commitmentId: string | null
+  changeRequestId: string | null
+  meetingId: string | null
+  createdAt: string
+}
+
+export interface DashboardData {
+  project: { id: string; name: string }
+  summary: {
+    scopeRequirements: number
+    meetings: number
+    commitments: number
+    unauthorizedCommitments: number
+    highRiskCommitments: number
+    pendingChangeRequests: number
+    approvedChangeRequests: number
+    rejectedChangeRequests: number
+  }
+  commitments: {
+    total: number
+    authorized: number
+    unauthorized: number
+    pending: number
+    highRisk: number
+    mediumRisk: number
+    lowRisk: number
+  }
+  changeRequests: {
+    pending: number
+    clarificationRequested: number
+    approved: number
+    rejected: number
+  }
+  recentActivity: ActivityItem[]
+  attentionItems: AlertItem[]
 }
 
 // ——— Notifications ———

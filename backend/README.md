@@ -118,6 +118,11 @@ backend/
 │   │   ├── commitment-change-requests.controller.ts  # POST …/commitments/:id/change-request
 │   │   ├── change-requests.module.ts
 │   │   └── change-requests.service.ts         # Generation rules + transactional lifecycle
+│   ├── dashboard/
+│   │   ├── dto/                     # Activity query + response-shape DTOs
+│   │   ├── dashboard.controller.ts  # /api/projects/:projectId/{dashboard,activity,alerts}
+│   │   ├── dashboard.module.ts
+│   │   └── dashboard.service.ts     # Read-only aggregates (count/groupBy, batched enrichment)
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
@@ -126,12 +131,13 @@ backend/
 │   ├── test-scope-api.mjs           # End-to-end Scope Requirements tests (43 checks)
 │   ├── test-meetings-api.mjs        # End-to-end Meetings API tests (49 checks)
 │   ├── test-attachments-api.mjs     # End-to-end Meeting Attachments tests (51 checks)
-│   ├── test-commitments-api.mjs     # End-to-end Commitments API tests (61 checks)
+│   ├── test-commitments-api.mjs     # End-to-end Commitments API tests (62 checks)
 │   ├── test-evidence-api.mjs        # End-to-end Commitment Evidence tests (55 checks)
 │   ├── test-analysis-api.mjs        # End-to-end Meeting Analysis tests (42 checks)
 │   ├── test-fireworks-provider.mjs  # Fireworks provider tests, stubbed HTTP (46 checks)
 │   ├── test-verification-api.mjs    # End-to-end Scope Verification tests (48 checks)
-│   └── test-change-requests-api.mjs # End-to-end Change Request workflow tests (67 checks)
+│   ├── test-change-requests-api.mjs # End-to-end Change Request workflow tests (67 checks)
+│   └── test-dashboard-api.mjs       # End-to-end Dashboard/Activity/Alerts tests (40 checks)
 ├── .env.example
 └── package.json
 ```
@@ -488,6 +494,83 @@ Run `node scripts/test-change-requests-api.mjs` for the 67-check Phase 11
 suite (generation rules, lifecycle, authorization side effects, injected
 mid-transaction failure rollback, concurrent-approve race; never calls the
 real Fireworks API).
+
+## Dashboard, Activity & Alerts API (Phase 12)
+
+Read-only intelligence endpoints under `/api/projects/:projectId/…`, all
+served by the dedicated `dashboard` module. **No AI provider is involved** —
+every number is a database `count`/`groupBy` or a plain row read, computed
+with batched lookups (no N+1). All three return the standard
+`{ success, message, data }` envelope, enforce project isolation (a foreign
+`projectId` 404s), and mutate nothing.
+
+| Endpoint     | What it returns                                                                                            |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| `GET /dashboard` | `{ project, summary, commitments, changeRequests, recentActivity, attentionItems }` (single aggregate) |
+| `GET /activity`  | Paginated audit trail — same `{ items, page, limit, totalItems, totalPages }` convention as other lists |
+| `GET /alerts`    | Deterministic, database-backed actionable alerts (empty array when nothing needs attention)             |
+
+- **Dashboard summary** counts scope requirements, meetings, commitments,
+  unauthorized/high-risk commitments and change requests by status.
+  `pendingChangeRequests` counts both `PENDING` and `CLARIFICATION_REQUESTED`
+  (both are open, awaiting a decision).
+- **Attention items** (and alerts) cover exactly four deterministic categories:
+  high-risk unauthorized commitments (`UNAUTHORIZED_COMMITMENT`, HIGH),
+  ambiguous verifications — commitments still in `PENDING` authorization after
+  review (`AMBIGUOUS_VERIFICATION`, MEDIUM), pending change requests
+  (`PENDING_CHANGE_REQUEST`, MEDIUM) and clarification-requested change
+  requests (`CLARIFICATION_REQUESTED`, MEDIUM). Every item is
+  navigation-ready: `{ type, severity, title, description, commitmentId,
+  changeRequestId, meetingId, createdAt }`.
+- **Recent activity** is the existing `Activity` audit trail (newest first,
+  capped at 25): `action`, `description`, the related entity's resolved title
+  and navigation ids (`meetingId`/`commitmentId`/`changeRequestId`). Entities
+  are resolved in one batched query per entity type — no per-row queries.
+- **Activity endpoint** supports the established pagination conventions
+  (`page`, `limit`, `sortOrder`) plus a server-side `action` filter validated
+  against the existing `ActivityAction` enum. Sorting is whitelisted to
+  `createdAt` only — `sortBy=action` is rejected (400) because `action` is a
+  Postgres enum and ordering by it yields meaningless declaration-ordinal
+  order.
+- These endpoints are strictly read-only: risk levels and authorization
+  statuses can only change through the Phase 10 verification and Phase 11
+  change-request workflows. No notifications are sent yet.
+
+```json
+// GET /api/projects/:id/dashboard → 200
+{
+  "success": true,
+  "message": "Project dashboard fetched successfully",
+  "data": {
+    "project": { "id": "…", "name": "Acme E-commerce" },
+    "summary": { "scopeRequirements": 2, "meetings": 2, "commitments": 6,
+                 "unauthorizedCommitments": 3, "highRiskCommitments": 3,
+                 "pendingChangeRequests": 2, "approvedChangeRequests": 1,
+                 "rejectedChangeRequests": 1 },
+    "commitments": { "total": 6, "authorized": 2, "unauthorized": 3,
+                     "pending": 1, "highRisk": 3, "mediumRisk": 1, "lowRisk": 2 },
+    "changeRequests": { "pending": 1, "clarificationRequested": 1,
+                        "approved": 1, "rejected": 1 },
+    "recentActivity": [
+      { "id": "…", "action": "CHANGE_REQUEST_REJECTED", "entityType": "CHANGE_REQUEST",
+        "entityId": "…", "entityTitle": "Add SMS delivery alerts to customers",
+        "description": "…", "projectId": "…", "meetingId": "…",
+        "commitmentId": "…", "changeRequestId": "…", "createdAt": "…" }
+    ],
+    "attentionItems": [
+      { "type": "UNAUTHORIZED_COMMITMENT", "severity": "HIGH",
+        "title": "Add Telegram bot alerts for deployments",
+        "description": "High-risk commitment outside approved scope and unauthorized — awaiting a change request or a scope update.",
+        "commitmentId": "…", "changeRequestId": null, "meetingId": "…", "createdAt": "…" }
+    ]
+  }
+}
+```
+
+Run `node scripts/test-dashboard-api.mjs` for the 40-check Phase 12 suite
+(aggregate correctness against direct Prisma counts, all four attention
+categories, pagination/filter/sort, empty states, project isolation, unknown
+project 404s, validation 400s, and a read-only guarantee).
 
 ## Data model (business flow)
 
