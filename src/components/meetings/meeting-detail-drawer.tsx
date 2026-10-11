@@ -9,6 +9,7 @@ import {
   X,
   MessageSquare,
   ClipboardCheck,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,13 +17,36 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollFadeEffect } from '@/components/scroll-fade-effect'
 import { CopyButton } from '@/components/copy-button'
 import { formatDate } from '@/lib/utils'
-import type { Meeting } from '@/types'
+import type { Meeting, MeetingAnalysisStatus } from '@/types'
 
 interface MeetingDetailDrawerProps {
   meeting: Meeting | null
   onClose: () => void
   onDelete?: (id: string) => void
   onViewCommitments?: () => void
+  /** Phase 8 — manual AI-analysis trigger for this meeting. */
+  onAnalyze?: (meeting: Meeting) => void
+  /** True while the analysis request is in flight. */
+  analyzing?: boolean
+}
+
+const ANALYSIS_BADGE: Record<MeetingAnalysisStatus, { label: string; className: string }> = {
+  NOT_STARTED: {
+    label: 'Not Analyzed',
+    className: 'bg-muted/40 text-muted-foreground border-border/60 text-[10px] font-semibold',
+  },
+  PROCESSING: {
+    label: 'Processing…',
+    className: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] font-bold',
+  },
+  COMPLETED: {
+    label: 'Analyzed Meeting',
+    className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-bold',
+  },
+  FAILED: {
+    label: 'Analysis Failed',
+    className: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30 text-[10px] font-bold',
+  },
 }
 
 export function MeetingDetailDrawer({
@@ -30,8 +54,13 @@ export function MeetingDetailDrawer({
   onClose,
   onDelete,
   onViewCommitments,
+  onAnalyze,
+  analyzing = false,
 }: MeetingDetailDrawerProps) {
   if (!meeting) return null
+
+  const analysisRunning = analyzing || meeting.analysisStatus === 'PROCESSING'
+  const analysisBadge = ANALYSIS_BADGE[meeting.analysisStatus]
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-fade-in">
@@ -80,9 +109,9 @@ export function MeetingDetailDrawer({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Title & Metadata */}
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] font-semibold">
-                Analyzed Meeting
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <Badge variant="outline" className={analysisBadge.className}>
+                {analysisBadge.label}
               </Badge>
               {meeting.commitmentsDetected > 0 && (
                 <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30 text-[10px] font-bold">
@@ -103,6 +132,27 @@ export function MeetingDetailDrawer({
                 </span>
               )}
             </div>
+            {onAnalyze && meeting.analysisStatus !== 'COMPLETED' && (
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs mt-3"
+                onClick={() => onAnalyze(meeting)}
+                disabled={analysisRunning}
+              >
+                {analysisRunning ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
+                )}
+                <span>
+                  {analysisRunning
+                    ? 'Analyzing…'
+                    : meeting.analysisStatus === 'FAILED'
+                      ? 'Retry Analysis'
+                      : 'Analyze Meeting'}
+                </span>
+              </Button>
+            )}
           </div>
 
           <Separator />

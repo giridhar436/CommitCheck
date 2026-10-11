@@ -24,7 +24,7 @@ import { CommitmentsMapper } from './commitments.mapper';
 import { ActivitySummaryDto } from '../projects/dto/project-response.dto';
 
 /** Meeting/project context for responses; evidence is reduced to a count. */
-const COMMITMENT_CONTEXT_INCLUDE = {
+export const COMMITMENT_CONTEXT_INCLUDE = {
   meeting: { select: { title: true, summary: true } },
   project: { select: { name: true, description: true } },
   _count: { select: { evidence: true } },

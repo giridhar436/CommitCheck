@@ -33,6 +33,9 @@ export const endpoints = {
     create: (projectId: string) => `/projects/${projectId}/meetings`,
     update: (projectId: string, id: string) => `/projects/${projectId}/meetings/${id}`,
     delete: (projectId: string, id: string) => `/projects/${projectId}/meetings/${id}`,
+    // Phase 8 — manual AI-analysis trigger (runs synchronously)
+    analyze: (projectId: string, meetingId: string) =>
+      `/projects/${projectId}/meetings/${meetingId}/analyze`,
   },
 
   // ——— Meeting Attachments (nested under project + meeting) ———

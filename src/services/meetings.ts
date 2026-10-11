@@ -3,15 +3,18 @@
  *
  * Talks to the live NestJS backend nested routes
  * (GET/POST /projects/:projectId/meetings,
- *  GET/PATCH/DELETE /projects/:projectId/meetings/:id).
+ *  GET/PATCH/DELETE /projects/:projectId/meetings/:id,
+ *  POST /projects/:projectId/meetings/:meetingId/analyze).
  *
- * The AI detection pipeline does not exist on the backend
- * yet, so `analyze` persists the meeting record and walks
- * the existing progress modal through its stages before
- * resolving with an empty commitment set.
+ * `analyze` persists a new meeting record and walks the
+ * existing progress modal through its stages before
+ * resolving with an empty commitment set — no AI is run
+ * on that path (a fresh meeting has no transcript
+ * attachment yet). `triggerAnalysis` runs the Phase 8
+ * backend pipeline on a saved meeting that has one.
  * —————————————————————————————————————————————————— */
 
-import type { Meeting, MeetingAnalysisState } from '@/types'
+import type { Meeting, MeetingAnalysisState, MeetingAnalysisStatus } from '@/types'
 import { apiClient } from '@/services/api/client'
 import { endpoints } from '@/services/api/endpoints'
 import {
@@ -29,6 +32,23 @@ export interface AnalyzeMeetingInput {
   participants: string[]
   summary: string
   transcript?: string
+}
+
+/** Result of the Phase 8 analysis pipeline (POST …/analyze). */
+export interface TriggerAnalysisResult {
+  meetingId: string
+  projectId: string
+  analysisStatus: MeetingAnalysisStatus
+  commitmentsCreated: number
+  evidenceCreated: number
+}
+
+interface BackendAnalysisResult {
+  projectId: string
+  meetingId: string
+  analysisStatus: MeetingAnalysisStatus
+  commitmentsCreated: number
+  evidenceCreated: number
 }
 
 function delay(ms: number) {
@@ -89,8 +109,9 @@ export const meetingService = {
     notify({ status: 'assessing_risk', progress: 90 })
     await delay(500)
 
-    // No AI pipeline is wired up on the backend yet — nothing is
-    // auto-detected. Commitments can be added manually per meeting.
+    // No analysis runs on this path — a freshly created meeting has no
+    // transcript attachment yet. Commitments can be added manually per
+    // meeting, or AI analysis is triggered from the meeting details drawer.
     const finalState: MeetingAnalysisState = {
       status: 'complete',
       progress: 100,
@@ -98,6 +119,24 @@ export const meetingService = {
     }
     notify(finalState)
     return finalState
+  },
+
+  /** Runs the Phase 8 AI pipeline on a saved meeting (synchronous). */
+  async triggerAnalysis(
+    projectId: string,
+    meetingId: string,
+  ): Promise<TriggerAnalysisResult> {
+    const envelope = await apiClient.post<BackendEnvelope<BackendAnalysisResult>>(
+      endpoints.meetings.analyze(projectId, meetingId),
+    )
+    const data = unwrap(envelope)
+    return {
+      meetingId: data.meetingId,
+      projectId: data.projectId,
+      analysisStatus: data.analysisStatus,
+      commitmentsCreated: data.commitmentsCreated,
+      evidenceCreated: data.evidenceCreated,
+    }
   },
 
   async delete(projectId: string, id: string): Promise<boolean> {

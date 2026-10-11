@@ -31,6 +31,7 @@ import { AnalysisProgressModal } from '@/components/meetings/analysis-progress-m
 import { MeetingDetailDrawer } from '@/components/meetings/meeting-detail-drawer'
 import { projectService } from '@/services/projects'
 import { meetingService } from '@/services/meetings'
+import { ApiError } from '@/services/api/client'
 import { formatDate } from '@/lib/utils'
 import type { Project, Meeting, MeetingAnalysisState } from '@/types'
 
@@ -64,6 +65,9 @@ export function MeetingsPage() {
 
   // Drawer inspection state
   const [inspectingMeeting, setInspectingMeeting] = useState<Meeting | null>(null)
+
+  // Phase 8 — analysis trigger state for the meeting details drawer
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null)
 
   // Fetch initial data
   const fetchData = async () => {
@@ -168,9 +172,7 @@ export function MeetingsPage() {
       const updatedMeetings = await meetingService.getAll(id)
       setMeetings(updatedMeetings)
       toast.success(
-        result.commitments.length > 0
-          ? `Analysis complete: ${result.commitments.length} commitments detected!`
-          : 'Meeting saved. Automatic commitment detection is not connected yet — review the commitments tab to add entries manually.',
+        'Meeting saved. Attach a transcript file to the meeting, then open it and click "Analyze Meeting" to detect commitments.',
       )
     } catch {
       toast.error('Meeting analysis failed')
@@ -187,6 +189,40 @@ export function MeetingsPage() {
         setInspectingMeeting(null)
       }
       toast.success('Meeting record deleted')
+    }
+  }
+
+  // Phase 8 — run the AI analysis pipeline on a saved meeting (details drawer)
+  const handleAnalyzeMeeting = async (meeting: Meeting) => {
+    if (!id || analyzingId) return
+    setAnalyzingId(meeting.id)
+    try {
+      const result = await meetingService.triggerAnalysis(id, meeting.id)
+      // Refresh meetings (commitmentCount/analysisStatus) and keep the open drawer in sync
+      const updatedMeetings = await meetingService.getAll(id)
+      setMeetings(updatedMeetings)
+      setInspectingMeeting(
+        (prev) =>
+          prev && prev.id === meeting.id
+            ? updatedMeetings.find((m) => m.id === meeting.id) ?? prev
+            : prev,
+      )
+      toast.success(
+        result.commitmentsCreated > 0
+          ? `Analysis complete: ${result.commitmentsCreated} commitment${result.commitmentsCreated !== 1 ? 's' : ''} detected (${result.evidenceCreated} evidence)`
+          : 'Analysis complete: no commitments detected',
+      )
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        // Re-analysis guards (PROCESSING/COMPLETED) surface as a friendly warning
+        toast.warning(err.message)
+      } else if (err instanceof ApiError && err.status === 422) {
+        toast.warning(err.message)
+      } else {
+        toast.error('Meeting analysis failed')
+      }
+    } finally {
+      setAnalyzingId(null)
     }
   }
 
@@ -605,6 +641,8 @@ export function MeetingsPage() {
           setInspectingMeeting(null)
           navigate(`/projects/${project.id}/commitments`)
         }}
+        onAnalyze={handleAnalyzeMeeting}
+        analyzing={analyzingId !== null}
       />
     </div>
   )

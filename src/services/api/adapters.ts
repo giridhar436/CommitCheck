@@ -295,6 +295,7 @@ export function mapMeeting(dto: BackendMeeting): Meeting {
     participants: [],
     summary: dto.summary ?? '',
     commitmentsDetected: dto.commitmentCount,
+    analysisStatus: dto.analysisStatus,
     analyzedAt: dto.analysisStatus === 'COMPLETED' ? dto.updatedAt : undefined,
     createdAt: dto.createdAt,
   }

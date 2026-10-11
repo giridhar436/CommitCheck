@@ -73,6 +73,8 @@ export interface ProjectDocument {
 }
 
 // ——— Meetings ———
+export type MeetingAnalysisStatus = 'NOT_STARTED' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+
 export interface Meeting {
   id: string
   projectId: string
@@ -82,6 +84,7 @@ export interface Meeting {
   summary: string
   transcript?: string
   commitmentsDetected: number
+  analysisStatus: MeetingAnalysisStatus
   analyzedAt?: string
   createdAt: string
 }

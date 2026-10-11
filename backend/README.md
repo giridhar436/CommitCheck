@@ -112,7 +112,9 @@ backend/
 │   ├── test-scope-api.mjs           # End-to-end Scope Requirements tests (43 checks)
 │   ├── test-meetings-api.mjs        # End-to-end Meetings API tests (49 checks)
 │   ├── test-attachments-api.mjs     # End-to-end Meeting Attachments tests (51 checks)
-│   └── test-commitments-api.mjs     # End-to-end Commitments API tests (61 checks)
+│   ├── test-commitments-api.mjs     # End-to-end Commitments API tests (61 checks)
+│   ├── test-evidence-api.mjs        # End-to-end Commitment Evidence tests (55 checks)
+│   └── test-analysis-api.mjs        # End-to-end Meeting Analysis tests (42 checks)
 ├── .env.example
 └── package.json
 ```
@@ -207,6 +209,40 @@ codes (400 validation, 404 missing, 409 duplicate, 500 unexpected).
 
 Run `node scripts/test-api.mjs` to execute the full 37-check suite against an
 ephemeral PostgreSQL (requires `npm i --no-save embedded-postgres`).
+
+## Meeting Analysis API (Phase 8)
+
+Manual AI-analysis trigger under `/api`:
+
+| Method | Route                                            | Notes |
+| ------ | ------------------------------------------------ | ----- |
+| POST   | `/api/projects/:projectId/meetings/:meetingId/analyze` | Runs the analysis pipeline synchronously; returns `{ meetingId, analysisStatus, commitmentsCreated, evidenceCreated, commitments[] }` |
+
+Status lifecycle (existing `MeetingAnalysisStatus`): `NOT_STARTED →
+PROCESSING → COMPLETED`, or `PROCESSING → FAILED`. `PROCESSING` and
+`COMPLETED` meetings return `409` (no concurrent runs, no re-analysis of
+completed meetings — results cannot duplicate). `FAILED` meetings may be
+re-analyzed. A meeting without a `text/*` attachment returns `422` and keeps
+its status.
+
+Business rules:
+
+- Provider abstraction (`MeetingAnalysisProvider`) keeps AI behind a seam. The
+  only bundled implementation is the deterministic **development** provider
+  (rule-based extraction over the meeting's own summary/notes text — the only
+  transcript content stored in the current data model; no transcript content
+  is invented). It refuses to run under `NODE_ENV=production`; a production
+  provider is registered via `MEETING_ANALYSIS_PROVIDER` once credentials exist.
+- `projectId`/`meetingId` always come from the verified route context, never
+  from the AI result. Defaults hold: `riskLevel=LOW`,
+  `authorizationStatus=PENDING`, `confidenceScore` clamped to 0–1.
+- Commitments + evidence + `COMMITMENT_CREATED` activity per commitment +
+  `MEETING_ANALYZED` activity + the meeting's final status are written in ONE
+  transaction; any failure rolls everything back and marks the meeting `FAILED`
+  (502 envelope, no internals leaked). Existing commitments/evidence are
+  never touched.
+
+Run `node scripts/test-analysis-api.mjs` for the 42-check Phase 8 suite.
 
 ## Data model (business flow)
 
