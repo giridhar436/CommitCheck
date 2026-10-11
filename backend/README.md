@@ -104,6 +104,12 @@ backend/
 │   │   ├── commitments.mapper.ts
 │   │   ├── commitments.module.ts
 │   │   └── commitments.service.ts   # CRUD + ownership rules + filters + audit log
+│   ├── scope-verification/
+│   │   ├── dto/verification-response.dto.ts   # Typed verification result
+│   │   ├── scope-matcher.ts         # Deterministic lexical matcher (no AI, no pgvector)
+│   │   ├── scope-verification.controller.ts   # /api/projects/:projectId/commitments/:id/verify
+│   │   ├── scope-verification.module.ts
+│   │   └── scope-verification.service.ts      # Scope match + authorization + risk rules
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
@@ -114,7 +120,9 @@ backend/
 │   ├── test-attachments-api.mjs     # End-to-end Meeting Attachments tests (51 checks)
 │   ├── test-commitments-api.mjs     # End-to-end Commitments API tests (61 checks)
 │   ├── test-evidence-api.mjs        # End-to-end Commitment Evidence tests (55 checks)
-│   └── test-analysis-api.mjs        # End-to-end Meeting Analysis tests (42 checks)
+│   ├── test-analysis-api.mjs        # End-to-end Meeting Analysis tests (42 checks)
+│   ├── test-fireworks-provider.mjs  # Fireworks provider tests, stubbed HTTP (46 checks)
+│   └── test-verification-api.mjs    # End-to-end Scope Verification tests (48 checks)
 ├── .env.example
 └── package.json
 ```
@@ -278,6 +286,93 @@ conservatively after 30s; HTTP failures surface only the status code.
 
 Provider tests run against stubbed HTTP — no key or network needed:
 `node scripts/test-fireworks-provider.mjs` (46 checks).
+
+## Scope Verification API (Phase 10)
+
+```
+POST /api/projects/:projectId/commitments/:commitmentId/verify
+```
+
+Deterministic, explainable scope verification for a single commitment.
+Lives in its own `scope-verification` module (not inside meeting-analysis);
+the analysis pipeline calls it after its transaction commits (a verification
+failure is logged and skipped — analysis results are never rolled back).
+
+The result is also persisted onto the commitment's existing
+`riskLevel` / `authorizationStatus` fields and audited once with a
+`COMMITMENT_VERIFIED` activity (additive enum migration). Repeating a
+verification whose conclusion is unchanged is a no-op: same response,
+no duplicate audit entries. A changed outcome (e.g. the underlying scope or
+change request changed) produces a fresh audit entry.
+
+### Risk rules (fixed business rules — never AI-decided)
+
+| Risk   | When                                                                                         |
+| ------ | -------------------------------------------------------------------------------------------- |
+| LOW    | Covered by an **approved** scope requirement, **or** outside scope but covered by an **APPROVED** change request |
+| MEDIUM | Ambiguous scope overlap (or a match only against a not-yet-approved requirement) and no approved authorization |
+| HIGH   | Clearly outside scope with no approved authorization                                          |
+
+### Authorization rules
+
+Authorization is a database/business-rule decision — the AI provider is never
+asked for and never trusted to grant it:
+
+- **APPROVED scope requirement** (lexical match) → authorized via `APPROVED_SCOPE`.
+- **`ChangeRequest` with status `APPROVED` linked to the commitment** (direct
+  `commitmentId` FK) → authorized via `CHANGE_REQUEST`.
+- `PENDING`, `REJECTED` or `CANCELLED` change requests authorize **nothing**.
+- Resulting commitment state: authorized cases → `AUTHORIZED`; ambiguous →
+  `PENDING` (needs human review); out-of-scope without authorization →
+  `UNAUTHORIZED`.
+
+### Scope matching (MVP, deliberately simple)
+
+Purely lexical and deterministic — **no pgvector, no embeddings, no AI**:
+
+- Both texts are tokenized (lowercase, punctuation-split, stop-words removed,
+  naive singularization).
+- Each requirement is scored by the share of its **title** tokens and of its
+  **full-text** tokens that appear in the commitment; the better view wins.
+- `MATCHED` — every meaningful title token is covered, or full-text coverage
+  ≥ 0.6 with ≥ 2 shared tokens.
+- `AMBIGUOUS` — meaningful overlap (score ≥ 0.3) that is not a full match.
+- `NOT_MATCHED` — no meaningful overlap.
+
+MVP limitations (documented on purpose): purely word-level (no synonyms,
+semantics, or fuzzy matching — "login" does not match "authentication");
+short/generic requirement titles weaken precision; multi-language text is out
+of scope. pgvector remains the intended upgrade path (see Supabase notes) and
+can be introduced without changing this API contract.
+
+### Example response
+
+```json
+{
+  "success": true,
+  "message": "Commitment scope verified",
+  "data": {
+    "commitmentId": "9ba26b32-cd94-4698-8ba0-f8dc52da8fe5",
+    "scopeMatch": false,
+    "matchedScopeRequirement": null,
+    "authorizationFound": true,
+    "authorizationSource": "CHANGE_REQUEST",
+    "risk": "LOW",
+    "authorizationStatus": "AUTHORIZED",
+    "explanation": "No approved scope requirement matches this commitment, but an approved change request (\"CR-900: Telegram deployment alerts\") authorizes it.",
+    "evidence": ["sprint4-review-transcript.txt"],
+    "verifiedAt": "2026-10-11T10:20:44.263Z"
+  }
+}
+```
+
+`scopeMatch` is `true` (in approved scope), `false` (out of scope) or `null`
+(ambiguous). There is no GET endpoint: the latest outcome is already readable
+via the commitment detail (`latestActivity`, `riskLevel`,
+`authorizationStatus`).
+
+Run `node scripts/test-verification-api.mjs` for the 48-check Phase 10 suite
+(matcher unit checks + full API behavior; never calls the real Fireworks API).
 
 ## Data model (business flow)
 

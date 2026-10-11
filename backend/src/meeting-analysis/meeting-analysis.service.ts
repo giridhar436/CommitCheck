@@ -20,6 +20,7 @@ import { MeetingAnalysisProvider, TranscriptSource } from './types/analysis-resu
 import { COMMITMENT_CONTEXT_INCLUDE } from '../commitments/commitments.service';
 import { CommitmentsMapper } from '../commitments/commitments.mapper';
 import { MEETING_ANALYSIS_PROVIDER } from './providers/meeting-analysis-provider';
+import { ScopeVerificationService } from '../scope-verification/scope-verification.service';
 
 /**
  * Phase 8 — AI meeting analysis workflow:
@@ -42,6 +43,8 @@ export class MeetingAnalysisService {
     // Interface type — resolved through the MEETING_ANALYSIS_PROVIDER token.
     @Inject(MEETING_ANALYSIS_PROVIDER)
     private readonly provider: MeetingAnalysisProvider,
+    // Phase 10 — runs after the analysis transaction has committed.
+    private readonly scopeVerification: ScopeVerificationService,
   ) {}
 
   /** Manual analysis trigger. Synchronous: the response reflects the final state. */
@@ -172,6 +175,17 @@ export class MeetingAnalysisService {
 
         return { commitments: created, evidenceCount };
       });
+
+      // Phase 10 — scope verification runs strictly AFTER the analysis
+      // transaction has committed, so Phase 8/9 atomicity is untouched:
+      // a verification failure is logged and skipped, never rolled back
+      // (commitments stay saved). The response below still reflects the
+      // creation-time state (authorization PENDING) — verified outcomes are
+      // readable on the commitment itself right afterwards.
+      await this.scopeVerification.verifyCreatedCommitments(
+        projectId,
+        persisted.commitments.map((c) => c.id),
+      );
 
       return {
         projectId,

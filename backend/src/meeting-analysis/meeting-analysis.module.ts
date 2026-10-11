@@ -5,6 +5,7 @@ import { MEETING_ANALYSIS_PROVIDER } from './providers/meeting-analysis-provider
 import { DevelopmentMeetingAnalysisProvider } from './providers/development-meeting-analysis.provider';
 import { FireworksMeetingAnalysisProvider } from './providers/fireworks-meeting-analysis.provider';
 import { MeetingAnalysisProvider } from './types/analysis-result';
+import { ScopeVerificationModule } from '../scope-verification/scope-verification.module';
 
 /** Default Fireworks chat model when FIREWORKS_MODEL is not set. */
 const DEFAULT_FIREWORKS_MODEL = 'accounts/fireworks/models/kimi-k2-instruct';
@@ -40,6 +41,7 @@ function createAnalysisProvider(): MeetingAnalysisProvider {
 }
 
 @Module({
+  imports: [ScopeVerificationModule],
   controllers: [MeetingAnalysisController],
   providers: [
     MeetingAnalysisService,
