@@ -244,6 +244,41 @@ Business rules:
 
 Run `node scripts/test-analysis-api.mjs` for the 42-check Phase 8 suite.
 
+## AI Providers (Phase 9)
+
+Selected server-side via `MEETING_ANALYSIS_PROVIDER` in `backend/.env`:
+
+| Value           | Provider                                  | Use |
+| --------------- | ----------------------------------------- | --- |
+| `development`   | `DevelopmentMeetingAnalysisProvider` — deterministic rule-based extraction over the meeting's own notes text | Tests & demo (default; refuses to run under `NODE_ENV=production`) |
+| `fireworks`     | `FireworksMeetingAnalysisProvider` — real Fireworks chat-completions call | Production AI |
+| anything else   | —                                         | Boot fails fast with a configuration error |
+
+### Enabling Fireworks locally
+
+1. Get an API key at <https://fireworks.ai> (API keys).
+2. In `backend/.env` (never committed):
+   ```
+   MEETING_ANALYSIS_PROVIDER=fireworks
+   FIREWORKS_API_KEY=<your key>
+   # optional, defaults to accounts/fireworks/models/kimi-k2-instruct
+   FIREWORKS_MODEL=accounts/fireworks/models/<model-id>
+   ```
+3. Restart the API. The key is read server-side only — it never reaches the
+   frontend, responses, logs, or error envelopes.
+
+Behavior (identical API contract for both providers): the provider's output is
+strictly validated before persistence — invalid JSON, missing/ill-typed
+required fields (title, verbatim evidence quote), wrong enum values or a
+non-numeric confidence fail the whole analysis (502, meeting marked FAILED, no
+partial writes). Optional fields (speaker, deadline, confidence, risk) fall
+back to null/defaults rather than guesses; deadlines are folded into the
+commitment description (there is no dedicated schema field). Requests time out
+conservatively after 30s; HTTP failures surface only the status code.
+
+Provider tests run against stubbed HTTP — no key or network needed:
+`node scripts/test-fireworks-provider.mjs` (46 checks).
+
 ## Data model (business flow)
 
 ```
