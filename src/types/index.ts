@@ -118,8 +118,28 @@ export interface Commitment {
   status: CommitmentStatus
   changeRequestId?: string
   aiExplanation: string
+  latestActivity?: { action: string; description: string; createdAt: string } | null
   createdAt: string
   updatedAt: string
+}
+
+// ——— Scope Verification (Phase 10) ———
+// Deterministic backend verdict for a commitment. scopeMatch is true
+// (covered by approved scope), false (no meaningful overlap) or null
+// (ambiguous — needs human review). Authorization always comes from
+// database state (approved scope / approved change request) — never
+// from AI output.
+export interface VerificationResult {
+  commitmentId: string
+  scopeMatch: boolean | null
+  matchedRequirement: { id: string; title: string; category: string; approvalStatus: string } | null
+  authorizationFound: boolean
+  authorizationSource: 'APPROVED_SCOPE' | 'CHANGE_REQUEST' | null
+  risk: 'LOW' | 'MEDIUM' | 'HIGH'
+  authorizationStatus: 'AUTHORIZED' | 'UNAUTHORIZED' | 'PENDING'
+  explanation: string
+  evidence: string[]
+  verifiedAt: string
 }
 
 // ——— Change Requests ———

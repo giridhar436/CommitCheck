@@ -107,6 +107,11 @@ export interface BackendCommitment {
   meetingSummary?: string | null
   projectName?: string
   evidenceCount?: number
+  latestActivity?: {
+    action: string
+    description: string
+    createdAt: string
+  } | null
 }
 
 export interface BackendEvidence {
@@ -312,7 +317,15 @@ export function mapCommitment(dto: BackendCommitment): Commitment {
     commitment: dto.title,
     committedBy: dto.speaker,
     evidence: '',
-    scopeMatch: dto.authorizationStatus === 'AUTHORIZED' ? 'matched' : 'not_found',
+    // Reflects the Phase 10 verification semantics: AUTHORIZED = covered by
+    // approved scope/approved change request, PENDING = ambiguous (needs
+    // review), UNAUTHORIZED = outside scope with no authorization.
+    scopeMatch:
+      dto.authorizationStatus === 'AUTHORIZED'
+        ? 'matched'
+        : dto.authorizationStatus === 'PENDING'
+          ? 'partial'
+          : 'not_found',
     authorization,
     riskLevel: mapRiskLevel(dto.riskLevel),
     status:
@@ -322,6 +335,7 @@ export function mapCommitment(dto: BackendCommitment): Commitment {
           ? 'needs_review'
           : 'unauthorized',
     aiExplanation: dto.description ?? '',
+    latestActivity: dto.latestActivity ?? null,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   }

@@ -59,6 +59,9 @@ export const endpoints = {
     create: (projectId: string) => `/projects/${projectId}/commitments`,
     update: (projectId: string, id: string) => `/projects/${projectId}/commitments/${id}`,
     delete: (projectId: string, id: string) => `/projects/${projectId}/commitments/${id}`,
+    // Phase 10 — deterministic scope verification trigger
+    verify: (projectId: string, id: string) =>
+      `/projects/${projectId}/commitments/${id}/verify`,
     // Read-only meeting-scoped surface
     listByMeeting: (meetingId: string) => `/meetings/${meetingId}/commitments`,
   },

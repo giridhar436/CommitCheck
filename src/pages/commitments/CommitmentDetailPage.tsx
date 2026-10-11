@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   ShieldAlert,
+  ShieldCheck,
   CircleCheck,
   CircleX,
+  CircleHelp,
   TriangleAlert,
   Clock,
   User,
@@ -13,7 +15,6 @@ import {
   FileCheck2,
   FilePenLine,
   Sparkles,
-  CircleHelp,
   ExternalLink,
   ChevronRight,
 } from 'lucide-react'
@@ -33,8 +34,9 @@ import { commitmentService } from '@/services/commitments'
 import { projectService } from '@/services/projects'
 import { meetingService } from '@/services/meetings'
 import { changeRequestService } from '@/services/changeRequests'
+import { verificationService } from '@/services/verification'
 import { formatDate } from '@/lib/utils'
-import type { Commitment, Project, Meeting, ChangeRequest } from '@/types'
+import type { Commitment, Project, Meeting, ChangeRequest, VerificationResult } from '@/types'
 
 export function CommitmentDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -49,6 +51,10 @@ export function CommitmentDetailPage() {
 
   // Dialog state
   const [crDialogOpen, setCrDialogOpen] = useState(false)
+
+  // Phase 10 — scope verification state
+  const [verification, setVerification] = useState<VerificationResult | null>(null)
+  const [verifying, setVerifying] = useState(false)
 
   const fetchData = async () => {
     if (!id) return
@@ -84,8 +90,34 @@ export function CommitmentDetailPage() {
   }
 
   useEffect(() => {
+    setVerification(null)
     fetchData()
   }, [id])
+
+  // Phase 10 — deterministic scope verification against approved scope and
+  // approved change requests. The backend computes the verdict; we refresh
+  // the detail afterwards so risk/authorization badges reflect the outcome.
+  const handleVerifyScope = async () => {
+    if (!commitment) return
+    try {
+      setVerifying(true)
+      const result = await verificationService.verify(commitment.projectId, commitment.id)
+      setVerification(result)
+      const refreshed = await commitmentService.getById(commitment.id)
+      if (refreshed) setCommitment(refreshed)
+      toast.success(
+        result.risk === 'LOW'
+          ? 'Commitment verified — within approved scope or authorized.'
+          : result.risk === 'MEDIUM'
+            ? 'Commitment verified — ambiguous scope match, needs review.'
+            : 'Commitment verified — outside approved scope and unauthorized.',
+      )
+    } catch {
+      toast.error('Scope verification failed')
+    } finally {
+      setVerifying(false)
+    }
+  }
 
   // Mark Authorized action
   const handleMarkAuthorized = async () => {
@@ -202,6 +234,111 @@ export function CommitmentDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column (8 cols): Verbatim Evidence, Scope Comparison Matrix, AI Explanation */}
         <div className="lg:col-span-8 space-y-6">
+          {/* Card 0: Scope Verification (Phase 10 — deterministic backend verdict) */}
+          <Card className="border-border/80 shadow-xs">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Scope Verification
+                </CardTitle>
+                {verification && (
+                  <RiskBadge level={verification.risk.toLowerCase() as Commitment['riskLevel']} />
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                Deterministic check against approved scope requirements and approved change
+                requests — authorization comes from database state, never from AI output.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {verification ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                        Scope
+                      </span>
+                      <span
+                        className={`font-bold mt-0.5 block ${
+                          verification.scopeMatch === true
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : verification.scopeMatch === false
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-amber-600 dark:text-amber-400'
+                        }`}
+                      >
+                        {verification.scopeMatch === true
+                          ? 'In approved scope'
+                          : verification.scopeMatch === false
+                            ? 'Out of scope'
+                            : 'Ambiguous'}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                        Authorization
+                      </span>
+                      <span
+                        className={`font-bold mt-0.5 block ${
+                          verification.authorizationFound
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        {verification.authorizationFound
+                          ? verification.authorizationSource === 'APPROVED_SCOPE'
+                            ? 'Approved scope requirement'
+                            : 'Approved change request'
+                          : 'Not authorized'}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                        Matched Requirement
+                      </span>
+                      <span className="font-bold mt-0.5 block text-foreground">
+                        {verification.matchedRequirement
+                          ? verification.matchedRequirement.title
+                          : 'None'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-card p-3 text-xs leading-relaxed">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                      Explanation
+                    </span>
+                    <p className="mt-1">{verification.explanation}</p>
+                    {verification.evidence.length > 0 && (
+                      <p className="mt-2 text-muted-foreground">
+                        References: {verification.evidence.join(' · ')}
+                      </p>
+                    )}
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      Verified {formatDate(verification.verifiedAt)}
+                    </p>
+                  </div>
+                </>
+              ) : commitment.latestActivity?.action === 'COMMITMENT_VERIFIED' ? (
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-xs">
+                  <p className="text-muted-foreground">
+                    <span className="font-bold text-foreground">Last verified</span>{' '}
+                    {formatDate(commitment.latestActivity.createdAt)} —{' '}
+                    {commitment.latestActivity.description}
+                  </p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    Run verification again to re-check against the current approved scope.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Not verified yet — run verification to compare this commitment against the
+                  approved scope baseline.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Card 1: Verbatim Evidence & Statement Context */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3">
@@ -435,6 +572,16 @@ export function CommitmentDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Primary Action: Verify Scope (Phase 10) */}
+              <Button
+                className="w-full justify-center gap-2 font-semibold shadow-xs"
+                disabled={verifying}
+                onClick={handleVerifyScope}
+              >
+                <ShieldCheck className="h-4 w-4" strokeWidth={1.8} />
+                <span>{verifying ? 'Verifying…' : 'Verify Scope'}</span>
+              </Button>
+
               {/* Primary Action: Create Change Request */}
               {commitment.status !== 'change_request_created' ? (
                 <Button
