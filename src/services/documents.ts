@@ -1,16 +1,16 @@
 /* ——————————————————————————————————————————————————
- * CommitCheck — Documents Service (Phase 13)
+ * CommitCheck — Documents Service (Phase 13/14)
  *
  * Talks to the live NestJS backend nested routes
  * (GET/POST /projects/:projectId/documents,
  *  GET/PATCH/DELETE /projects/:projectId/documents/:id,
  *  POST /projects/:projectId/documents/:id/process).
  *
- * Registration is metadata-only: binaries live out of band
- * in Supabase Storage (same pattern as meeting attachments).
- * Processing is deterministic text normalization over
- * text-bearing content — PDF/OCR extraction is NOT
- * implemented on the backend yet.
+ * Registration is metadata-only; processing accepts either
+ * `textContent` (text documents) or `binaryContent` — the
+ * base64 of a real PDF/DOCX/text file (≤10MB decoded),
+ * parsed server-side with pdf-parse/mammoth. Images/OCR
+ * are not implemented and fail with an honest error.
  * —————————————————————————————————————————————————— */
 
 import type { ProjectDocument } from '@/types'
@@ -84,17 +84,18 @@ export const documentService = {
     )
   },
 
-  /** Deterministic processing. Omit textContent to reprocess stored text
-   *  (idempotent); the backend rejects binary-only documents with an
-   *  honest "not implemented" error. */
+  /** Deterministic processing. Provide `textContent` (text documents) or
+   *  `binaryContent` (base64 of a PDF/DOCX/text file); omit both to reprocess
+   *  the stored text (idempotent). The backend rejects unsupported binaries
+   *  with an honest error instead of a fake extract. */
   async process(
     projectId: string,
     id: string,
-    textContent?: string,
+    content?: { textContent?: string; binaryContent?: string },
   ): Promise<ProjectDocument> {
     const envelope = await apiClient.post<BackendEnvelope<BackendDocument>>(
       endpoints.documents.process(projectId, id),
-      textContent !== undefined ? { textContent } : {},
+      content ?? {},
     )
     return mapDocument(unwrap(envelope))
   },

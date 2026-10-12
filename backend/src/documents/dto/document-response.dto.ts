@@ -31,6 +31,9 @@ export class DocumentResponseDto {
   uploadedAt!: string;
   createdAt!: string;
   updatedAt!: string;
+  /** Phase 14 — derived chunk/index stats (batched counts, no text blobs). */
+  chunkCount!: number;
+  indexedChunks!: number;
   latestActivity!: ActivitySummaryDto | null;
 }
 

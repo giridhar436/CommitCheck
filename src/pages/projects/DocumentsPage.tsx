@@ -100,11 +100,30 @@ const processingStatusConfig: Record<
 
 /** Content the deterministic processor can actually extract. */
 const TEXT_EXTENSIONS = /\.(txt|md|csv)$/i
-/** Stay safely under the backend's 100KB JSON body limit. */
-const MAX_TEXT_CHARS = 64_000
+const PDF_EXTENSION = /\.pdf$/i
+const DOCX_EXTENSION = /\.docx$/i
+/** Backend cap: 10MB decoded binary (base64 inflates by ~4/3). */
+const MAX_BINARY_BYTES = 10 * 1024 * 1024
+/** Backend textContent DTO cap is 2M chars — stay safely under. */
+const MAX_TEXT_CHARS = 1_000_000
 
-function isTextExtractable(fileName: string): boolean {
-  return TEXT_EXTENSIONS.test(fileName)
+function classifyFile(fileName: string): 'text' | 'pdf' | 'docx' | 'unsupported' {
+  if (TEXT_EXTENSIONS.test(fileName)) return 'text'
+  if (PDF_EXTENSION.test(fileName)) return 'pdf'
+  if (DOCX_EXTENSION.test(fileName)) return 'docx'
+  return 'unsupported'
+}
+
+/** Base64 for the backend's binaryContent field (chunked to stay under the
+ *  engine's argument limit; PDFs/DOCXes ride to the API inside the JSON body). */
+async function fileToBase64(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  let binary = ''
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
 }
 
 function formatFileSize(bytes: number | null): string {
@@ -157,16 +176,16 @@ export function DocumentsPage() {
   const processUpload = async (file: File) => {
     if (!id) return
 
-    // 10MB registration cap (metadata only — the binary never leaves the browser)
-    if (file.size > 10 * 1024 * 1024) {
+    // 10MB file cap — the backend accepts at most 10MB of decoded binary
+    if (file.size > MAX_BINARY_BYTES) {
       toast.error('File too large. Maximum file size is 10MB.')
       return
     }
 
     setUploading(true)
     try {
-      // Registration is metadata-only: the backend records title/type/size
-      // and a storage key; binaries live out of band in Supabase Storage.
+      // Registration is metadata-only; processing is a second call that
+      // carries the real content (textContent or base64 binaryContent).
       let doc = await documentService.create(id, {
         title: file.name,
         type: uploadType,
@@ -175,24 +194,35 @@ export function DocumentsPage() {
         uploadedAt: new Date().toISOString(),
       })
 
-      if (isTextExtractable(file.name)) {
+      const kind = classifyFile(file.name)
+      if (kind === 'text') {
         const text = await file.text()
         if (text.length > MAX_TEXT_CHARS) {
           toast.warning(
                             `"${file.name}" registered. Text exceeds the ${Math.round(MAX_TEXT_CHARS / 1000)}KB processing limit — no extraction was attempted.`,
           )
         } else {
-          // Text files process end-to-end for real
-          doc = await documentService.process(id, doc.id, text)
+          doc = await documentService.process(id, doc.id, { textContent: text })
           toast.success(
             doc.processingStatus === 'COMPLETED'
-              ? `"${file.name}" uploaded and text extracted (${doc.processedAt ? 'done' : 'pending'}).`
+              ? `"${file.name}" uploaded and text extracted (${doc.chunkCount} chunks).`
               : `"${file.name}" uploaded — text extraction failed (see the document row).`,
           )
         }
+      } else if (kind === 'pdf' || kind === 'docx') {
+        // Real extraction: the file bytes are base64-encoded into the
+        // process call and parsed server-side (pdf-parse / mammoth).
+        doc = await documentService.process(id, doc.id, {
+          binaryContent: await fileToBase64(file),
+        })
+        toast.success(
+          doc.processingStatus === 'COMPLETED'
+            ? `"${file.name}" uploaded and text extracted (${doc.chunkCount} chunks).`
+            : `"${file.name}" uploaded — extraction failed (see the document row).`,
+        )
       } else {
         toast.info(
-          `"${file.name}" registered as metadata. PDF/DOC text extraction is not implemented — text files (.txt, .md, .csv) process end-to-end.`,
+          `"${file.name}" registered as metadata. Supported for extraction: TXT, MD, CSV, PDF, DOCX. Legacy .doc and images (OCR) are not implemented.`,
         )
       }
 
@@ -360,7 +390,7 @@ export function DocumentsPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.doc,.docx,.txt,.csv,.md"
+              accept=".pdf,.docx,.txt,.csv,.md"
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -394,7 +424,7 @@ export function DocumentsPage() {
                     {dragOver ? 'Drop file here' : 'Drop a file here or click to browse'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    TXT, MD, CSV process end-to-end — PDF, DOC, DOCX register as metadata
+                    TXT, MD, CSV, PDF, DOCX process end-to-end — images/OCR are not supported
                   </p>
                 </>
               )}
@@ -458,6 +488,14 @@ export function DocumentsPage() {
                         </span>
                         <span>•</span>
                         <span>{formatFileSize(doc.fileSize)}</span>
+                        {doc.processingStatus === 'COMPLETED' && doc.chunkCount > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>
+                              {doc.chunkCount} chunks · {doc.indexedChunks} indexed
+                            </span>
+                          </>
+                        )}
                       </div>
                       {doc.processingStatus === 'FAILED' && doc.processingError && (
                         <p className="text-[10px] text-red-500 dark:text-red-400 leading-relaxed">
@@ -537,13 +575,12 @@ export function DocumentsPage() {
             Current processing capabilities
           </p>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Registration is metadata-only — binaries stay in storage and are never uploaded
-            through this app. Text documents (.txt, .md, .csv, up to {Math.round(MAX_TEXT_CHARS / 1000)}KB)
-            are processed deterministically: normalized text is stored with the document and
-            survives reprocessing unchanged. PDF, DOC/DOCX, and image (OCR) text extraction is
-            <span className="font-semibold text-foreground"> not implemented</span>; requirement
-            auto-population from documents is also not implemented — link documents to scope
-            requirements manually.
+            Text documents (.txt, .md, .csv) and binary documents (PDF, DOCX — up to 10MB) are
+            processed deterministically: extracted text is stored with the document, split into
+            chunks, and survives reprocessing unchanged. Retrieval over chunks and requirements is
+            used only to surface relevant context for review — it never authorizes a commitment.
+            Image/OCR extraction is <span className="font-semibold text-foreground">not implemented</span>;
+            "indexed" counts stay at zero unless an embedding provider is configured on the server.
           </p>
         </div>
       </div>
@@ -558,7 +595,7 @@ export function DocumentsPage() {
             </DialogTitle>
             <DialogDescription className="text-xs">
               {viewText !== null
-                ? `Extracted text — ${viewCharCount.toLocaleString()} characters (normalized deterministically)`
+                ? `Extracted text — ${viewCharCount.toLocaleString()} characters · ${viewDoc?.chunkCount ?? 0} chunks (${viewDoc?.indexedChunks ?? 0} indexed)`
                 : 'Loading extracted text…'}
             </DialogDescription>
           </DialogHeader>

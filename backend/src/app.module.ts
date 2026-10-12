@@ -11,6 +11,8 @@ import { ScopeVerificationModule } from './scope-verification/scope-verification
 import { ChangeRequestsModule } from './change-requests/change-requests.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DocumentsModule } from './documents/documents.module';
+import { EmbeddingsModule } from './embeddings/embeddings.module';
+import { RetrievalModule } from './retrieval/retrieval.module';
 
 /**
  * Root module.
@@ -19,11 +21,13 @@ import { DocumentsModule } from './documents/documents.module';
  * Phase 7: Commitment Evidence · Phase 8: AI Meeting Analysis ·
  * Phase 9: Fireworks AI provider · Phase 10: Scope Verification ·
  * Phase 11: Change Request workflow · Phase 12: Dashboard & audit intelligence ·
- * Phase 13: Scope & document intelligence.
+ * Phase 13: Scope & document intelligence ·
+ * Phase 14: Document intelligence & semantic scope retrieval.
  */
 @Module({
   imports: [
     PrismaModule,
+    EmbeddingsModule,
     ProjectsModule,
     ScopeRequirementsModule,
     MeetingsModule,
@@ -35,6 +39,7 @@ import { DocumentsModule } from './documents/documents.module';
     ChangeRequestsModule,
     DashboardModule,
     DocumentsModule,
+    RetrievalModule,
   ],
 })
 export class AppModule {}

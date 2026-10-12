@@ -290,6 +290,41 @@ export function CommitmentDetailPage() {
                       Verified {formatDate(verification.verifiedAt)}
                     </p>
                   </div>
+                  {/* Phase 14 — retrieval context for unauthorized commitments.
+                      Grounded excerpts only; relevance is retrieval similarity,
+                      never authorization confidence. */}
+                  {verification.retrievedContext && verification.retrievedContext.length > 0 && (
+                    <div className="rounded-xl border border-border/70 bg-card p-3 text-xs leading-relaxed">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">
+                        Related document context (retrieval)
+                      </span>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        Document excerpts most similar to this commitment, surfaced to help
+                        review. Similarity does not authorize — excerpts come from stored
+                        document text.
+                      </p>
+                      <div className="mt-2 space-y-2">
+                        {verification.retrievedContext.map((item) => (
+                          <div
+                            key={`${item.documentId}-${item.chunkIndex}`}
+                            className="rounded-lg border border-border/60 bg-muted/20 p-2"
+                          >
+                            <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                              <span className="font-semibold text-foreground truncate">
+                                {item.documentTitle} · chunk {item.chunkIndex + 1}
+                              </span>
+                              <span className="shrink-0">
+                                {Math.round(item.relevance * 100)}% match
+                              </span>
+                            </div>
+                            <pre className="mt-1 whitespace-pre-wrap font-mono text-[11px] text-foreground">
+                              {item.text}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : commitment.latestActivity?.action === 'COMMITMENT_VERIFIED' ? (
                 <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-xs">

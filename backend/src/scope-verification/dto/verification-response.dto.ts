@@ -23,6 +23,11 @@ export class MatchedScopeRequirementDto {
  * (ambiguous — needs human review). Authorization is derived exclusively
  * from database state (approved scope / APPROVED change requests), never
  * from AI output.
+ *
+ * Phase 14: `retrievedContext` (optional) carries document-chunk excerpts
+ * found by semantic retrieval when no authorization was found. It is
+ * retrieval RELEVANCE context for human review — grounded in stored chunk
+ * text, never synthesized — and it NEVER participates in the decision.
  */
 export class CommitmentVerificationResponseDto {
   commitmentId!: string;
@@ -35,4 +40,15 @@ export class CommitmentVerificationResponseDto {
   explanation!: string;
   evidence!: string[];
   verifiedAt!: string;
+  retrievedContext?: RetrievedContextItemDto[];
+}
+
+/** One retrieved chunk excerpt (Phase 14). `relevance` is retrieval
+ *  similarity 0..1 — NOT authorization confidence. */
+export class RetrievedContextItemDto {
+  documentId!: string;
+  documentTitle!: string;
+  chunkIndex!: number;
+  text!: string;
+  relevance!: number;
 }

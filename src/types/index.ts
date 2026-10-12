@@ -59,11 +59,11 @@ export interface Requirement {
   updatedAt: string
 }
 
-// ——— Documents (Phase 13 — backend-backed) ———
+// ——— Documents (Phase 13/14 — backend-backed) ———
 // Mirrors the backend DocumentType / DocumentProcessingStatus enums.
-// Processing is deterministic text normalization over text-bearing
-// content only — PDF/DOC/image (OCR) extraction is NOT implemented;
-// binary files register as metadata with status PENDING.
+// Processing is deterministic extraction: text files normalize as-is; PDF
+// (pdf-parse) and DOCX (mammoth) are parsed for real via base64 upload or
+// server-side storage download. Image/OCR extraction is NOT implemented.
 export type DocumentType = 'SOW' | 'REQUIREMENTS' | 'CONTRACT' | 'PROPOSAL' | 'OTHER'
 export type DocumentProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
 
@@ -95,6 +95,10 @@ export interface ProjectDocument {
   uploadedAt: string
   createdAt: string
   updatedAt: string
+  /** Phase 14 chunking: deterministic chunks derived from the extracted text. */
+  chunkCount: number
+  /** Chunks carrying a real embedding (0 unless an embedding provider is configured). */
+  indexedChunks: number
   latestActivity?: { id: string; action: ActivityAction; description: string; createdAt: string } | null
 }
 
@@ -181,6 +185,21 @@ export interface VerificationResult {
   explanation: string
   evidence: string[]
   verifiedAt: string
+  /** Phase 14: semantic-retrieval context, present ONLY when the commitment
+   *  was not authorized (it enriches review, never authorizes). Each excerpt
+   *  is grounded in stored document text; `relevance` is retrieval
+   *  similarity, not authorization confidence. */
+  retrievedContext?: RetrievedContextItem[]
+}
+
+/** Grounded document excerpt surfaced alongside an UNAUTHORIZED verdict. */
+export interface RetrievedContextItem {
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  text: string
+  /** Retrieval similarity score (0–1) — never authorization confidence. */
+  relevance: number
 }
 
 // ——— Change Requests (Phase 11) ———

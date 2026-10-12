@@ -38,6 +38,14 @@ npm run start:dev
 | `DATABASE_URL`  | Runtime connections — use the **pooled** Supabase URL (port `6543`, `pgbouncer=true&connection_limit=1`) |
 | `DIRECT_URL`    | Prisma Migrate only — use the **direct** Supabase URL (port `5432`) |
 | `PORT`          | HTTP port (default `3000`) |
+| `EMBEDDING_PROVIDER` | Phase 14 — `openai` (or any OpenAI-compatible vendor via `EMBEDDING_BASE_URL`). **Unset = semantic indexing disabled**; retrieval falls back to deterministic lexical ranking. There is no fake-embedding mode. |
+| `EMBEDDING_API_KEY`  | Phase 14 — provider secret. Never logged, never returned by any endpoint, never included in error messages. |
+| `EMBEDDING_MODEL`    | Phase 14 — default `text-embedding-3-small` (1536 dimensions). |
+| `EMBEDDING_BASE_URL` | Phase 14 — default `https://api.openai.com/v1` (point at any compatible vendor). |
+| `EMBEDDING_TIMEOUT_MS` | Phase 14 — per-request timeout, default `20000`. |
+| `SUPABASE_STORAGE_URL` | Phase 14 — optional server-side document download base (e.g. `https://<ref>.supabase.co`). Without it, PDF/DOCX bytes must arrive via `binaryContent`. |
+| `SUPABASE_STORAGE_BUCKET` | Phase 14 — bucket name for server-side downloads (default `documents`). |
+| `SUPABASE_STORAGE_SERVICE_KEY` | Phase 14 — service-role key used ONLY server-side for downloads; never returned, never logged. |
 
 The pooled/direct split is required: Prisma Migrate needs DDL and shadow-database
 privileges that Supabase's pgbouncer transaction pool does not allow.
@@ -66,8 +74,9 @@ backend/
 │   │   ├── 20261011000007_add_commitment_verified_action/
 │   │   ├── 20261011000007_add_commitment_verified_action/
 │   │   ├── 20261011000008_add_change_request_workflow_fields/  # CLARIFICATION_REQUESTED + audit action + clarification_comment
-│   │   └── 20261012000000_document_processing_and_traceability/  # Document processing lifecycle + DocumentText + requirement source FK
-│   ├── schema.prisma                # 10 models · 11 enums · full relation graph
+│   │   ├── 20261012000000_document_processing_and_traceability/  # Document processing lifecycle + DocumentText + requirement source FK
+│   │   └── 20261012100000_document_chunks_semantic_retrieval/   # Phase 14: ChunkEmbeddingStatus enum + document_chunks table (JSONB embeddings)
+│   ├── schema.prisma                # 11 models · 12 enums · full relation graph
 │   └── seed.ts                      # Interconnected demo data (2 projects)
 ├── src/
 │   ├── common/
@@ -130,9 +139,22 @@ backend/
 │   │   ├── documents.controller.ts  # /api/projects/:projectId/documents (+ /:id/process)
 │   │   ├── documents.mapper.ts
 │   │   ├── documents.module.ts
-│   │   └── documents.service.ts     # Metadata CRUD + deterministic text processing + audit log
+│   │   ├── documents.service.ts     # Metadata CRUD + extraction + chunking + audit log
+│   │   ├── text-extraction.ts       # Phase 14: magic-byte sniffing + pdf-parse/mammoth extraction
+│   │   ├── chunker.ts               # Phase 14: deterministic 1200-char paragraph-packing chunker
+│   │   └── document-storage.service.ts # Phase 14: optional server-side bytes fetch (traversal-safe)
+│   ├── embeddings/
+│   │   ├── embedding-provider.ts    # Phase 14: provider abstraction (no fake-embedding mode)
+│   │   ├── openai-embedding-provider.ts # Phase 14: OpenAI-compatible client, sanitized errors
+│   │   ├── embeddings.service.ts    # Phase 14: env-configured provider or clean disabled state
+│   │   └── embeddings.module.ts     # Phase 14: @Global
+│   ├── retrieval/
+│   │   ├── dto/                     # Phase 14: query + explainable response DTOs
+│   │   ├── retrieval.controller.ts  # Phase 14: GET /api/projects/:projectId/retrieval/scope
+│   │   ├── retrieval.module.ts
+│   │   └── retrieval.service.ts     # Phase 14: project-scoped vector/lexical retrieval (labeled)
 │   ├── app.module.ts                # Root module
-│   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
+│   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS, 15MB JSON body)
 ├── scripts/
 │   ├── verify-db.mjs                # Ephemeral-Postgres migration+seed check
 │   ├── test-api.mjs                 # End-to-end Projects API tests (37 checks)
@@ -146,7 +168,9 @@ backend/
 │   ├── test-verification-api.mjs    # End-to-end Scope Verification tests (48 checks)
 │   ├── test-change-requests-api.mjs # End-to-end Change Request workflow tests (67 checks)
 │   ├── test-dashboard-api.mjs       # End-to-end Dashboard/Activity/Alerts tests (40 checks)
-│   └── test-documents-api.mjs       # End-to-end Documents/processing/traceability tests (48 checks)
+│   ├── test-documents-api.mjs       # End-to-end Documents/processing/traceability tests (48 checks)
+│   ├── test-document-intelligence-api.mjs # End-to-end Phase 14 extraction/chunking/retrieval/verification tests (53 checks)
+│   └── test-embedding-provider.mjs  # Phase 14 embedding provider tests, stubbed HTTP (28 checks)
 ├── .env.example
 └── package.json
 ```
@@ -618,14 +642,14 @@ input always yields the same output:
 4. Persist the result to the 1:1 `DocumentText` table (`content`, `charCount`)
    with `processingStatus = COMPLETED` and `processedAt`.
 
-- **Text-bearing content only.** The request may carry `textContent` (e.g. the
+- **Text-bearing content.** The request may carry `textContent` (e.g. the
   content of a `.txt`/`.md`/`.csv` file); otherwise the document's previously
-  stored `DocumentText.content` is reprocessed, which is idempotent.
+  stored `DocumentText.content` is reprocessed, which is idempotent. Phase 14
+  added real binary extraction via `binaryContent` — see the Phase 14 section.
 - **No faked extraction.** A document with no stored text and no `textContent`
-  gets an honest **400** — "this deployment supports text documents only …
-  PDF/DOC/image (OCR) extraction is not implemented." It is never marked
-  COMPLETED with invented content. **PDF/DOCX text extraction, OCR, and
-  requirement auto-population from documents are NOT implemented.**
+  gets an honest **400**. It is never marked COMPLETED with invented content.
+  **OCR and requirement auto-population from documents are NOT implemented**
+  (PDF/DOCX extraction arrived in Phase 14).
 - **Empty/whitespace-only content is a real failure state**: the document is
   marked `FAILED` with a human-readable `processingError`, and a
   `DOCUMENT_PROCESSING_FAILED` audit entry is written. Recovery = reprocessing
@@ -656,9 +680,9 @@ latest-activity summary as other resources.
 
 ### Deliberately NOT in this phase
 
-- Binary text extraction (PyMuPDF/pdfplumber), Google Vision OCR,
-  Fireworks/OpenAI embeddings, and pgvector — the lexical Phase 10 matcher is
-  untouched and remains the only verification path.
+- Binary text extraction, embeddings, pgvector — all arrived in **Phase 14**
+  (next section); the lexical Phase 10 matcher is untouched and remains the
+  only verification path.
 - Storage upload/download endpoints — binaries stay out of band.
 - Requirement auto-population from processed documents.
 
@@ -668,11 +692,110 @@ cross-project isolation for documents/text/requirements, traceability chain,
 deletion semantics (cascade + `SetNull`), secret-leakage scans over every
 response body, and Phase 10/11 behavior invariants).
 
+## Document Intelligence & Semantic Scope Retrieval (Phase 14)
+
+Adds real document extraction, deterministic chunking, optional embeddings,
+and project-scoped semantic retrieval — on top of the Phase 13 foundation,
+without changing any existing API contract. The governing rule:
+
+> **Semantic retrieval = candidate discovery. Deterministic/explicit
+> authorization = final decision.** Relevance scores are explainability
+> signals only and can never authorize a commitment.
+
+### IMPLEMENTED
+
+**Real extraction** (`src/documents/text-extraction.ts`). Format is sniffed
+from magic bytes, never from extensions: `%PDF-` → PDF, ZIP local-file-header
+(`PK\x03/05/07`) → DOCX, otherwise UTF-8 text (any binary without a known
+container fails). PDF is parsed with **pdf-parse 1.1.1** (bundled pdf.js
+v1.10.100 text extraction); DOCX with **mammoth 1.13.0** `extractRawText`.
+Bytes arrive either as base64 `binaryContent` (≤10MB decoded; the JSON body
+limit was raised to 15MB) or — when `SUPABASE_STORAGE_URL`,
+`SUPABASE_STORAGE_BUCKET` and `SUPABASE_STORAGE_SERVICE_KEY` are configured —
+via a server-side download of the document's `storagePath`. Unsupported
+binaries (images, legacy `.doc`) fail with `UnsupportedDocumentFormatError` →
+the document is marked FAILED with a clear message, never COMPLETED. Note:
+pdf.js v1.10.100 mishandles Node's pooled Buffers (xref offsets resolve
+against the underlying ArrayBuffer), so extraction always hands it a
+standalone `Uint8Array` copy.
+
+**Deterministic chunking** (`src/documents/chunker.ts`). Extracted text is
+split into ordered chunks of at most **1200 characters**: paragraphs (split on
+blank lines) are packed sequentially; a paragraph longer than the limit is cut
+at the last whitespace (hard-cut fallback). Each chunk stores
+`{ chunkIndex, text, charStart, charEnd, contentHash (sha256) }` in
+`document_chunks` (unique on `(document_id, chunk_index)`). Reprocessing
+deletes and rebuilds the chunk set inside one transaction — no duplicates on
+retry, no stale leftovers.
+
+**Embedding provider abstraction** (`src/embeddings/`). `EMBEDDING_PROVIDER`
+selects the implementation (`openai` = any OpenAI-compatible vendor via
+`EMBEDDING_BASE_URL`); the API key is read from `EMBEDDING_API_KEY`, sent only
+in the `Authorization: Bearer` header, never logged, never returned, and never
+included in error messages (HTTP failures surface status codes only; timeouts
+and network errors get fixed sanitized messages; response shapes are validated
+strictly). Without a provider the system runs in a clean disabled state —
+chunks stay `SKIPPED`, there is **no deterministic fake-embedding mode**.
+
+**Project-scoped retrieval** — `GET /api/projects/:projectId/retrieval/scope`
+(`?query=&limit=1..20`, default 5). `retrieveRelevantScope(projectId, query,
+options)` always filters chunks by `document.projectId` and requirements by
+`projectId` at the database level; another project's chunks/requirements/
+vectors can never be returned. Results are explainable:
+`{ sourceType: 'DOCUMENT_CHUNK' | 'SCOPE_REQUIREMENT', sourceId, documentId,
+documentTitle, requirementId, text, score, similarityKind, metadata,
+linkedRequirements }`. Two modes, honestly labeled in the `mode` field:
+
+- `'vector'` — a real provider is configured **and** stored chunk embeddings
+  exist: the query is embedded and compared by in-process brute-force cosine
+  similarity.
+- `'lexical'` — otherwise: deterministic distinct-term coverage ranking over
+  chunk and requirement text (stopword-filtered tokens). The response says
+  `lexical`; the system never pretends lexical ranking is vector search.
+
+**Verification context enrichment.** When a commitment verifies as
+UNAUTHORIZED (`authorizationSource === null`), the Phase 10 response gains an
+optional `retrievedContext` array (≤3 document chunks with titles, chunk
+indices, excerpts and a `relevance` score). Every excerpt is stored document
+text (never fabricated); enrichment is best-effort (a retrieval failure never
+alters the verdict) and **the deterministic verdict is untouched** — semantic
+similarity alone never authorizes; approved scope and APPROVED change requests
+remain the only authorization sources.
+
+**Safe reprocessing.** Ownership is revalidated, chunks are rebuilt in the
+same transaction as the status transition, and unchanged chunks (same
+`contentHash`) keep their stored embedding without re-calling the provider.
+Embedding HTTP calls happen outside the transaction. FAILED documents recover
+by reprocessing with valid content.
+
+### NOT IMPLEMENTED (honestly)
+
+- **pgvector / ANN index.** Probed at runtime (`pg_available_extensions`):
+  unavailable in the dev/test environment, so no extension migration was
+  added. Embeddings (when a provider is configured) are stored as JSON float
+  arrays and compared by in-process cosine — correct but O(n) per project,
+  bounded by candidate caps (500 chunks / 200 requirements). The abstraction
+  admits swapping in pgvector later without contract changes.
+- **OCR / image extraction** — images fail with an explicit error.
+- **Legacy `.doc`** (pre-OOXML binary Word) — unsupported.
+- **Requirement embeddings** — only document chunks are embedded; requirements
+  are always retrieved lexically.
+- **Requirement auto-population from documents** — documents enhance retrieval
+  and traceability; scope requirements remain explicitly authored.
+
+Run `node scripts/test-document-intelligence-api.mjs` for the 53-check Phase
+14 e2e suite (real PDF/DOCX/text extraction, determinism, no duplicate derived
+records, FAILED→recovery, chunk invariants, lexical-mode honesty, retrieval
+relevance + project isolation, verification enrichment invariants, evidence
+groundedness, traversal/secret-leak scans) and
+`node scripts/test-embedding-provider.mjs` for the 28-check provider suite
+(request shape, batching, sanitized failures, key-leak scan, config matrix).
+
 ## Data model (business flow)
 
 ```
-Project ─┬─ ScopeRequirement ─◯─ Document ─◯─ DocumentText   (1:1 extracted text)
-         ├─ Meeting ─┬─ MeetingAttachment
+Project ─┬─ ScopeRequirement ─◯─ Document ─┬─ DocumentText   (1:1 extracted text)
+         ├─ Meeting ─┬─ MeetingAttachment  └─ DocumentChunk[] (Phase 14: chunks + JSONB embeddings)
          │           └─ Commitment ─┬─ CommitmentEvidence
          │                          └─ ChangeRequest
          ├─ ChangeRequest
@@ -684,15 +807,17 @@ Project ─┬─ ScopeRequirement ─◯─ Document ─◯─ DocumentText   (
   attachments, commitments, evidence, change requests, documents, document
   texts, activities).
 - Deleting a **Meeting** cascades to its attachments and detected commitments.
-- Deleting a **Document** cascades its `DocumentText` and nulls
-  `ScopeRequirement.sourceDocumentId` links (`SetNull`) — requirements survive.
+- Deleting a **Document** cascades its `DocumentText` **and** its
+  `DocumentChunk` rows and nulls `ScopeRequirement.sourceDocumentId` links
+  (`SetNull`) — requirements survive.
 - `Activity.entityId` is a polymorphic UUID reference (intentionally no FK) —
   the entity type is named by `Activity.entityType`.
 - `snake_case` physical names via `@map` for clean Supabase SQL/RLS interop.
-- pgvector can be added later via a SQL migration on `scope_requirements`
-  or `commitments` (e.g. `embedding vector(1536)`) without touching these tables.
-  Phase 13 establishes the document/text foundation (`DocumentText`) but does
-  **not** configure pgvector or store embeddings anywhere.
+- **pgvector is not configured.** Phase 14 probed `pg_available_extensions` in
+  the dev environment (unavailable) and instead stores embeddings as JSON
+  float arrays on `document_chunks.embedding` (compared in-process). A future
+  pgvector migration would add `embedding vector(1536)` + an ANN index on
+  `document_chunks` without touching these tables.
 
 ## Supabase notes (for later phases)
 

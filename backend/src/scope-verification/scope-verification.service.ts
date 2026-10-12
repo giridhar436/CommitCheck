@@ -17,8 +17,10 @@ import { matchScope, ScopeMatchOutcome } from './scope-matcher';
 import {
   CommitmentVerificationResponseDto,
   MatchedScopeRequirementDto,
+  RetrievedContextItemDto,
   VerificationAuthorizationSource,
 } from './dto/verification-response.dto';
+import { RetrievalService } from '../retrieval/retrieval.service';
 
 /**
  * Phase 10 — Scope Verification & Authorization Intelligence.
@@ -48,7 +50,10 @@ type RequirementWithSource = ScopeRequirement & {
 export class ScopeVerificationService {
   private readonly logger = new Logger(ScopeVerificationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly retrieval: RetrievalService,
+  ) {}
 
   async verifyCommitment(
     projectId: string,
@@ -265,6 +270,11 @@ export class ScopeVerificationService {
       explanation: result.explanation,
       evidence: this.collectEvidence(commitment, result.matched),
       verifiedAt: verifiedAt.toISOString(),
+      // Phase 14 — retrieval enrichment only when nothing authorized the
+      // commitment: human-review context, never decision input.
+      ...(result.authorizationSource === null
+        ? { retrievedContext: await this.collectRetrievedContext(commitment) }
+        : {}),
     };
   }
 
@@ -287,7 +297,7 @@ export class ScopeVerificationService {
    */
   private collectEvidence(
     commitment: Commitment,
-    matched: ScopeRequirement | null,
+    matched: RequirementWithSource | null,
   ): string[] {
     const evidence: string[] = [];
     if (commitment.evidenceReference) {
@@ -297,6 +307,42 @@ export class ScopeVerificationService {
       evidence.push(matched.sourceClause);
     }
     return evidence;
+  }
+
+  /**
+   * Phase 14 — retrieval-based review context. Queries the project-scoped
+   * retrieval service (candidate discovery only) and returns stored chunk
+   * excerpts for human review. Best-effort: any failure is logged and
+   * omitted — a retrieval outage can never alter a verification verdict.
+   */
+  private async collectRetrievedContext(
+    commitment: Commitment,
+  ): Promise<RetrievedContextItemDto[] | undefined> {
+    try {
+      const retrieval = await this.retrieval.retrieveRelevantScope(commitment.projectId, {
+        query: `${commitment.title} ${commitment.description ?? ''}`.trim(),
+        limit: 3,
+      });
+      const items = retrieval.results
+        .filter((r) => r.sourceType === 'DOCUMENT_CHUNK' && r.documentId && r.documentTitle)
+        .map(
+          (r): RetrievedContextItemDto => ({
+            documentId: r.documentId!,
+            documentTitle: r.documentTitle!,
+            chunkIndex: r.metadata.chunkIndex ?? 0,
+            text: r.text,
+            relevance: r.score,
+          }),
+        );
+      return items.length > 0 ? items : undefined;
+    } catch (error) {
+      this.logger.warn(
+        `Retrieval enrichment failed (omitted from verification response): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return undefined;
+    }
   }
 
   /**

@@ -94,6 +94,9 @@ export interface BackendDocument {
   uploadedAt: string
   createdAt: string
   updatedAt: string
+  /** Phase 14: chunking + embedding index stats (never raw embeddings). */
+  chunkCount: number
+  indexedChunks: number
   latestActivity?: {
     id: string
     action: ActivityAction

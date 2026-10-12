@@ -87,6 +87,18 @@ enum DocumentProcessingStatus {
   FAILED
 }
 
+/// Per-chunk embedding state (Phase 14). SKIPPED = no embedding provider is
+/// configured (retrieval stays deterministic/lexical for that chunk);
+/// FAILED = the provider call failed after the chunk itself was extracted.
+/// pgvector is NOT used (see README) — embeddings, when present, are plain
+/// float arrays persisted as JSON and compared in-process (brute force).
+enum ChunkEmbeddingStatus {
+  SKIPPED
+  PENDING
+  COMPLETED
+  FAILED
+}
+
 enum EvidenceSource {
   TRANSCRIPT
   SUMMARY
@@ -317,6 +329,7 @@ model Document {
 
   project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   extractedText      DocumentText?
+  chunks             DocumentChunk[]
   sourceRequirements ScopeRequirement[]
 
   @@index([projectId, type])
@@ -337,6 +350,33 @@ model DocumentText {
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@map("document_texts")
+}
+
+/// Deterministic chunk of a document's normalized text (Phase 14).
+/// Rebuilt in full on every processing run (delete + recreate inside one
+/// transaction, keyed by (documentId, chunkIndex)) — retries never duplicate.
+/// charStart/charEnd are offsets into the document's normalized DocumentText.
+/// contentHash (sha-256 of the chunk text) lets unchanged chunks reuse their
+/// stored embedding instead of re-calling the provider.
+model DocumentChunk {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId      String               @map("document_id") @db.Uuid
+  chunkIndex      Int                  @map("chunk_index")
+  text            String               @db.Text
+  charStart       Int                  @map("char_start")
+  charEnd         Int                  @map("char_end")
+  contentHash     String               @map("content_hash") @db.VarChar(64)
+  embeddingStatus ChunkEmbeddingStatus @default(SKIPPED) @map("embedding_status")
+  embedding       Json?
+  embeddingModel  String?              @map("embedding_model")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([contentHash])
+  @@map("document_chunks")
 }
 
 /// Audit-log entry: an immutable trail of what happened inside a project.
