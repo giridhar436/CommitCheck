@@ -57,6 +57,7 @@ export class ScopeRequirementsService {
         orderBy: { [sortBy]: sortOrder },
         skip,
         take: limit,
+        include: { sourceDocument: { select: { id: true, title: true, type: true } } },
       }),
       this.prisma.scopeRequirement.count({ where }),
     ]);
@@ -74,6 +75,7 @@ export class ScopeRequirementsService {
   async findOne(projectId: string, id: string): Promise<ScopeRequirementResponseDto> {
     const requirement = await this.prisma.scopeRequirement.findFirst({
       where: { id, projectId },
+      include: { sourceDocument: { select: { id: true, title: true, type: true } } },
     });
     if (!requirement) {
       throw new NotFoundException(`Scope requirement with id ${id} not found`);
@@ -88,6 +90,9 @@ export class ScopeRequirementsService {
   ): Promise<ScopeRequirementResponseDto> {
     await this.assertProjectExists(projectId);
     await this.assertTitleAvailable(projectId, dto.title);
+    if (dto.sourceDocumentId) {
+      await this.assertSourceDocumentInProject(projectId, dto.sourceDocumentId);
+    }
 
     const requirement = await this.prisma.$transaction(async (tx) => {
       const created = await tx.scopeRequirement.create({
@@ -100,7 +105,9 @@ export class ScopeRequirementsService {
           approvalStatus: dto.approvalStatus ?? ApprovalStatus.PENDING,
           sourceClause: dto.sourceClause,
           acceptanceCriteria: dto.acceptanceCriteria,
+          ...(dto.sourceDocumentId && { sourceDocumentId: dto.sourceDocumentId }),
         },
+        include: { sourceDocument: { select: { id: true, title: true, type: true } } },
       });
 
       await tx.activity.create({
@@ -136,6 +143,9 @@ export class ScopeRequirementsService {
     if (dto.title !== undefined && dto.title !== existing.title) {
       await this.assertTitleAvailable(projectId, dto.title, id);
     }
+    if (dto.sourceDocumentId !== undefined) {
+      await this.assertSourceDocumentInProject(projectId, dto.sourceDocumentId);
+    }
 
     const data: Prisma.ScopeRequirementUpdateInput = {
       ...(dto.title !== undefined && { title: dto.title }),
@@ -147,12 +157,14 @@ export class ScopeRequirementsService {
       ...(dto.acceptanceCriteria !== undefined && {
         acceptanceCriteria: dto.acceptanceCriteria,
       }),
+      ...(dto.sourceDocumentId !== undefined && { sourceDocumentId: dto.sourceDocumentId }),
     };
 
     const [requirement] = await this.prisma.$transaction([
       this.prisma.scopeRequirement.update({
         where: { id },
         data,
+        include: { sourceDocument: { select: { id: true, title: true, type: true } } },
       }),
       this.prisma.activity.create({
         data: {
@@ -227,6 +239,26 @@ export class ScopeRequirementsService {
     if (duplicate) {
       throw new ConflictException(
         `A requirement titled "${title}" already exists in this project`,
+      );
+    }
+  }
+
+  /**
+   * Phase 13 traceability guard: the source document must exist AND belong to
+   * the same project. A cross-project document id is indistinguishable from a
+   * nonexistent one (400, no information leak).
+   */
+  private async assertSourceDocumentInProject(
+    projectId: string,
+    documentId: string,
+  ): Promise<void> {
+    const document = await this.prisma.document.findFirst({
+      where: { id: documentId, projectId },
+      select: { id: true },
+    });
+    if (!document) {
+      throw new BadRequestException(
+        `sourceDocumentId ${documentId} does not reference a document in this project`,
       );
     }
   }

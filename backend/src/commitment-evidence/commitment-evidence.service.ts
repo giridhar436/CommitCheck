@@ -57,6 +57,11 @@ export class CommitmentEvidenceService {
     commitmentId: string,
     id: string,
   ): Promise<CommitmentEvidenceResponseDto> {
+    // Phase 13 security fix: validate the project/commitment chain exactly
+    // like findAll/create do — the detail route previously skipped both
+    // guards, letting any projectId read any commitment's evidence.
+    await this.assertProjectExists(projectId);
+    await this.assertCommitmentInProject(projectId, commitmentId);
     const evidence = await this.findEvidenceInCommitment(commitmentId, id);
     return CommitmentEvidenceMapper.toResponseDto(evidence);
   }

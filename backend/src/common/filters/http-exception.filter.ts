@@ -19,11 +19,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const res = host.switchToHttp().getResponse<Response>();
 
+    // body-parser rejects oversized request bodies before routing; Nest
+    // surfaces these as plain errors — map them to 413, not a 500.
+    const bodyError = exception as { type?: string; status?: number; statusCode?: number; message?: string };
+    const isEntityTooLarge =
+      bodyError?.type === 'entity.too.large' ||
+      bodyError?.status === 413 ||
+      bodyError?.statusCode === 413;
+
     const isHttp = exception instanceof HttpException;
-    const status = isHttp
-      ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
-    const payload = isHttp ? exception.getResponse() : null;
+    let status: number;
+    let payload: unknown;
+
+    if (isEntityTooLarge) {
+      status = HttpStatus.PAYLOAD_TOO_LARGE;
+      payload = { message: 'Request body too large' };
+    } else if (isHttp) {
+      status = exception.getStatus();
+      payload = exception.getResponse();
+    } else {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      payload = null;
+    }
 
     // ValidationPipe errors arrive as { message: string[]; error: string; statusCode }.
     const rawMessage =

@@ -64,8 +64,10 @@ backend/
 │   │   ├── 20261011000000_init/                 # Initial schema (tables, enums, FKs, indexes)
 │   │   ├── …20261011000006_add_evidence_activity_actions/
 │   │   ├── 20261011000007_add_commitment_verified_action/
-│   │   └── 20261011000008_add_change_request_workflow_fields/  # CLARIFICATION_REQUESTED + audit action + clarification_comment
-│   ├── schema.prisma                # 9 models · 10 enums · full relation graph
+│   │   ├── 20261011000007_add_commitment_verified_action/
+│   │   ├── 20261011000008_add_change_request_workflow_fields/  # CLARIFICATION_REQUESTED + audit action + clarification_comment
+│   │   └── 20261012000000_document_processing_and_traceability/  # Document processing lifecycle + DocumentText + requirement source FK
+│   ├── schema.prisma                # 10 models · 11 enums · full relation graph
 │   └── seed.ts                      # Interconnected demo data (2 projects)
 ├── src/
 │   ├── common/
@@ -123,6 +125,12 @@ backend/
 │   │   ├── dashboard.controller.ts  # /api/projects/:projectId/{dashboard,activity,alerts}
 │   │   ├── dashboard.module.ts
 │   │   └── dashboard.service.ts     # Read-only aggregates (count/groupBy, batched enrichment)
+│   ├── documents/
+│   │   ├── dto/                     # Create/Update/Query/Process/Response DTOs
+│   │   ├── documents.controller.ts  # /api/projects/:projectId/documents (+ /:id/process)
+│   │   ├── documents.mapper.ts
+│   │   ├── documents.module.ts
+│   │   └── documents.service.ts     # Metadata CRUD + deterministic text processing + audit log
 │   ├── app.module.ts                # Root module
 │   └── main.ts                      # Bootstrap (ValidationPipe, filter, CORS)
 ├── scripts/
@@ -137,7 +145,8 @@ backend/
 │   ├── test-fireworks-provider.mjs  # Fireworks provider tests, stubbed HTTP (46 checks)
 │   ├── test-verification-api.mjs    # End-to-end Scope Verification tests (48 checks)
 │   ├── test-change-requests-api.mjs # End-to-end Change Request workflow tests (67 checks)
-│   └── test-dashboard-api.mjs       # End-to-end Dashboard/Activity/Alerts tests (40 checks)
+│   ├── test-dashboard-api.mjs       # End-to-end Dashboard/Activity/Alerts tests (40 checks)
+│   └── test-documents-api.mjs       # End-to-end Documents/processing/traceability tests (48 checks)
 ├── .env.example
 └── package.json
 ```
@@ -572,10 +581,97 @@ Run `node scripts/test-dashboard-api.mjs` for the 40-check Phase 12 suite
 categories, pagination/filter/sort, empty states, project isolation, unknown
 project 404s, validation 400s, and a read-only guarantee).
 
+## Documents API (Phase 13)
+
+Full CRUD for real project documents plus a deterministic processing trigger,
+under `/api/projects/:projectId/documents`. The Prisma `Document` model existed
+since Phase 1 but had no module; Phase 13 turns it into a real, audited
+resource. All endpoints return the standard `{ success, message, data }`
+envelope and enforce project isolation (a foreign `projectId` or `documentId`
+404s).
+
+| Endpoint                    | What it does                                                                     |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| `GET /documents`            | Paginated list — `search` (title contains), `type` filter, `sortBy` ∈ {createdAt, uploadedAt, title} |
+| `GET /documents/:id`        | Detail incl. extracted text (when processed) + linked scope requirements         |
+| `POST /documents`           | Register document metadata                                                        |
+| `PATCH /documents/:id`      | Update editable metadata                                                          |
+| `POST /documents/:id/process` | Deterministic text processing (see below)                                       |
+| `DELETE /documents/:id`     | Delete (cascades the extracted text; requirement links become null via `SetNull`) |
+
+**Registration is metadata-only** — the same pattern as Phase 5 meeting
+attachments: `storagePath` names the object's key in Supabase Storage
+(validated to begin with `projects/`), but this backend performs **no storage
+I/O**. Binaries are uploaded out of band; the API never sees them, and no
+endpoint returns storage URLs, keys with credentials, or anything secret.
+
+### Processing lifecycle (deterministic, honest)
+
+`Document.processingStatus` moves through a `PENDING → PROCESSING →
+COMPLETED | FAILED` state machine (new `DocumentProcessingStatus` enum).
+Processing is a **pure, deterministic text-normalization function** — the same
+input always yields the same output:
+
+1. Strip UTF-8 BOM, normalize CRLF → LF.
+2. Remove non-printable control characters (tab/newline preserved).
+3. Trim leading/trailing whitespace per line, collapse 3+ blank lines, trim.
+4. Persist the result to the 1:1 `DocumentText` table (`content`, `charCount`)
+   with `processingStatus = COMPLETED` and `processedAt`.
+
+- **Text-bearing content only.** The request may carry `textContent` (e.g. the
+  content of a `.txt`/`.md`/`.csv` file); otherwise the document's previously
+  stored `DocumentText.content` is reprocessed, which is idempotent.
+- **No faked extraction.** A document with no stored text and no `textContent`
+  gets an honest **400** — "this deployment supports text documents only …
+  PDF/DOC/image (OCR) extraction is not implemented." It is never marked
+  COMPLETED with invented content. **PDF/DOCX text extraction, OCR, and
+  requirement auto-population from documents are NOT implemented.**
+- **Empty/whitespace-only content is a real failure state**: the document is
+  marked `FAILED` with a human-readable `processingError`, and a
+  `DOCUMENT_PROCESSING_FAILED` audit entry is written. Recovery = reprocessing
+  with valid content.
+
+### Traceability: requirement → source document
+
+`ScopeRequirement.sourceDocumentId` (nullable FK, `SetNull` on document
+delete) links a requirement to the project document it came from. The guard is
+explicit: a `sourceDocumentId` that names a document from **another project**
+is rejected with 400 (indistinguishable from nonexistent). Requirements
+without documents keep working exactly as before — seeded/manual data is
+untouched. The link surfaces in:
+
+- Scope requirement responses (`sourceDocument: { id, title, type } | null`),
+- Document detail responses (`sourceRequirements: [...]`),
+- Verification responses — `matchedScopeRequirement.sourceDocument` rides along
+  so the UI can show Document → Requirement → Commitment → Evidence →
+  Verification without a second round-trip.
+
+### Audit actions (additive enum values)
+
+Four values joined the existing `ActivityAction` enum, written transactionally
+with each mutation: `DOCUMENT_UPDATED`, `DOCUMENT_DELETED`,
+`DOCUMENT_PROCESSED`, `DOCUMENT_PROCESSING_FAILED` (`DOCUMENT_UPLOADED`
+already existed). Document list/detail responses carry the same batched
+latest-activity summary as other resources.
+
+### Deliberately NOT in this phase
+
+- Binary text extraction (PyMuPDF/pdfplumber), Google Vision OCR,
+  Fireworks/OpenAI embeddings, and pgvector — the lexical Phase 10 matcher is
+  untouched and remains the only verification path.
+- Storage upload/download endpoints — binaries stay out of band.
+- Requirement auto-population from processed documents.
+
+Run `node scripts/test-documents-api.mjs` for the 48-check Phase 13 suite
+(CRUD + validation, processing determinism/idempotency/failure-and-recovery,
+cross-project isolation for documents/text/requirements, traceability chain,
+deletion semantics (cascade + `SetNull`), secret-leakage scans over every
+response body, and Phase 10/11 behavior invariants).
+
 ## Data model (business flow)
 
 ```
-Project ─┬─ ScopeRequirement          (approved scope)
+Project ─┬─ ScopeRequirement ─◯─ Document ─◯─ DocumentText   (1:1 extracted text)
          ├─ Meeting ─┬─ MeetingAttachment
          │           └─ Commitment ─┬─ CommitmentEvidence
          │                          └─ ChangeRequest
@@ -585,13 +681,18 @@ Project ─┬─ ScopeRequirement          (approved scope)
 ```
 
 - Deleting a **Project** cascades to its entire graph (scope, meetings,
-  attachments, commitments, evidence, change requests, documents, activities).
+  attachments, commitments, evidence, change requests, documents, document
+  texts, activities).
 - Deleting a **Meeting** cascades to its attachments and detected commitments.
+- Deleting a **Document** cascades its `DocumentText` and nulls
+  `ScopeRequirement.sourceDocumentId` links (`SetNull`) — requirements survive.
 - `Activity.entityId` is a polymorphic UUID reference (intentionally no FK) —
   the entity type is named by `Activity.entityType`.
 - `snake_case` physical names via `@map` for clean Supabase SQL/RLS interop.
 - pgvector can be added later via a SQL migration on `scope_requirements`
   or `commitments` (e.g. `embedding vector(1536)`) without touching these tables.
+  Phase 13 establishes the document/text foundation (`DocumentText`) but does
+  **not** configure pgvector or store embeddings anywhere.
 
 ## Supabase notes (for later phases)
 

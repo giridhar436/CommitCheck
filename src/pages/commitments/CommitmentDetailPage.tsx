@@ -265,10 +265,15 @@ export function CommitmentDetailPage() {
                         Matched Requirement
                       </span>
                       <span className="font-bold mt-0.5 block text-foreground">
-                        {verification.matchedRequirement
-                          ? verification.matchedRequirement.title
+                        {verification.matchedScopeRequirement
+                          ? verification.matchedScopeRequirement.title
                           : 'None'}
                       </span>
+                      {verification.matchedScopeRequirement?.sourceDocument && (
+                        <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                          From document: {verification.matchedScopeRequirement.sourceDocument.title}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-card p-3 text-xs leading-relaxed">

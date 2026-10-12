@@ -90,6 +90,18 @@ export const endpoints = {
       `/projects/${projectId}/change-requests/${id}/clarification`,
   },
 
+  // ——— Documents (nested under project; Phase 13, metadata-only) ———
+  documents: {
+    list: (projectId: string) => `/projects/${projectId}/documents`,
+    detail: (projectId: string, id: string) => `/projects/${projectId}/documents/${id}`,
+    create: (projectId: string) => `/projects/${projectId}/documents`,
+    update: (projectId: string, id: string) => `/projects/${projectId}/documents/${id}`,
+    delete: (projectId: string, id: string) => `/projects/${projectId}/documents/${id}`,
+    // Deterministic text-processing trigger (text-bearing content only)
+    process: (projectId: string, id: string) =>
+      `/projects/${projectId}/documents/${id}/process`,
+  },
+
   // ——— Dashboard / Activity / Alerts (nested under project; Phase 12,
   //     all read-only) ———
   dashboard: {

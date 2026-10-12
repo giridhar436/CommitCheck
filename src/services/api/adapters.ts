@@ -10,13 +10,17 @@
  * —————————————————————————————————————————————————— */
 
 import type {
+  ActivityAction,
   ActivityItem,
   AlertItem,
   ChangeRequest,
   Commitment,
   DashboardData,
+  DocumentExtractedText,
+  DocumentSourceRequirement,
   Meeting,
   Project,
+  ProjectDocument,
   Requirement,
   RiskLevel,
 } from '@/types'
@@ -68,8 +72,50 @@ export interface BackendRequirement {
   approvalStatus: 'AUTHORIZED' | 'UNAUTHORIZED' | 'PENDING'
   sourceClause: string | null
   acceptanceCriteria: string | null
+  sourceDocument: {
+    id: string
+    title: string
+    type: 'SOW' | 'REQUIREMENTS' | 'CONTRACT' | 'PROPOSAL' | 'OTHER'
+  } | null
   createdAt: string
   updatedAt: string
+}
+
+export interface BackendDocument {
+  id: string
+  projectId: string
+  title: string
+  type: 'SOW' | 'REQUIREMENTS' | 'CONTRACT' | 'PROPOSAL' | 'OTHER'
+  storagePath: string
+  fileSize: number | null
+  processingStatus: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+  processedAt: string | null
+  processingError: string | null
+  uploadedAt: string
+  createdAt: string
+  updatedAt: string
+  latestActivity?: {
+    id: string
+    action: ActivityAction
+    description: string
+    createdAt: string
+  } | null
+}
+
+export interface BackendDocumentDetail extends BackendDocument {
+  extractedText: {
+    content: string
+    charCount: number
+    processedAt: string
+    updatedAt: string
+  } | null
+  sourceRequirements: Array<{
+    id: string
+    title: string
+    category: string
+    approvalStatus: 'AUTHORIZED' | 'UNAUTHORIZED' | 'PENDING'
+    createdAt: string
+  }>
 }
 
 export interface BackendMeeting {
@@ -369,8 +415,30 @@ export function mapRequirement(dto: BackendRequirement): Requirement {
       : dto.priority.toLowerCase()) as Requirement['priority'],
     status: mapApprovalStatusToRequirementStatus(dto.approvalStatus),
     source: dto.sourceClause ?? 'Manual Entry',
+    sourceDocument: dto.sourceDocument,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
+  }
+}
+
+/** Phase 13 — documents keep the backend enum casing end-to-end. */
+export function mapDocument(dto: BackendDocument): ProjectDocument {
+  return {
+    ...dto,
+    latestActivity: dto.latestActivity ?? null,
+  }
+}
+
+export function mapDocumentDetail(
+  dto: BackendDocumentDetail,
+): ProjectDocument & {
+  extractedText: DocumentExtractedText | null
+  sourceRequirements: DocumentSourceRequirement[]
+} {
+  return {
+    ...mapDocument(dto),
+    extractedText: dto.extractedText,
+    sourceRequirements: dto.sourceRequirements,
   }
 }
 

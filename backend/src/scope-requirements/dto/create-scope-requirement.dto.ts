@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { ApprovalStatus, Priority } from '@prisma/client';
@@ -51,4 +52,11 @@ export class CreateScopeRequirementDto {
   @IsString()
   @MaxLength(4000)
   acceptanceCriteria?: string;
+
+  /** Phase 13 traceability: the project document this requirement came from.
+   *  Optional — manual requirements leave it null. Must reference a document
+   *  of the SAME project (validated by the service; cross-project → 400). */
+  @IsOptional()
+  @IsUUID()
+  sourceDocumentId?: string;
 }

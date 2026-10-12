@@ -53,23 +53,58 @@ export interface Requirement {
   priority: RequirementPriority
   status: RequirementStatus
   source: string
+  /** Project document this requirement was sourced from, when linked (Phase 13). */
+  sourceDocument: RequirementSourceDocument | null
   createdAt: string
   updatedAt: string
 }
 
-// ——— Documents ———
-export type DocumentType = 'sow' | 'requirements' | 'contract' | 'proposal' | 'scope'
-export type DocumentProcessingStatus = 'uploading' | 'processing' | 'processed' | 'failed'
+// ——— Documents (Phase 13 — backend-backed) ———
+// Mirrors the backend DocumentType / DocumentProcessingStatus enums.
+// Processing is deterministic text normalization over text-bearing
+// content only — PDF/DOC/image (OCR) extraction is NOT implemented;
+// binary files register as metadata with status PENDING.
+export type DocumentType = 'SOW' | 'REQUIREMENTS' | 'CONTRACT' | 'PROPOSAL' | 'OTHER'
+export type DocumentProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+
+export interface RequirementSourceDocument {
+  id: string
+  title: string
+  type: DocumentType
+}
+
+export interface DocumentExtractedText {
+  content: string
+  charCount: number
+  processedAt: string
+  updatedAt: string
+}
 
 export interface ProjectDocument {
   id: string
   projectId: string
-  name: string
+  title: string
   type: DocumentType
+  /** Storage key (metadata only — binaries live out of band in Supabase Storage). */
+  storagePath: string
+  fileSize: number | null
   processingStatus: DocumentProcessingStatus
-  uploadDate: string
-  source: string
-  size: number
+  processedAt: string | null
+  /** Failure reason when processingStatus === 'FAILED'. */
+  processingError: string | null
+  uploadedAt: string
+  createdAt: string
+  updatedAt: string
+  latestActivity?: { id: string; action: ActivityAction; description: string; createdAt: string } | null
+}
+
+/** Detail-only: scope requirements linked to a document. */
+export interface DocumentSourceRequirement {
+  id: string
+  title: string
+  category: string
+  approvalStatus: 'AUTHORIZED' | 'UNAUTHORIZED' | 'PENDING'
+  createdAt: string
 }
 
 // ——— Meetings ———
@@ -132,7 +167,13 @@ export interface Commitment {
 export interface VerificationResult {
   commitmentId: string
   scopeMatch: boolean | null
-  matchedRequirement: { id: string; title: string; category: string; approvalStatus: string } | null
+  matchedScopeRequirement: {
+    id: string
+    title: string
+    category: string
+    approvalStatus: string
+    sourceDocument: { id: string; title: string } | null
+  } | null
   authorizationFound: boolean
   authorizationSource: 'APPROVED_SCOPE' | 'CHANGE_REQUEST' | null
   risk: 'LOW' | 'MEDIUM' | 'HIGH'
@@ -197,6 +238,10 @@ export type ActivityAction =
   | 'SCOPE_REQUIREMENT_UPDATED'
   | 'SCOPE_REQUIREMENT_DELETED'
   | 'DOCUMENT_UPLOADED'
+  | 'DOCUMENT_UPDATED'
+  | 'DOCUMENT_DELETED'
+  | 'DOCUMENT_PROCESSED'
+  | 'DOCUMENT_PROCESSING_FAILED'
   | 'MEETING_CREATED'
   | 'MEETING_UPDATED'
   | 'MEETING_DELETED'

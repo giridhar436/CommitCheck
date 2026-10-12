@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   Search,
   FileCheck2,
+  FileText,
   ChevronRight,
   Filter,
   Pencil,
@@ -418,6 +419,12 @@ export function ScopePage() {
                             <p className="text-[10px] text-muted-foreground mt-0.5">
                               {req.category} &bull; {req.source}
                             </p>
+                            {req.sourceDocument && (
+                              <p className="text-[10px] text-primary/80 flex items-center gap-1 mt-0.5">
+                                <FileText className="h-3 w-3 shrink-0" />
+                                {req.sourceDocument.title}
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <button
@@ -496,6 +503,12 @@ export function ScopePage() {
                           <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                             {req.source}
                           </p>
+                          {req.sourceDocument && (
+                            <p className="text-[10px] text-primary/80 truncate mt-0.5 flex items-center gap-1">
+                              <FileText className="h-3 w-3 shrink-0" />
+                              {req.sourceDocument.title}
+                            </p>
+                          )}
                         </div>
 
                         {/* Category */}
@@ -626,6 +639,17 @@ export function ScopePage() {
               <div className="space-y-3">
                 <DetailRow label="Category" value={inspecting.category} />
                 <DetailRow label="Source / SOW Clause" value={inspecting.source} />
+                {inspecting.sourceDocument && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Source Document
+                    </span>
+                    <p className="text-xs text-foreground flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                      {inspecting.sourceDocument.title}
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-1">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Description & Acceptance Criteria

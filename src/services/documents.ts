@@ -1,72 +1,101 @@
 /* ——————————————————————————————————————————————————
- * CommitCheck — Documents Service
+ * CommitCheck — Documents Service (Phase 13)
  *
- * ⚠️ LOCAL-ONLY: the backend has no Documents module yet
- * (the Prisma model exists but no controller/service and
- * no storage uploads). Until that module ships, documents
- * run on an in-memory store seeded below.
+ * Talks to the live NestJS backend nested routes
+ * (GET/POST /projects/:projectId/documents,
+ *  GET/PATCH/DELETE /projects/:projectId/documents/:id,
+ *  POST /projects/:projectId/documents/:id/process).
+ *
+ * Registration is metadata-only: binaries live out of band
+ * in Supabase Storage (same pattern as meeting attachments).
+ * Processing is deterministic text normalization over
+ * text-bearing content — PDF/OCR extraction is NOT
+ * implemented on the backend yet.
  * —————————————————————————————————————————————————— */
 
 import type { ProjectDocument } from '@/types'
+import { apiClient } from '@/services/api/client'
+import { endpoints } from '@/services/api/endpoints'
+import {
+  mapDocument,
+  mapDocumentDetail,
+  unwrap,
+  unwrapList,
+  type BackendDocument,
+  type BackendDocumentDetail,
+  type BackendEnvelope,
+  type BackendPaginated,
+} from '@/services/api/adapters'
 
-let documentsStore: ProjectDocument[] = [
-  {
-    id: 'doc-sow-v1',
-    projectId: 'proj-abc-ecommerce',
-    name: 'ABC_Ecommerce_Statement_of_Work_Final_v1.2.pdf',
-    type: 'sow',
-    processingStatus: 'processed',
-    uploadDate: '2025-02-01T10:00:00Z',
-    source: 'Client SOW Signed Contract',
-    size: 2450000,
-  },
-  {
-    id: 'doc-tech-spec',
-    projectId: 'proj-abc-ecommerce',
-    name: 'Technical_Architecture_and_API_Spec_v1.0.pdf',
-    type: 'requirements',
-    processingStatus: 'processed',
-    uploadDate: '2025-02-03T14:20:00Z',
-    source: 'Internal Architecture Spec',
-    size: 1820000,
-  },
-  {
-    id: 'doc-scope-matrix',
-    projectId: 'proj-abc-ecommerce',
-    name: 'Scope_Traceability_Matrix_March2025.pdf',
-    type: 'scope',
-    processingStatus: 'processed',
-    uploadDate: '2025-03-01T09:15:00Z',
-    source: 'Sprint 2 Scope Addendum',
-    size: 980000,
-  },
-]
+export interface DocumentCreateInput {
+  title: string
+  type: ProjectDocument['type']
+  storagePath: string
+  fileSize?: number
+  uploadedAt?: string
+}
+
+export type DocumentUpdateInput = Partial<DocumentCreateInput>
 
 export const documentService = {
+  /** Full document list for a project (flat limit-100 convention). */
   async getAll(projectId: string): Promise<ProjectDocument[]> {
-    return documentsStore.filter((d) => d.projectId === projectId)
+    const envelope = await apiClient.get<
+      BackendEnvelope<BackendPaginated<BackendDocument>>
+    >(endpoints.documents.list(projectId), { params: { limit: 100 } })
+    return unwrapList(envelope).map(mapDocument)
   },
 
-  async upload(
+  /** Detail incl. extracted text + linked scope requirements. */
+  async getDetail(projectId: string, id: string): Promise<ProjectDocument & {
+    extractedText: ReturnType<typeof mapDocumentDetail>['extractedText']
+    sourceRequirements: ReturnType<typeof mapDocumentDetail>['sourceRequirements']
+  }> {
+    const envelope = await apiClient.get<BackendEnvelope<BackendDocumentDetail>>(
+      endpoints.documents.detail(projectId, id),
+    )
+    return mapDocumentDetail(unwrap(envelope))
+  },
+
+  /** Registers document metadata (no binary upload — storage is out of band). */
+  async create(projectId: string, data: DocumentCreateInput): Promise<ProjectDocument> {
+    const envelope = await apiClient.post<BackendEnvelope<BackendDocument>>(
+      endpoints.documents.create(projectId),
+      data,
+    )
+    return mapDocument(unwrap(envelope))
+  },
+
+  async update(
     projectId: string,
-    file: File,
-    type: ProjectDocument['type'],
+    id: string,
+    data: DocumentUpdateInput,
   ): Promise<ProjectDocument> {
-    const newDoc: ProjectDocument = {
-      id: `doc-${Date.now()}`,
-      projectId,
-      name: file.name,
-      type,
-      processingStatus: 'processed',
-      uploadDate: new Date().toISOString(),
-      source: 'Uploaded Document',
-      size: file.size,
-    }
-    documentsStore.unshift(newDoc)
-    return newDoc
+    const envelope = await apiClient.patch<BackendEnvelope<BackendDocument>>(
+      endpoints.documents.update(projectId, id),
+      data,
+    )
+    return mapDocument(unwrap(envelope))
   },
 
-  async delete(id: string): Promise<void> {
-    documentsStore = documentsStore.filter((d) => d.id !== id)
+  async remove(projectId: string, id: string): Promise<void> {
+    await apiClient.delete<BackendEnvelope<null>>(
+      endpoints.documents.delete(projectId, id),
+    )
+  },
+
+  /** Deterministic processing. Omit textContent to reprocess stored text
+   *  (idempotent); the backend rejects binary-only documents with an
+   *  honest "not implemented" error. */
+  async process(
+    projectId: string,
+    id: string,
+    textContent?: string,
+  ): Promise<ProjectDocument> {
+    const envelope = await apiClient.post<BackendEnvelope<BackendDocument>>(
+      endpoints.documents.process(projectId, id),
+      textContent !== undefined ? { textContent } : {},
+    )
+    return mapDocument(unwrap(envelope))
   },
 }

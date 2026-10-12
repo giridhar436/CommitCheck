@@ -78,6 +78,15 @@ enum DocumentType {
   OTHER
 }
 
+/// Deterministic text-extraction lifecycle (Phase 13). PROCESSING exists for
+/// a future async pipeline; the current endpoint processes synchronously.
+enum DocumentProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum EvidenceSource {
   TRANSCRIPT
   SUMMARY
@@ -96,6 +105,10 @@ enum ActivityAction {
   SCOPE_REQUIREMENT_UPDATED
   SCOPE_REQUIREMENT_DELETED
   DOCUMENT_UPLOADED
+  DOCUMENT_UPDATED
+  DOCUMENT_DELETED
+  DOCUMENT_PROCESSED
+  DOCUMENT_PROCESSING_FAILED
   MEETING_CREATED
   MEETING_UPDATED
   MEETING_DELETED
@@ -157,6 +170,9 @@ model Project {
 }
 
 /// A single requirement that is part of a project's approved scope.
+/// `sourceDocumentId` (Phase 13) optionally traces it back to the project
+/// document it came from; manual/seeded requirements leave it null and
+/// keep working unchanged.
 model ScopeRequirement {
   id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   projectId          String         @map("project_id") @db.Uuid
@@ -167,13 +183,16 @@ model ScopeRequirement {
   approvalStatus     ApprovalStatus @default(PENDING) @map("approval_status")
   sourceClause       String?        @map("source_clause")
   acceptanceCriteria String?        @map("acceptance_criteria") @db.Text
+  sourceDocumentId   String?        @map("source_document_id") @db.Uuid
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceDocument Document? @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
 
   @@index([projectId, approvalStatus])
   @@index([projectId, priority])
+  @@index([sourceDocumentId])
   @@map("scope_requirements")
 }
 
@@ -278,22 +297,46 @@ model ChangeRequest {
   @@map("change_requests")
 }
 
-/// A project document (SOW, contract, proposal) stored in Supabase Storage.
+/// A project document (SOW, contract, proposal) whose binary lives in Supabase
+/// Storage (metadata-only — no storage I/O in the API, same as meeting
+/// attachments). `processingStatus` tracks the deterministic text-extraction
+/// lifecycle; extracted text lives in the 1:1 DocumentText table.
 model Document {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId   String       @map("project_id") @db.Uuid
-  title       String
-  type        DocumentType
-  storagePath String       @map("storage_path")
-  fileSize    Int?         @map("file_size")
-  uploadedAt  DateTime     @default(now()) @map("uploaded_at")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  id               String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId        String                   @map("project_id") @db.Uuid
+  title            String
+  type             DocumentType
+  storagePath      String                   @map("storage_path")
+  fileSize         Int?                     @map("file_size")
+  processingStatus DocumentProcessingStatus @default(PENDING) @map("processing_status")
+  processedAt      DateTime?                @map("processed_at")
+  processingError  String?                  @map("processing_error")
+  uploadedAt       DateTime                 @default(now()) @map("uploaded_at")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  extractedText      DocumentText?
+  sourceRequirements ScopeRequirement[]
 
   @@index([projectId, type])
   @@map("documents")
+}
+
+/// Deterministically extracted plain text for a document (Phase 13).
+/// 1:1 with Document, cascade-deleted with it; content is normalized
+/// (BOM stripped, line endings unified) so reprocessing is idempotent.
+model DocumentText {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId String   @unique @map("document_id") @db.Uuid
+  content    String   @db.Text
+  charCount  Int      @map("char_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_texts")
 }
 
 /// Audit-log entry: an immutable trail of what happened inside a project.

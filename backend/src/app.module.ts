@@ -10,6 +10,7 @@ import { MeetingAnalysisModule } from './meeting-analysis/meeting-analysis.modul
 import { ScopeVerificationModule } from './scope-verification/scope-verification.module';
 import { ChangeRequestsModule } from './change-requests/change-requests.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { DocumentsModule } from './documents/documents.module';
 
 /**
  * Root module.
@@ -17,7 +18,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
  * Phase 4: Meetings · Phase 5: Meeting Attachments · Phase 6: Commitments ·
  * Phase 7: Commitment Evidence · Phase 8: AI Meeting Analysis ·
  * Phase 9: Fireworks AI provider · Phase 10: Scope Verification ·
- * Phase 11: Change Request workflow · Phase 12: Dashboard & audit intelligence.
+ * Phase 11: Change Request workflow · Phase 12: Dashboard & audit intelligence ·
+ * Phase 13: Scope & document intelligence.
  */
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ScopeVerificationModule,
     ChangeRequestsModule,
     DashboardModule,
+    DocumentsModule,
   ],
 })
 export class AppModule {}

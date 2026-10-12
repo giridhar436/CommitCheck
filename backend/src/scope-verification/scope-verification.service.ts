@@ -39,6 +39,11 @@ import {
  * COMMITMENT_VERIFIED activity; repeating an identical verification is a
  * no-op (no duplicate audit records).
  */
+/** Requirement row as loaded by verifyCommitment — with the Phase 13 source-document relation. */
+type RequirementWithSource = ScopeRequirement & {
+  sourceDocument: { id: string; title: string } | null;
+};
+
 @Injectable()
 export class ScopeVerificationService {
   private readonly logger = new Logger(ScopeVerificationService.name);
@@ -67,10 +72,13 @@ export class ScopeVerificationService {
     }
 
     // Same-project scope only — one project's scope can never influence
-    // another project's verification result.
+    // another project's verification result. sourceDocument rides along
+    // (Phase 13 traceability) so the response can show where a matched
+    // requirement came from.
     const requirements = await this.prisma.scopeRequirement.findMany({
       where: { projectId },
       orderBy: { createdAt: 'asc' },
+      include: { sourceDocument: { select: { id: true, title: true } } },
     });
 
     // Authorization source of truth: an APPROVED change request linked to
@@ -111,11 +119,11 @@ export class ScopeVerificationService {
    *  - HIGH   — clearly outside scope with no approved authorization.
    */
   private classify(
-    outcome: ScopeMatchOutcome & { requirement: ScopeRequirement | null },
+    outcome: ScopeMatchOutcome & { requirement: RequirementWithSource | null },
     approvedChangeRequest: { title: string } | null,
   ): {
     scopeMatch: boolean | null;
-    matched: ScopeRequirement | null;
+    matched: RequirementWithSource | null;
     authorizationFound: boolean;
     authorizationSource: VerificationAuthorizationSource | null;
     risk: RiskLevel;
@@ -195,7 +203,7 @@ export class ScopeVerificationService {
     commitment: Commitment,
     result: {
       scopeMatch: boolean | null;
-      matched: ScopeRequirement | null;
+      matched: RequirementWithSource | null;
       authorizationFound: boolean;
       authorizationSource: VerificationAuthorizationSource | null;
       risk: RiskLevel;
@@ -260,12 +268,15 @@ export class ScopeVerificationService {
     };
   }
 
-  private toMatchedDto(requirement: ScopeRequirement): MatchedScopeRequirementDto {
+  private toMatchedDto(requirement: RequirementWithSource): MatchedScopeRequirementDto {
     return {
       id: requirement.id,
       title: requirement.title,
       category: requirement.category,
       approvalStatus: requirement.approvalStatus,
+      sourceDocument: requirement.sourceDocument
+        ? { id: requirement.sourceDocument.id, title: requirement.sourceDocument.title }
+        : null,
     };
   }
 

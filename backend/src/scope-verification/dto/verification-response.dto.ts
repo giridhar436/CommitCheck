@@ -1,12 +1,20 @@
 /** Where a confirmed authorization came from — always application state. */
 export type VerificationAuthorizationSource = 'APPROVED_SCOPE' | 'CHANGE_REQUEST';
 
+/** Minimal snapshot of the project document a requirement was sourced from. */
+export class MatchedSourceDocumentDto {
+  id!: string;
+  title!: string;
+}
+
 /** Minimal snapshot of the scope requirement a commitment matched. */
 export class MatchedScopeRequirementDto {
   id!: string;
   title!: string;
   category!: string;
   approvalStatus!: 'AUTHORIZED' | 'UNAUTHORIZED' | 'PENDING';
+  /** Phase 13 — source document when the requirement declares one; null otherwise. */
+  sourceDocument!: MatchedSourceDocumentDto | null;
 }
 
 /**
