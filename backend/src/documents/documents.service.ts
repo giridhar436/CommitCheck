@@ -33,9 +33,18 @@ import {
   extractTextFromBinary,
 } from './text-extraction';
 import { buildChunks } from './chunker';
+import type { ChunkPlan } from './chunker';
 
 /** Hard cap for client-supplied decoded document bytes (10 MB). */
 const MAX_BINARY_BYTES = 10 * 1024 * 1024;
+/** Phase 15 hardening: a document yielding more chunks than this fails
+ * processing honestly (deterministic limit, keeps extraction+insertion
+ * bounded so a pathological input can never wedge the worker). */
+const MAX_CHUNKS = 2000;
+/** Phase 15 hardening: extraction (CPU-bound parsing of possibly hostile
+ * bytes) is bounded; an over-long run becomes a FAILED state instead of an
+ * indefinitely hung request. */
+const EXTRACTION_TIMEOUT_MS = 60_000;
 
 /**
  * Deterministic text normalization: strips the BOM, unifies CRLF/CR to LF,
@@ -305,12 +314,12 @@ export class DocumentsService {
       if (dto.textContent !== undefined) {
         raw = dto.textContent;
       } else if (binaryBytes) {
-        const extracted = await extractTextFromBinary(binaryBytes);
+        const extracted = await this.extractWithTimeout(binaryBytes);
         raw = extracted.text;
         formatNote = extracted.format;
       } else if (this.storage.configured) {
         const bytes = await this.storage.fetchDocumentBytes(document);
-        const extracted = await extractTextFromBinary(bytes);
+        const extracted = await this.extractWithTimeout(bytes);
         raw = extracted.text;
         formatNote = extracted.format;
       } else {
@@ -344,18 +353,21 @@ export class DocumentsService {
     }
 
     const content = normalizeExtractedText(raw);
-    const processingError = content
-      ? null
-      : 'No extractable text content — the provided text is empty after normalization';
+    const chunkPlans = content ? buildChunks(content) : [];
+    const processingError = !content
+      ? 'No extractable text content — the provided text is empty after normalization'
+      : chunkPlans.length > MAX_CHUNKS
+        ? `Document yields ${chunkPlans.length} chunks — above the ${MAX_CHUNKS}-chunk processing limit`
+        : null;
 
     await this.prisma.$transaction(async (tx) => {
-      if (content) {
+      if (content && !processingError) {
         await tx.documentText.upsert({
           where: { documentId: id },
           create: { documentId: id, content, charCount: content.length },
           update: { content, charCount: content.length },
         });
-        await this.rebuildChunks(tx, id, content);
+        await this.rebuildChunks(tx, id, chunkPlans);
       } else {
         // A failed run leaves no derived data behind.
         await tx.documentText.deleteMany({ where: { documentId: id } });
@@ -365,9 +377,9 @@ export class DocumentsService {
       await tx.document.update({
         where: { id },
         data: {
-          processingStatus: content
-            ? DocumentProcessingStatus.COMPLETED
-            : DocumentProcessingStatus.FAILED,
+          processingStatus: processingError
+            ? DocumentProcessingStatus.FAILED
+            : DocumentProcessingStatus.COMPLETED,
           processedAt: new Date(),
           processingError,
         },
@@ -376,20 +388,20 @@ export class DocumentsService {
       await tx.activity.create({
         data: {
           projectId,
-          action: content
-            ? ActivityAction.DOCUMENT_PROCESSED
-            : ActivityAction.DOCUMENT_PROCESSING_FAILED,
+          action: processingError
+            ? ActivityAction.DOCUMENT_PROCESSING_FAILED
+            : ActivityAction.DOCUMENT_PROCESSED,
           entityType: ActivityEntityType.DOCUMENT,
           entityId: id,
-          description: content
-            ? `Document "${document.title}" processed (${content.length} characters extracted from ${formatNote})`
-            : `Document "${document.title}" processing failed: ${processingError}`,
+          description: processingError
+            ? `Document "${document.title}" processing failed: ${processingError}`
+            : `Document "${document.title}" processed (${content!.length} characters extracted from ${formatNote})`,
         },
       });
     });
 
     // Best-effort semantic indexing — never affects the extraction outcome.
-    if (content && this.embeddings.active) {
+    if (content && !processingError && this.embeddings.active) {
       await this.indexChunks(id, document.title);
     }
 
@@ -397,6 +409,29 @@ export class DocumentsService {
   }
 
   // ——— guards & helpers ———
+
+  /** Bounded extraction: an over-long CPU-bound parse surfaces as an
+   * extraction failure (FAILED state) instead of hanging the request. */
+  private extractWithTimeout(
+    bytes: Buffer,
+  ): Promise<{ text: string; format: string }> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error(`text extraction exceeded ${EXTRACTION_TIMEOUT_MS / 1000}s — the file may be malformed or pathological`)),
+        EXTRACTION_TIMEOUT_MS,
+      );
+      extractTextFromBinary(bytes).then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
+      );
+    });
+  }
 
   private assertSafeStoragePath(storagePath: string): void {
     try {
@@ -466,7 +501,7 @@ export class DocumentsService {
   private async rebuildChunks(
     tx: Prisma.TransactionClient,
     documentId: string,
-    content: string,
+    plans: ChunkPlan[],
   ): Promise<void> {
     const previous = await tx.documentChunk.findMany({
       where: { documentId },
@@ -478,7 +513,6 @@ export class DocumentsService {
         .map((c) => [c.contentHash, c]),
     );
 
-    const plans = buildChunks(content);
     await tx.documentChunk.deleteMany({ where: { documentId } });
     if (plans.length === 0) return;
 

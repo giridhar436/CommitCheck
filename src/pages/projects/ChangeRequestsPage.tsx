@@ -50,6 +50,10 @@ export function ChangeRequestsPage() {
   // In-flight action (buttons disable while a decision is posting)
   const [busyCrId, setBusyCrId] = useState<string | null>(null)
 
+  // Role-aware decision gating (UI convenience only — the backend enforces
+  // ADMIN/OWNER for approve/reject/clarify and stays authoritative).
+  const canDecide = project?.myRole === 'ADMIN' || project?.myRole === 'OWNER'
+
   const fetchData = async () => {
     if (!id) return
     try {
@@ -402,7 +406,7 @@ export function ChangeRequestsPage() {
                     </div>
 
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      {(cr.status === 'pending_approval' || cr.status === 'clarification_requested') && (
+                      {canDecide && (cr.status === 'pending_approval' || cr.status === 'clarification_requested') && (
                         <>
                           <Button
                             size="sm"
@@ -536,8 +540,8 @@ export function ChangeRequestsPage() {
                               <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                             </Button>
 
-                            {/* Quick Approve / Reject while open */}
-                            {(cr.status === 'pending_approval' || cr.status === 'clarification_requested') && (
+                            {/* Quick Approve / Reject while open (ADMIN/OWNER only) */}
+                            {canDecide && (cr.status === 'pending_approval' || cr.status === 'clarification_requested') && (
                               <>
                                 <Button
                                   variant="outline"

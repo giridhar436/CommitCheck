@@ -228,7 +228,7 @@ export function ScopePage() {
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          <AddRequirementDialog projectId={project.id} onSaved={handleSaved} />
+          <AddRequirementDialog projectId={project.id} onSaved={handleSaved} myRole={project.myRole} />
         </div>
       </div>
 
@@ -387,7 +387,7 @@ export function ScopePage() {
                   }
                   action={
                     !searchQuery && statusFilter === 'all' && priorityFilter === 'all' ? (
-                      <AddRequirementDialog projectId={project.id} onSaved={handleSaved} />
+                      <AddRequirementDialog projectId={project.id} onSaved={handleSaved} myRole={project.myRole} />
                     ) : undefined
                   }
                 />
@@ -735,6 +735,7 @@ export function ScopePage() {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         onSaved={handleSaved}
+        myRole={project.myRole}
       />
     </div>
   )

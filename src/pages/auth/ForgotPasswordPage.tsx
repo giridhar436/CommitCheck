@@ -8,7 +8,7 @@ import { AuthLayout } from '@/layouts/AuthLayout'
 import { useAuth } from '@/hooks/useAuth'
 
 export function ForgotPasswordPage() {
-  const { forgotPassword, isLoading } = useAuth()
+  const { forgotPassword, isLoading, authConfigured } = useAuth()
 
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -47,6 +47,22 @@ export function ForgotPasswordPage() {
       title="Reset your password"
       subtitle="Enter your verified work email and we'll send a password recovery link."
     >
+      {!authConfigured && (
+        <div
+          role="alert"
+          className="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed"
+        >
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <CircleAlert className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            Authentication not configured
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Set <code className="rounded bg-muted px-1 py-0.5">VITE_SUPABASE_URL</code> and{' '}
+            <code className="rounded bg-muted px-1 py-0.5">VITE_SUPABASE_ANON_KEY</code> in your
+            environment, then restart the dev server.
+          </p>
+        </div>
+      )}
       {submitted ? (
         <div className="space-y-4 rounded-lg border border-border/80 bg-muted/30 p-5 text-center animate-fade-in">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
@@ -106,7 +122,11 @@ export function ForgotPasswordPage() {
               />
             </div>
 
-            <Button type="submit" disabled={isLoading} className="w-full text-xs h-9 font-semibold">
+            <Button
+              type="submit"
+              disabled={isLoading || !authConfigured}
+              className="w-full text-xs h-9 font-semibold"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

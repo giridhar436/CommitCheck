@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, ProjectRole } from '@prisma/client';
 import { ProjectResponseDto, ActivitySummaryDto } from './dto/project-response.dto';
 
 type ProjectWithCounts = Prisma.ProjectGetPayload<{
@@ -31,7 +31,10 @@ export class ProjectsMapper {
     };
   }
 
-  static toResponseDto(project: ProjectWithCounts): ProjectResponseDto {
+  static toResponseDto(
+    project: ProjectWithCounts,
+    options: { myRole?: ProjectRole } = {},
+  ): ProjectResponseDto {
     return {
       id: project.id,
       name: project.name,
@@ -53,6 +56,7 @@ export class ProjectsMapper {
       latestActivity: project.activities[0]
         ? ProjectsMapper.toActivitySummary(project.activities[0])
         : null,
+      ...(options.myRole !== undefined && { myRole: options.myRole }),
     };
   }
 }

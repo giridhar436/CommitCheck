@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { FirstProjectRedirect } from '@/components/routing/first-project-redirect'
+import { RequireAuth } from '@/components/routing/require-auth'
 import { PhaseOneFoundationPage } from '@/pages/PhaseOneFoundationPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
@@ -46,7 +47,11 @@ export const router = createBrowserRouter([
 
   // Authenticated Application Shell routes
   {
-    element: <AppLayout />,
+    element: (
+      <RequireAuth>
+        <AppLayout />
+      </RequireAuth>
+    ),
     children: [
       {
         path: '/dashboard',

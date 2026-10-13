@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ActivityAction, ActivityEntityType, Prisma, Project, ProjectStatus } from '@prisma/client';
+import { ActivityAction, ActivityEntityType, Prisma, Project, ProjectRole, ProjectStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProjectAccessService } from '../access/project-access.service';
+import type { AuthUser } from '../auth/auth-user.interface';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { GetProjectsQueryDto } from './dto/get-projects-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -23,13 +25,22 @@ const PROJECT_LIST_INCLUDE = {
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly projectAccess: ProjectAccessService,
+  ) {}
 
-  /** Paginated list with case-insensitive search, status filter and sorting. */
-  async findAll(query: GetProjectsQueryDto): Promise<Paginated<ProjectResponseDto>> {
+  /**
+   * Paginated list with case-insensitive search, status filter and sorting.
+   * Phase 15: scoped to projects the requesting user is a member of (or
+   * owns as a legacy ownerUserId) — a user can never see another user's
+   * projects in the list.
+   */
+  async findAll(query: GetProjectsQueryDto, userId: string): Promise<Paginated<ProjectResponseDto>> {
     const { page, limit, search, status, sortBy, sortOrder, skip } = query;
 
     const where: Prisma.ProjectWhereInput = {
+      OR: [{ members: { some: { userId } } }, { ownerUserId: userId }],
       ...(status ? { status } : {}),
       ...(search
         ? {
@@ -49,13 +60,18 @@ export class ProjectsService {
         orderBy,
         skip,
         take: limit,
-        include: PROJECT_LIST_INCLUDE,
+        include: {
+          ...PROJECT_LIST_INCLUDE,
+          members: { where: { userId }, select: { role: true } },
+        },
       }),
       this.prisma.project.count({ where }),
     ]);
 
     return {
-      items: projects.map(ProjectsMapper.toResponseDto),
+      items: projects.map((p) =>
+        ProjectsMapper.toResponseDto(p, { myRole: p.members[0]?.role }),
+      ),
       page,
       limit,
       totalItems,
@@ -64,7 +80,10 @@ export class ProjectsService {
   }
 
   /** Single project with relationship counts and the latest activity entry. */
-  async findOne(id: string): Promise<ProjectResponseDto> {
+  async findOne(id: string, userId: string): Promise<ProjectResponseDto> {
+    // Centralized access check: 404 for non-members, role for the response.
+    const access = await this.projectAccess.assertAccess(id, userId, 'read');
+
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: PROJECT_LIST_INCLUDE,
@@ -72,11 +91,18 @@ export class ProjectsService {
     if (!project) {
       throw new NotFoundException(`Project with id ${id} not found`);
     }
-    return ProjectsMapper.toResponseDto(project);
+    return ProjectsMapper.toResponseDto(project, { myRole: access.role });
   }
 
-  /** Creates the project and its PROJECT_CREATED activity in one transaction. */
-  async create(dto: CreateProjectDto): Promise<ProjectResponseDto> {
+  /**
+   * Creates the project and its PROJECT_CREATED activity in one transaction.
+   * Phase 15: the creator becomes the project owner — `ownerUserId` plus an
+   * OWNER membership row (with the creator's verified email, so
+   * notifications can address them), so authorization data is never
+   * client-supplied.
+   */
+  async create(dto: CreateProjectDto, user: AuthUser): Promise<ProjectResponseDto> {
+    const userId = user.id;
     this.validateDateOrder(
       dto.startDate ? new Date(dto.startDate) : null,
       dto.endDate ? new Date(dto.endDate) : null,
@@ -93,6 +119,10 @@ export class ProjectsService {
           startDate: dto.startDate ? new Date(dto.startDate) : undefined,
           endDate: dto.endDate ? new Date(dto.endDate) : undefined,
           status: dto.status ?? ProjectStatus.ACTIVE,
+          ownerUserId: userId,
+          members: {
+            create: { userId, role: ProjectRole.OWNER, email: user.email },
+          },
         },
         include: PROJECT_LIST_INCLUDE,
       });
@@ -110,7 +140,7 @@ export class ProjectsService {
       return created;
     });
 
-    return ProjectsMapper.toResponseDto(project);
+    return ProjectsMapper.toResponseDto(project, { myRole: ProjectRole.OWNER });
   }
 
   /** Partial update; date-order and uniqueness are checked across the merged record. */

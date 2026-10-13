@@ -7,6 +7,7 @@ import {
   DashboardResponseDto,
 } from './dto/dashboard-response.dto';
 import { GetActivityQueryDto } from './dto/get-activity-query.dto';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /** Phase 12 — read-only dashboard, audit and alert intelligence.
  *  Every route is project-scoped and never mutates state. */
@@ -14,6 +15,7 @@ import { GetActivityQueryDto } from './dto/get-activity-query.dto';
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 
+  @ProjectAccess('read')
   @Get('dashboard')
   async getDashboard(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -25,6 +27,7 @@ export class DashboardController {
     };
   }
 
+  @ProjectAccess('read')
   @Get('activity')
   async getActivity(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -37,6 +40,7 @@ export class DashboardController {
     };
   }
 
+  @ProjectAccess('read')
   @Get('alerts')
   async getAlerts(
     @Param('projectId', ParseUUIDPipe) projectId: string,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, Play, CircleAlert } from 'lucide-react'
+import { Eye, EyeOff, Loader2, CircleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { login, isLoading } = useAuth()
+  const { login, isLoading, authConfigured } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,39 +35,27 @@ export function LoginPage() {
     }
   }
 
-  // Demo shortcut for hackathon presentation
-  const handleFastFill = () => {
-    setEmail('rahul@pixelforge.io')
-    setPassword('DemoPass2025!')
-    setError(null)
-  }
-
   return (
     <AuthLayout
       title="Sign in to your account"
       subtitle="Access your active client projects, scope audits, and commitments."
     >
-      {/* Demo Fast Fill Banner */}
-      <div className="mb-5 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Play className="h-4 w-4 text-primary shrink-0" strokeWidth={1.8} />
-            <span className="font-semibold text-foreground">Demo Mode</span>
+      {!authConfigured && (
+        <div
+          role="alert"
+          className="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed"
+        >
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <CircleAlert className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            Authentication not configured
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleFastFill}
-            className="h-7 px-2.5 text-[11px] font-medium"
-          >
-            Auto-Fill Demo
-          </Button>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Set <code className="rounded bg-muted px-1 py-0.5">VITE_SUPABASE_URL</code> and{' '}
+            <code className="rounded bg-muted px-1 py-0.5">VITE_SUPABASE_ANON_KEY</code> in your
+            environment, then restart the dev server. Sign-in is disabled until then.
+          </p>
         </div>
-        <p className="mt-1.5 text-[11px] text-muted-foreground leading-normal">
-          Click to populate credentials for Rahul Mehta (Lead Engineer, PixelForge).
-        </p>
-      </div>
+      )}
 
       {error && (
         <div className="mb-4 flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400">
@@ -89,6 +77,7 @@ export function LoginPage() {
             placeholder="name@agency.com"
             autoComplete="email"
             required
+            disabled={!authConfigured}
             className="text-xs h-9"
           />
         </div>
@@ -114,6 +103,7 @@ export function LoginPage() {
               placeholder="••••••••••••"
               autoComplete="current-password"
               required
+              disabled={!authConfigured}
               className="text-xs h-9 pr-9"
             />
             <button
@@ -127,7 +117,11 @@ export function LoginPage() {
           </div>
         </div>
 
-        <Button type="submit" disabled={isLoading} className="w-full text-xs h-9 font-semibold">
+        <Button
+          type="submit"
+          disabled={isLoading || !authConfigured}
+          className="w-full text-xs h-9 font-semibold"
+        >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

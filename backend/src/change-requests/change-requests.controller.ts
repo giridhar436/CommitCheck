@@ -20,6 +20,7 @@ import {
 } from './dto/change-request-response.dto';
 import { GetChangeRequestsQueryDto } from './dto/get-change-requests-query.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /**
  * Phase 11 — Change Request retrieval & decision workflow.
@@ -31,6 +32,7 @@ import { ApiResponse, Paginated } from '../common/api-response';
 export class ChangeRequestsController {
   constructor(private readonly changeRequestsService: ChangeRequestsService) {}
 
+  @ProjectAccess('read')
   @Get()
   async findAll(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -43,6 +45,7 @@ export class ChangeRequestsController {
     };
   }
 
+  @ProjectAccess('read')
   @Get(':changeRequestId')
   async findOne(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -55,6 +58,7 @@ export class ChangeRequestsController {
     };
   }
 
+  @ProjectAccess('admin')
   @Post(':changeRequestId/approve')
   @HttpCode(HttpStatus.OK)
   async approve(
@@ -73,6 +77,7 @@ export class ChangeRequestsController {
     };
   }
 
+  @ProjectAccess('admin')
   @Post(':changeRequestId/reject')
   @HttpCode(HttpStatus.OK)
   async reject(
@@ -91,6 +96,7 @@ export class ChangeRequestsController {
     };
   }
 
+  @ProjectAccess('admin')
   @Post(':changeRequestId/clarification')
   @HttpCode(HttpStatus.OK)
   async requestClarification(

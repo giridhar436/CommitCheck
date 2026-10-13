@@ -176,6 +176,9 @@ export function ChangeRequestDetailPage() {
   const isRejected = changeRequest.status === 'rejected'
   const isClarification = changeRequest.status === 'clarification_requested'
   const commitmentContext = changeRequest.commitment
+  // Role-aware decision gating (UI convenience only — the backend enforces
+  // ADMIN/OWNER for approve/reject/clarify and stays authoritative).
+  const canDecide = project?.myRole === 'ADMIN' || project?.myRole === 'OWNER'
 
   return (
     <div className="space-y-6 pb-16 animate-fade-in max-w-6xl mx-auto">
@@ -223,8 +226,8 @@ export function ChangeRequestDetailPage() {
             </h1>
           </div>
 
-          {/* Quick Header CTAs if Open */}
-          {isOpen && (
+          {/* Quick Header CTAs if Open (ADMIN/OWNER only) */}
+          {isOpen && canDecide && (
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="outline"
@@ -467,8 +470,8 @@ export function ChangeRequestDetailPage() {
                     <span>The commitment stays unauthorized with its original risk level. A new request may be generated after re-negotiation.</span>
                   </p>
                 </div>
-              ) : (
-                /* Open state interactive actions */
+              ) : canDecide ? (
+                /* Open state interactive actions (ADMIN/OWNER only) */
                 <div className="space-y-3">
                   <div className={`rounded-xl border p-3 text-xs space-y-1 ${isClarification ? 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'}`}>
                     <p className="font-bold flex items-center gap-1.5">
@@ -517,6 +520,25 @@ export function ChangeRequestDetailPage() {
                   >
                     {rejecting ? 'Rejecting…' : 'Reject Scope Change'}
                   </Button>
+                </div>
+              ) : (
+                /* Non-decision roles (MEMBER/VIEWER) read the state instead */
+                <div className={`rounded-xl border p-3 text-xs space-y-1 ${isClarification ? 'border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'}`}>
+                  <p className="font-bold flex items-center gap-1.5">
+                    {isClarification ? (
+                      <>
+                        <CircleHelp className="h-4 w-4" strokeWidth={1.8} /> Clarification Requested
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-4 w-4" strokeWidth={1.8} /> Awaiting Client Signature
+                      </>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Approval, rejection, and clarification requests require an ADMIN or OWNER
+                    project role. Your role for this project is {project?.myRole ?? 'restricted'}.
+                  </p>
                 </div>
               )}
             </CardContent>

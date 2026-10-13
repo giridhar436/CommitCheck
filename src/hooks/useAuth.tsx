@@ -1,44 +1,119 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react'
 import type { User, AuthState } from '@/types'
 import { authService } from '@/services/auth'
+import { apiClient } from '@/services/api/client'
+import { supabase, isAuthConfigured } from '@/services/supabase'
 
 interface AuthContextValue extends AuthState {
+  /** True when Supabase Auth env vars are present; false shows a
+   * configuration notice instead of a login form that can never succeed. */
+  authConfigured: boolean
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string, organization?: string) => Promise<void>
   forgotPassword: (email: string) => Promise<void>
   logout: () => void
-  setUser: (user: User) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-const TOKEN_KEY = 'commitcheck-token'
-const USER_KEY = 'commitcheck-user'
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === 'undefined') return null
-    const stored = localStorage.getItem(USER_KEY)
-    if (stored) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const isAuthenticated = !!user
+
+  const clearSession = useCallback(() => {
+    apiClient.setToken(null)
+    setUser(null)
+  }, [])
+
+  // ——— Session restore + token plumbing ———
+  // The Supabase session is the single source of truth. On mount we push the
+  // access token into the API client and re-validate it against the backend
+  // (GET /auth/me); after that, auth state changes keep the token in sync.
+  // There is deliberately no localStorage user persistence — a stale local
+  // user must never enter the authenticated shell.
+  useEffect(() => {
+    if (!supabase) {
+      setIsLoading(false)
+      return
+    }
+    const client = supabase
+
+    let cancelled = false
+
+    const restore = async () => {
       try {
-        return JSON.parse(stored) as User
+        const token = await authService.getAccessToken()
+        if (token) apiClient.setToken(token)
+        const profile = await authService.getProfile()
+        if (!cancelled) setUser(profile)
       } catch {
-        return null
+        clearSession()
+      } finally {
+        if (!cancelled) setIsLoading(false)
       }
     }
-    return null
-  })
+    restore()
 
-  const [isLoading, setIsLoading] = useState(false)
-  const isAuthenticated = !!user
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      if (session) {
+        apiClient.setToken(session.access_token)
+        if (event === 'SIGNED_IN') {
+          const email = session.user.email ?? ''
+          const meta = session.user.user_metadata
+          setUser({
+            id: session.user.id,
+            email,
+            name:
+              (typeof meta?.name === 'string' && meta.name) ||
+              email.split('@')[0] ||
+              'User',
+            organization:
+              typeof meta?.organization === 'string' ? meta.organization : undefined,
+            role: 'member',
+            createdAt: session.user.created_at ?? new Date().toISOString(),
+          })
+        }
+      } else {
+        clearSession()
+      }
+    })
+
+    // Global 401 handling: if the backend rejects the credential (expired or
+    // revoked token), drop the session. Backend authorization stays
+    // authoritative — RequireAuth then redirects to /login.
+    const off = apiClient.addResponseInterceptor({
+      onResponse: () => {},
+      onError: (error) => {
+        if (error.isUnauthorized) {
+          clearSession()
+          client.auth.signOut().catch(() => {})
+        }
+      },
+    })
+
+    return () => {
+      cancelled = true
+      off()
+      subscription.unsubscribe()
+    }
+  }, [clearSession])
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const { user: loggedInUser, token } = await authService.login(email, password)
-      setUser(loggedInUser)
-      localStorage.setItem(TOKEN_KEY, token)
-      localStorage.setItem(USER_KEY, JSON.stringify(loggedInUser))
+      await authService.login(email, password)
+      // onAuthStateChange(SIGNED_IN) completes the state update.
     } finally {
       setIsLoading(false)
     }
@@ -48,13 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (name: string, email: string, password: string, organization?: string) => {
       setIsLoading(true)
       try {
-        const { user: registeredUser, token } = await authService.register(name, email, password)
-        if (organization) {
-          registeredUser.organization = organization
-        }
-        setUser(registeredUser)
-        localStorage.setItem(TOKEN_KEY, token)
-        localStorage.setItem(USER_KEY, JSON.stringify(registeredUser))
+        await authService.register(name, email, password, organization)
       } finally {
         setIsLoading(false)
       }
@@ -72,11 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
-    setUser(null)
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    clearSession()
     authService.logout().catch(() => {})
-  }, [])
+  }, [clearSession])
 
   return (
     <AuthContext.Provider
@@ -84,11 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated,
         isLoading,
+        authConfigured: isAuthConfigured,
         login,
         register,
         forgotPassword,
         logout,
-        setUser,
       }}
     >
       {children}

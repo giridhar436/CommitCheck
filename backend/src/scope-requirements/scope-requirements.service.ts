@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,7 @@ import {
   ApprovalStatus,
   Priority,
   Prisma,
+  ProjectRole,
   ScopeRequirement,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -19,6 +21,23 @@ import { UpdateScopeRequirementDto } from './dto/update-scope-requirement.dto';
 import { ScopeRequirementResponseDto } from './dto/scope-requirement-response.dto';
 import { Paginated } from '../common/api-response';
 import { ScopeRequirementsMapper } from './scope-requirements.mapper';
+
+/**
+ * Field-level RBAC (Phase 15): a requirement's approvalStatus is an
+ * authorization decision — marking scope as APPROVED is what later lets
+ * verification report a commitment as authorized. Creating or changing
+ * that field therefore requires an ADMIN/OWNER; ordinary MEMBER writes
+ * cannot mint authorization. Fails closed when the role is unknown.
+ */
+function assertApprovalAllowed(
+  role: ProjectRole | undefined,
+  action: string,
+): void {
+  if (role === ProjectRole.ADMIN || role === ProjectRole.OWNER) return;
+  throw new ForbiddenException(
+    `Project access denied: changing a scope requirement's approvalStatus (via ${action}) requires an admin role`,
+  );
+}
 
 @Injectable()
 export class ScopeRequirementsService {
@@ -87,8 +106,12 @@ export class ScopeRequirementsService {
   async create(
     projectId: string,
     dto: CreateScopeRequirementDto,
+    callerRole?: ProjectRole,
   ): Promise<ScopeRequirementResponseDto> {
     await this.assertProjectExists(projectId);
+    if (dto.approvalStatus !== undefined && dto.approvalStatus !== ApprovalStatus.PENDING) {
+      assertApprovalAllowed(callerRole, 'requirement creation');
+    }
     await this.assertTitleAvailable(projectId, dto.title);
     if (dto.sourceDocumentId) {
       await this.assertSourceDocumentInProject(projectId, dto.sourceDocumentId);
@@ -131,13 +154,20 @@ export class ScopeRequirementsService {
     projectId: string,
     id: string,
     dto: UpdateScopeRequirementDto,
+    callerRole?: ProjectRole,
   ): Promise<ScopeRequirementResponseDto> {
     const existing = await this.prisma.scopeRequirement.findFirst({
       where: { id, projectId },
-      select: { id: true, title: true },
+      select: { id: true, title: true, approvalStatus: true },
     });
     if (!existing) {
       throw new NotFoundException(`Scope requirement with id ${id} not found`);
+    }
+    if (
+      dto.approvalStatus !== undefined &&
+      dto.approvalStatus !== existing.approvalStatus
+    ) {
+      assertApprovalAllowed(callerRole, 'requirement update');
     }
 
     if (dto.title !== undefined && dto.title !== existing.title) {

@@ -92,9 +92,28 @@ export class DocumentStorageService {
       // Status only — never the Authorization header or response body.
       throw new Error(`Storage download failed (HTTP ${response.status})`);
     }
-    return Buffer.from(await response.arrayBuffer());
+
+    // Phase 15 hardening: enforce the same 10 MB decoded ceiling the upload
+    // path uses, both via Content-Length (reject before buffering) and on the
+    // buffered size (in case the storage host lies about or omits the header).
+    const contentLength = Number(response.headers.get('content-length') ?? '');
+    if (Number.isFinite(contentLength) && contentLength > MAX_DOWNLOAD_BYTES) {
+      throw new Error(
+        `Storage object exceeds the ${MAX_DOWNLOAD_BYTES / (1024 * 1024)} MB download limit`,
+      );
+    }
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > MAX_DOWNLOAD_BYTES) {
+      throw new Error(
+        `Storage object exceeds the ${MAX_DOWNLOAD_BYTES / (1024 * 1024)} MB download limit`,
+      );
+    }
+    return bytes;
   }
 }
+
+/** Must match the document pipeline's MAX_BINARY_BYTES (10 MB decoded). */
+const MAX_DOWNLOAD_BYTES = 10 * 1024 * 1024;
 
 /**
  * Storage-key validation shared by write paths (documents create/update) and

@@ -52,6 +52,7 @@ export interface BackendProject {
   endDate: string | null
   createdAt: string
   updatedAt: string
+  myRole?: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'
   counts?: {
     scopeRequirements: number
     meetings: number
@@ -400,6 +401,7 @@ export function mapProject(dto: BackendProject): Project {
     unauthorizedCommitments: 0,
     pendingChangeRequests: dto.counts?.changeRequests ?? 0,
     riskLevel: deriveProjectRiskLevel(0, detected),
+    myRole: dto.myRole,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   }

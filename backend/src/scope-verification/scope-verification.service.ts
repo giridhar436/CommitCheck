@@ -21,6 +21,7 @@ import {
   VerificationAuthorizationSource,
 } from './dto/verification-response.dto';
 import { RetrievalService } from '../retrieval/retrieval.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /**
  * Phase 10 — Scope Verification & Authorization Intelligence.
@@ -53,6 +54,7 @@ export class ScopeVerificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly retrieval: RetrievalService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async verifyCommitment(
@@ -255,6 +257,14 @@ export class ScopeVerificationService {
       ]);
       commitment = updated;
       verifiedAt = updated.updatedAt;
+
+      // Post-commit hook — a HIGH + UNAUTHORIZED verdict is the platform's
+      // core alert. Fired AFTER the transaction so a notification problem
+      // can never corrupt the verification; notify() itself never throws
+      // and the event key dedupes re-alerts for the same commitment state.
+      if (result.risk === RiskLevel.HIGH && result.authorizationStatus === ApprovalStatus.UNAUTHORIZED) {
+        await this.notifyHighRiskUnauthorized(commitment, result.explanation);
+      }
     }
 
     return {
@@ -276,6 +286,34 @@ export class ScopeVerificationService {
         ? { retrievedContext: await this.collectRetrievedContext(commitment) }
         : {}),
     };
+  }
+
+  /** Approval-capable audience alert for a HIGH+UNAUTHORIZED verdict. */
+  private async notifyHighRiskUnauthorized(
+    commitment: Commitment,
+    explanation: string,
+  ): Promise<void> {
+    try {
+      const recipients = await this.notifications.resolveApprovers(commitment.projectId);
+      await this.notifications
+        .notify({
+          eventKey: `verify:high-unauthorized:${commitment.id}`,
+          type: 'verification.high_risk_unauthorized',
+          projectId: commitment.projectId,
+          entityType: ActivityEntityType.COMMITMENT,
+          entityId: commitment.id,
+          recipients,
+          subject: `High-risk unauthorized commitment: ${commitment.title}`,
+          body: `Verification flagged "${commitment.title}" as HIGH risk and unauthorized. ${explanation} Review it and generate a change request if the work is required.`,
+        })
+        .catch(() => undefined);
+    } catch (error) {
+      this.logger.warn(
+        `High-risk notification flow failed (verification result unaffected): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private toMatchedDto(requirement: RequirementWithSource): MatchedScopeRequirementDto {

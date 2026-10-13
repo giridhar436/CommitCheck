@@ -17,6 +17,7 @@ import { GetMeetingAttachmentsQueryDto } from './dto/get-meeting-attachments-que
 import { UpdateMeetingAttachmentDto } from './dto/update-meeting-attachment.dto';
 import { MeetingAttachmentResponseDto } from './dto/meeting-attachment-response.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /** Attachments are always nested under their project and meeting. */
 @Controller('projects/:projectId/meetings/:meetingId/attachments')
@@ -25,6 +26,7 @@ export class MeetingAttachmentsController {
     private readonly meetingAttachmentsService: MeetingAttachmentsService,
   ) {}
 
+  @ProjectAccess('read')
   @Get()
   async findAll(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -38,6 +40,7 @@ export class MeetingAttachmentsController {
     };
   }
 
+  @ProjectAccess('read')
   @Get(':id')
   async findOne(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -51,6 +54,7 @@ export class MeetingAttachmentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Post()
   async create(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -64,6 +68,7 @@ export class MeetingAttachmentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Patch(':id')
   async update(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -78,6 +83,7 @@ export class MeetingAttachmentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(

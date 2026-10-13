@@ -36,6 +36,9 @@ export interface Project {
   unauthorizedCommitments: number
   pendingChangeRequests: number
   riskLevel: RiskLevel
+  /** Caller's project role from the backend (OWNER/ADMIN/MEMBER/VIEWER).
+   * Cosmetic only — backend authorization is authoritative. */
+  myRole?: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'
   createdAt: string
   updatedAt: string
 }

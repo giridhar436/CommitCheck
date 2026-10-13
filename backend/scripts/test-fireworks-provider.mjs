@@ -255,6 +255,9 @@ async function bootExits(envProvider, extraEnv = {}) {
         DATABASE_URL: 'postgresql://postgres:postgres@localhost:5433/none',
         DIRECT_URL: 'postgresql://postgres:postgres@localhost:5433/none',
         PORT: '3199',
+        // Phase 15: auth config is validated before provider config; give a
+        // dummy secret so the boot reaches the MEETING_ANALYSIS_PROVIDER error.
+        SUPABASE_JWT_SECRET: 'boot-config-test-secret-not-a-real-key',
         MEETING_ANALYSIS_PROVIDER: envProvider,
         ...extraEnv,
       },
@@ -278,3 +281,7 @@ async function bootExits(envProvider, extraEnv = {}) {
 
 console.log(`\n${results.filter((x) => x.ok).length}/${results.length} checks passed`);
 if (results.some((x) => !x.ok)) process.exitCode = 1;
+
+// Force-exit: an embedded-postgres child handle can outlive the suite on
+// Windows and block a clean exit after the summary has printed.
+process.exit(process.exitCode || 0);

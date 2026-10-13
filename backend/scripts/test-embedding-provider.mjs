@@ -205,3 +205,7 @@ try {
   globalThis.fetch = originalFetch;
   clearEnv();
 }
+
+// Force-exit: an embedded-postgres child handle can outlive the suite on
+// Windows and block a clean exit after the summary has printed.
+process.exit(process.exitCode || 0);

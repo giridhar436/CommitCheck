@@ -20,12 +20,14 @@ import {
   CommitmentResponseDto,
 } from './dto/commitment-response.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /** Commitments are always nested under their project. */
 @Controller('projects/:projectId/commitments')
 export class CommitmentsController {
   constructor(private readonly commitmentsService: CommitmentsService) {}
 
+  @ProjectAccess('read')
   @Get()
   async findAll(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -38,6 +40,7 @@ export class CommitmentsController {
     };
   }
 
+  @ProjectAccess('read')
   @Get(':id')
   async findOne(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -50,6 +53,7 @@ export class CommitmentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Post()
   async create(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -62,6 +66,7 @@ export class CommitmentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Patch(':id')
   async update(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -75,6 +80,7 @@ export class CommitmentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(

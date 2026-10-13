@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, Play, CircleAlert, Check } from 'lucide-react'
+import { Eye, EyeOff, Loader2, CircleAlert, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 
 export function RegisterPage() {
   const navigate = useNavigate()
-  const { register, isLoading } = useAuth()
+  const { register, isLoading, authConfigured } = useAuth()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -48,15 +48,7 @@ export function RegisterPage() {
     }
   }
 
-  // Demo shortcut for instant registration
-  const handleFastFill = () => {
-    setName('Rahul Mehta')
-    setEmail('rahul@pixelforge.io')
-    setOrganization('PixelForge Studios')
-    setPassword('DemoPass2025!')
-    setAgreed(true)
-    setError(null)
-  }
+  // Demo shortcut removed — registration runs against real Supabase Auth.
 
   const isPasswordLong = password.length >= 8
   const hasNumberOrSymbol = /[0-9!@#$%^&*]/.test(password)
@@ -66,27 +58,22 @@ export function RegisterPage() {
       title="Create your account"
       subtitle="Start protecting client projects and preventing unbilled scope creep."
     >
-      {/* Demo Fast Fill Banner */}
-      <div className="mb-5 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Play className="h-4 w-4 text-primary shrink-0" strokeWidth={1.8} />
-            <span className="font-semibold text-foreground">Demo Mode</span>
+      {!authConfigured && (
+        <div
+          role="alert"
+          className="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed"
+        >
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <CircleAlert className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            Authentication not configured
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleFastFill}
-            className="h-7 px-2.5 text-[11px] font-medium"
-          >
-            Auto-Fill Agency
-          </Button>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Set <code className="rounded bg-muted px-1 py-0.5">VITE_SUPABASE_URL</code> and{' '}
+            <code className="rounded bg-muted px-1 py-0.5">VITE_SUPABASE_ANON_KEY</code> in your
+            environment, then restart the dev server. Sign-up is disabled until then.
+          </p>
         </div>
-        <p className="mt-1.5 text-[11px] text-muted-foreground leading-normal">
-          Fills pre-configured details for PixelForge Studios.
-        </p>
-      </div>
+      )}
 
       {error && (
         <div className="mb-4 flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400">
@@ -194,7 +181,11 @@ export function RegisterPage() {
           </label>
         </div>
 
-        <Button type="submit" disabled={isLoading} className="w-full text-xs h-9 font-semibold mt-2">
+        <Button
+          type="submit"
+          disabled={isLoading || !authConfigured}
+          className="w-full text-xs h-9 font-semibold mt-2"
+        >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

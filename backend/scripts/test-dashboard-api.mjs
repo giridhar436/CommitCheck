@@ -11,6 +11,7 @@
  * Usage: node scripts/test-dashboard-api.mjs
  */
 import EmbeddedPostgres from 'embedded-postgres';
+import { signToken, TEST_JWT_SECRET, USER_A } from './lib/auth-helper.mjs';
 import { spawn, execSync } from 'node:child_process';
 import { PrismaClient } from '@prisma/client';
 
@@ -24,8 +25,12 @@ const env = {
   DATABASE_URL: `postgresql://postgres:postgres@localhost:${PG_PORT}/${DB}`,
   DIRECT_URL: `postgresql://postgres:postgres@localhost:${PG_PORT}/${DB}`,
   PORT: String(API_PORT),
+  SUPABASE_JWT_SECRET: TEST_JWT_SECRET,
   MEETING_ANALYSIS_PROVIDER: 'development',
 };
+
+// Phase 15: every request in this suite authenticates as USER_A (the seeded owner).
+const token = await signToken(USER_A);
 
 const results = [];
 function check(name, ok, detail = '') {
@@ -36,7 +41,10 @@ function check(name, ok, detail = '') {
 async function req(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        Authorization: `Bearer ${token}`,
+      },
     body: body ? JSON.stringify(body) : undefined,
   });
   return { status: res.status, json: await res.json().catch(() => null) };
@@ -266,3 +274,7 @@ try {
     /* already down */
   }
 }
+
+// Force-exit: an embedded-postgres child handle can outlive the suite on
+// Windows and block a clean exit after the summary has printed.
+process.exit(process.exitCode || 0);

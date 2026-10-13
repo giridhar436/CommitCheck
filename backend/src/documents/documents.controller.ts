@@ -18,6 +18,7 @@ import { ProcessDocumentDto } from './dto/process-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { DocumentDetailDto, DocumentResponseDto } from './dto/document-response.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /**
  * Phase 13 — project documents. Metadata CRUD over the existing Document
@@ -29,6 +30,7 @@ import { ApiResponse, Paginated } from '../common/api-response';
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
+  @ProjectAccess('read')
   @Get()
   async findAll(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -41,6 +43,7 @@ export class DocumentsController {
     };
   }
 
+  @ProjectAccess('read')
   @Get(':id')
   async findOne(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -53,6 +56,7 @@ export class DocumentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Post()
   async create(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -65,6 +69,7 @@ export class DocumentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Patch(':id')
   async update(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -79,6 +84,7 @@ export class DocumentsController {
   }
 
   /** Deterministic text extraction — synchronous, idempotent. */
+  @ProjectAccess('write')
   @Post(':id/process')
   @HttpCode(HttpStatus.OK)
   async process(
@@ -93,6 +99,7 @@ export class DocumentsController {
     };
   }
 
+  @ProjectAccess('write')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(

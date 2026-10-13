@@ -2,6 +2,7 @@ import { Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@n
 import { ScopeVerificationService } from './scope-verification.service';
 import { CommitmentVerificationResponseDto } from './dto/verification-response.dto';
 import { ApiResponse } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /**
  * Phase 10 — Scope verification trigger. Commitments are always nested
@@ -17,6 +18,7 @@ export class ScopeVerificationController {
     private readonly scopeVerificationService: ScopeVerificationService,
   ) {}
 
+  @ProjectAccess('write')
   @Post()
   @HttpCode(HttpStatus.OK)
   async verify(

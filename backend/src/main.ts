@@ -3,8 +3,22 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AuthConfigError, getSupabaseJwtSecret } from './auth/jwt.config';
 
 async function bootstrap(): Promise<void> {
+  const logger = new Logger('Bootstrap');
+
+  // Fail fast — authentication cannot be silently disabled. Refuse to start
+  // without a JWT secret rather than serving unprotected routes.
+  try {
+    getSupabaseJwtSecret();
+  } catch (error) {
+    const reason =
+      error instanceof AuthConfigError ? error.message : 'unknown configuration error';
+    logger.error(`Startup aborted. ${reason}`);
+    process.exit(1);
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Phase 14 — documents may submit base64 PDF/DOCX bytes for extraction
@@ -37,7 +51,15 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
 
-  new Logger('Bootstrap').log(`CommitCheck API listening on http://localhost:${port}/api`);
+  // Startup configuration summary — feature flags and endpoints only, never
+  // secret values (spec: secrets must not reach logs).
+  logger.log(`CommitCheck API listening on http://localhost:${port}/api`);
+  logger.log(`Auth: Supabase Auth (HS256) — all routes require a Bearer token`);
+  logger.log(
+    `Embeddings: ${process.env.EMBEDDING_PROVIDER?.trim() || 'disabled'} · Notifications: ${
+      process.env.RESEND_API_KEY?.trim() ? 'email (Resend)' : 'log (dev default)'
+    }`,
+  );
 }
 
 void bootstrap();

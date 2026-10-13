@@ -29,6 +29,10 @@ interface AddRequirementDialogProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSaved: (req: Requirement) => void
+  /** Caller's project role — only ADMIN/OWNER may change approval status
+   * (backend-enforced). Omitted = role unknown, select stays enabled and
+   * the backend 403 message is surfaced on failure. */
+  myRole?: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'
 }
 
 export function AddRequirementDialog({
@@ -37,6 +41,7 @@ export function AddRequirementDialog({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
   onSaved,
+  myRole,
 }: AddRequirementDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = controlledOpen !== undefined
@@ -56,6 +61,10 @@ export function AddRequirementDialog({
   const [priority, setPriority] = useState<RequirementPriority>('high')
   const [status, setStatus] = useState<RequirementStatus>('approved')
   const [source, setSource] = useState('SOW Section 3.1')
+
+  // Approval status is an authorization decision — ADMIN/OWNER only
+  // (mirrors the backend rule; the backend stays authoritative).
+  const canSetApproval = !myRole || myRole === 'ADMIN' || myRole === 'OWNER'
 
   useEffect(() => {
     if (requirementToEdit) {
@@ -194,6 +203,7 @@ export function AddRequirementDialog({
                 <Select
                   value={status}
                   onValueChange={(val: RequirementStatus) => setStatus(val)}
+                  disabled={!canSetApproval}
                 >
                   <SelectTrigger className="text-xs h-9">
                     <SelectValue placeholder="Status" />
@@ -205,6 +215,11 @@ export function AddRequirementDialog({
                     <SelectItem value="rejected" className="text-xs">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
+                {!canSetApproval && (
+                  <p className="text-[10px] text-muted-foreground leading-snug">
+                    Only ADMIN/OWNER can change approval status.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1">

@@ -17,6 +17,9 @@ import { GetProjectsQueryDto } from './dto/get-projects-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectResponseDto } from './dto/project-response.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthUser } from '../auth/auth-user.interface';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 @Controller('projects')
 export class ProjectsController {
@@ -25,36 +28,41 @@ export class ProjectsController {
   @Get()
   async findAll(
     @Query() query: GetProjectsQueryDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<ApiResponse<Paginated<ProjectResponseDto>>> {
     return {
       success: true,
       message: 'Projects fetched successfully',
-      data: await this.projectsService.findAll(query),
+      data: await this.projectsService.findAll(query, user.id),
     };
   }
 
+  @ProjectAccess('read')
   @Get(':id')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
   ): Promise<ApiResponse<ProjectResponseDto>> {
     return {
       success: true,
       message: 'Project fetched successfully',
-      data: await this.projectsService.findOne(id),
+      data: await this.projectsService.findOne(id, user.id),
     };
   }
 
   @Post()
   async create(
     @Body() dto: CreateProjectDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<ApiResponse<ProjectResponseDto>> {
     return {
       success: true,
       message: 'Project created successfully',
-      data: await this.projectsService.create(dto),
+      data: await this.projectsService.create(dto, user),
     };
   }
 
+  @ProjectAccess('admin')
   @Patch(':id')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -67,6 +75,7 @@ export class ProjectsController {
     };
   }
 
+  @ProjectAccess('owner')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(

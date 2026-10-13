@@ -1,10 +1,13 @@
-# CommitCheck — Backend (Phase 1: Database Foundation)
+# CommitCheck — Backend
 
 NestJS + Prisma + Supabase PostgreSQL backend for CommitCheck — the AI-powered
 scope-creep detector for agencies and freelancers.
 
-**Phase 1 scope:** database schema, migrations, seed data, and the Prisma
-database layer. No controllers, routes, auth, or AI yet.
+**Current state:** Phases 1–15 complete — full REST API (projects, scope,
+meetings, attachments, commitments, evidence, analysis, verification, change
+requests, dashboard, documents, semantic retrieval) with Supabase
+Authentication, project-scoped access control, RBAC, and email notifications.
+Phases are documented in their own sections below.
 
 ## Stack
 
@@ -13,8 +16,9 @@ database layer. No controllers, routes, auth, or AI yet.
 | Framework  | NestJS 11 (Node 20+)       |
 | ORM        | Prisma 6                   |
 | Database   | Supabase PostgreSQL (pgvector-ready) |
-| Storage    | Supabase Storage (later phase) |
-| Auth       | Supabase Auth (last phase) |
+| Storage    | Supabase Storage (server-side download only) |
+| Auth       | Supabase Auth (Phase 15 — enforced on every route) |
+| Email      | Resend (Phase 15 — optional, falls back to log) |
 
 ## Getting started
 
@@ -38,6 +42,10 @@ npm run start:dev
 | `DATABASE_URL`  | Runtime connections — use the **pooled** Supabase URL (port `6543`, `pgbouncer=true&connection_limit=1`) |
 | `DIRECT_URL`    | Prisma Migrate only — use the **direct** Supabase URL (port `5432`) |
 | `PORT`          | HTTP port (default `3000`) |
+| `SUPABASE_JWT_SECRET` | Phase 15 — **required**. HS256 secret for verifying Supabase Auth access tokens. Missing/blank ⇒ startup aborts with a clear error. |
+| `SUPABASE_URL` | Phase 15 — project URL for the Supabase Admin API (email → user lookup when adding members). Unset ⇒ member addition returns a clear 400. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Phase 15 — server-side only, paired with `SUPABASE_URL`. Never logged, never returned. |
+| `RESEND_API_KEY` / `RESEND_FROM` | Phase 15 — optional email notifications via Resend. Both unset ⇒ notifications are recorded in `notification_log` only (dev-safe default). Key never logged/returned. |
 | `EMBEDDING_PROVIDER` | Phase 14 — `openai` (or any OpenAI-compatible vendor via `EMBEDDING_BASE_URL`). **Unset = semantic indexing disabled**; retrieval falls back to deterministic lexical ranking. There is no fake-embedding mode. |
 | `EMBEDDING_API_KEY`  | Phase 14 — provider secret. Never logged, never returned by any endpoint, never included in error messages. |
 | `EMBEDDING_MODEL`    | Phase 14 — default `text-embedding-3-small` (1536 dimensions). |
@@ -83,15 +91,29 @@ backend/
 │   │   ├── api-response.ts          # Success/error envelope types
 │   │   ├── dto/pagination.dto.ts    # Reusable page/limit/search/sort query
 │   │   └── filters/http-exception.filter.ts  # Global { success:false } envelope
+│   ├── auth/                        # Phase 15: Supabase Auth identity layer
+│   │   ├── jwt.config.ts            # SUPABASE_JWT_SECRET loader (fail-fast)
+│   │   ├── supabase-auth.guard.ts   # Global HS256 JWT guard (401 everywhere)
+│   │   ├── supabase-admin.service.ts # Admin API email→user lookup (members)
+│   │   ├── current-user.decorator.ts # @CurrentUser() from verified claims
+│   │   ├── auth-user.interface.ts
+│   │   ├── auth.controller.ts       # GET /api/auth/me
+│   │   └── auth.module.ts
+│   ├── access/                      # Phase 15: project-scoped authorization
+│   │   ├── project-access.service.ts # assertAccess(projectId,userId,level) — 404/403
+│   │   ├── project-access.guard.ts   # Global guard driven by @ProjectAccess(level)
+│   │   ├── project-access.decorator.ts
+│   │   ├── current-access.decorator.ts # @CurrentAccess() for field-level rules
+│   │   └── access.module.ts
+│   ├── notifications/               # Phase 15: provider-abstracted notifications
+│   │   ├── notification-provider.interface.ts
+│   │   ├── log-notification.provider.ts   # Dev default — always active
+│   │   ├── resend-email.provider.ts       # Active when RESEND_* configured
+│   │   ├── notifications.service.ts       # Dedup (eventKey claim) + failure isolation
+│   │   └── notifications.module.ts
 │   ├── prisma/
 │   │   ├── prisma.module.ts         # @Global database module
 │   │   └── prisma.service.ts        # PrismaClient + Nest lifecycle hooks
-│   ├── projects/
-│   │   ├── dto/                     # Create/Update/Response/Query DTOs
-│   │   ├── projects.controller.ts   # /api/projects REST endpoints
-│   │   ├── projects.mapper.ts       # Prisma row → JSON contract
-│   │   ├── projects.module.ts
-│   │   └── projects.service.ts      # CRUD + activity logging + business rules
 │   ├── scope-requirements/
 │   │   ├── dto/                     # Create/Update/Response/Query DTOs
 │   │   ├── scope-requirements.controller.ts  # /api/projects/:projectId/scope
@@ -110,6 +132,14 @@ backend/
 │   │   ├── meeting-attachments.mapper.ts
 │   │   ├── meeting-attachments.module.ts
 │   │   └── meeting-attachments.service.ts     # Metadata-only CRUD + audit log (no storage I/O)
+│   ├── projects/
+│   │   ├── dto/                     # Create/Update/Response/Query + member DTOs
+│   │   ├── projects.controller.ts   # /api/projects REST endpoints
+│   │   ├── members.controller.ts    # Phase 15: /api/projects/:projectId/members
+│   │   ├── project-members.service.ts # Phase 15: membership CRUD + RBAC rules
+│   │   ├── projects.mapper.ts       # Prisma row → JSON contract (+myRole)
+│   │   ├── projects.module.ts
+│   │   └── projects.service.ts      # CRUD + activity logging + business rules
 │   ├── commitments/
 │   │   ├── dto/                     # Create/Update/Query/Response/Detail DTOs
 │   │   ├── commitments.controller.ts          # /api/projects/:projectId/commitments (CRUD)
@@ -170,7 +200,10 @@ backend/
 │   ├── test-dashboard-api.mjs       # End-to-end Dashboard/Activity/Alerts tests (40 checks)
 │   ├── test-documents-api.mjs       # End-to-end Documents/processing/traceability tests (48 checks)
 │   ├── test-document-intelligence-api.mjs # End-to-end Phase 14 extraction/chunking/retrieval/verification tests (53 checks)
-│   └── test-embedding-provider.mjs  # Phase 14 embedding provider tests, stubbed HTTP (28 checks)
+│   ├── test-embedding-provider.mjs  # Phase 14 embedding provider tests, stubbed HTTP (28 checks)
+│   ├── test-auth-isolation-rbac.mjs # Phase 15 auth/isolation/RBAC/hardening suite (52 checks)
+│   ├── test-notifications.mjs       # Phase 15 notification dedup/isolation suite (25 checks)
+│   └── run-all-phase15.mjs          # Phase 15 full-regression runner (all 16 suites)
 ├── .env.example
 └── package.json
 ```
@@ -791,6 +824,137 @@ groundedness, traversal/secret-leak scans) and
 `node scripts/test-embedding-provider.mjs` for the 28-check provider suite
 (request shape, batching, sanitized failures, key-leak scan, config matrix).
 
+## Production Hardening & Auth (Phase 15)
+
+Phase 15 makes the platform multi-user: **Supabase Auth is the identity
+source**, every route requires a verified access token, every project-scoped
+resource is access-checked, and a minimal RBAC + notification layer ships on
+top. The governing rule is unchanged:
+
+> **Never weaken the authorization model.** AI, semantic retrieval,
+> embeddings, similarity scores or lexical matching may surface evidence and
+> candidates — they can never *grant* authorization. Final authorization
+> stays deterministic, based on explicit approved-scope / change-request
+> state.
+
+### Authentication (Supabase Auth)
+
+- A **global** `SupabaseAuthGuard` (registered via `APP_GUARD`) verifies the
+  `Authorization: Bearer` JWT (HS256, `jose`) against `SUPABASE_JWT_SECRET` on
+  **every** route — there are no public API routes. Missing token ⇒ `401
+  Authentication required`; invalid/expired/wrong-issuer token ⇒ uniform `401
+  Invalid or expired token` (no detail leaks). A token whose `sub` is not a
+  UUID is rejected (`401`) before any database query.
+- Verified identity is exposed to handlers as `@CurrentUser()` (`{ id, email
+  }` from the token claims). **No endpoint trusts a client-supplied
+  userId/orgId for authorization.**
+- `GET /api/auth/me` echoes the verified identity (`{ id, email }`) — the
+  frontend calls it once after session restore so a stale token never enters
+  the app shell.
+- The API **refuses to start** when `SUPABASE_JWT_SECRET` is missing/blank
+  (clear startup error, exit code 1). The startup summary logs feature
+  *flags* (auth/embeddings/notifications) — never secret values.
+- There is no second custom password system: sign-up/sign-in/password reset
+  are Supabase Auth; the frontend talks to Supabase directly and sends the
+  resulting access token to this API.
+
+### Project access control (no IDOR)
+
+Authorization is centralized in services/guards — not scattered in
+controllers:
+
+- `ProjectAccessService.assertAccess(projectId, userId, level)` is the single
+  choke point: no membership row **and** not the legacy `ownerUserId` ⇒ `404`
+  (existence is not leaked); role below the required level ⇒ `403`.
+- A global `ProjectAccessGuard` reads the `@ProjectAccess('read'|'write'|
+  'admin'|'owner')` decorator on every project-scoped route, resolves the
+  caller's role once, and stashes it (`@CurrentAccess()`) for field-level
+  rules. Every project-child route (scope, meetings, attachments,
+  commitments, evidence, verification, change requests, dashboard, activity,
+  alerts, documents, retrieval) is covered — a non-member gets `404` on the
+  parent project and `404` for any child id from another project.
+- Non-UUID route params are rejected with `400` before Prisma ever sees them.
+- The projects list/detail responses carry the caller's `myRole`
+  (OWNER/ADMIN/MEMBER/VIEWER) for role-aware UI. **Frontend hiding is
+  convenience only — the backend remains authoritative.**
+
+### Members & RBAC
+
+`ProjectMember` rows (role: `VIEWER < MEMBER < ADMIN < OWNER`) are managed
+under `/api/projects/:projectId/members`:
+
+| Method | Route | Role required | Notes |
+| ------ | ----- | ------------- | ----- |
+| GET    | `/members` | read (any) | Paginated member list |
+| POST   | `/members` | admin | `{ email, role }` — email resolved via the Supabase Admin API; unknown email ⇒ `404` (must sign up first); `OWNER` role ⇒ `400` |
+| PATCH  | `/members/:userId` | admin | `{ role }` — the founder/owner's role is immutable ⇒ `403` |
+| DELETE | `/members/:userId` | admin | Owner cannot be removed ⇒ `403` |
+
+- **Users cannot change their own role** through the API (`400`), and cannot
+  grant themselves access to a project they are not a member of (the guard
+  resolves access from the verified token, not from payloads).
+- Approvals are RBAC-protected: change-request **approve/reject/clarify** and
+  scope-requirement **approvalStatus** changes require ADMIN/OWNER
+  (fail-closed). PROJECT_CREATED grants the creator an implicit OWNER
+  membership; legacy `ownerUserId`-only projects get implicit read-only OWNER
+  access.
+
+### Notifications (email via Resend, log by default)
+
+- Minimal `NotificationProvider` seam: `LogNotificationProvider` (dev default,
+  always active) and `ResendEmailProvider` (active only when `RESEND_API_KEY`
+  + `RESEND_FROM` are set). No marketing email — transactional lifecycle
+  events only.
+- Events: HIGH-risk **UNAUTHORIZED** verification results (approvers), and the
+  change-request lifecycle (`created`/`approved`/`rejected`/`clarified`).
+  Hooks run **after** the triggering transaction commits — a provider failure
+  can never corrupt authorization state; failures are logged with sanitized
+  errors and a `FAILED` row.
+- **Dedup:** every delivery is claimed via a unique `notification_log.eventKey`
+  (`<event>:<userId>`); a losing concurrent claim is skipped, so re-running a
+  verification or re-sending never duplicates an email.
+- Recipient emails come from membership rows / verified token claims; API keys
+  are never logged or returned. Frontend in-app notification feeds remain a
+  mock (`src/services/notifications.ts`) — documented limitation (no
+  notification read API yet).
+
+### Input & processing hardening
+
+- Storage-backed document download caps at **10 MB** (content-length and
+  buffered-size checks); extraction caps at **60 s** (timeout ⇒ honest
+  `FAILED` with `processingError`, never a hang or a crash) and **2000
+  chunks** per document (excess ⇒ `FAILED`, never silently truncated
+  content).
+- Unsupported formats keep failing explicitly — the process is never crashed
+  by malformed input. The 15 MB JSON body limit and the **413 response for
+  oversized JSON** are preserved.
+
+### Secrets & errors
+
+- Server-only secrets (`FIREWORKS_API_KEY`, `EMBEDDING_API_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_SERVICE_KEY`,
+  `RESEND_API_KEY`, database passwords) are read from env, never logged,
+  never returned, and never appear in error envelopes. The frontend bundle
+  receives only `VITE_*` variables (Supabase URL + **anon** key).
+- Error responses carry the `{ success, message }` envelope with sanitized
+  messages — no stack traces, no filesystem paths, no credential material.
+
+### Auditing
+
+Security-relevant events are auditable through the existing `Activity` trail
+(creator = `MEMBER_*` actions for membership changes, plus the established
+entity lifecycle actions). Audit entries reference entity ids/titles —
+secrets and full document contents are never stored in them.
+
+Run `node scripts/test-auth-isolation-rbac.mjs` (52 checks: 401 uniformity +
+expired/wrong-secret/non-UUID-sub tokens, 404/403 isolation matrix across 24
+routes, full RBAC behavior incl. self-role-change/owner-protection, 400/413
+hardening, secret-leak scans, legacy-owner fallback) and
+`node scripts/test-notifications.mjs` (25 checks: provider selection, dedup
+claims, failure isolation, e2e fan-out + CR lifecycle rows). Suites mint real
+HS256 tokens from `scripts/lib/auth-helper.mjs` and run against ephemeral
+PostgreSQL + a stubbed Supabase Admin API — no external services.
+
 ## Data model (business flow)
 
 ```
@@ -821,7 +985,9 @@ Project ─┬─ ScopeRequirement ─◯─ Document ─┬─ DocumentText   (
 
 ## Supabase notes (for later phases)
 
-- **RLS:** Phase 1 tables live in `public`. Once Supabase Auth lands, enable RLS
-  with ownership-scoped policies before any table is exposed via the Data API.
+- **RLS:** Phase 1 tables live in `public`. Supabase Auth landed in Phase 15;
+  the API enforces authorization in NestJS (guards/services) using the
+  service-level connection. Do **not** expose these tables via the Data API
+  (PostgREST) unless RLS with ownership-scoped policies is enabled first.
 - **pgvector:** enable with `create extension vector;` in a future SQL migration.
 - **Storage:** `storagePath` columns are Supabase Storage object paths.

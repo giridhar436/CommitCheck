@@ -17,12 +17,14 @@ import { GetMeetingsQueryDto } from './dto/get-meetings-query.dto';
 import { UpdateMeetingDto } from './dto/update-meeting.dto';
 import { MeetingDetailResponseDto, MeetingResponseDto } from './dto/meeting-response.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /** Meetings are always nested under their project. */
 @Controller('projects/:projectId/meetings')
 export class MeetingsController {
   constructor(private readonly meetingsService: MeetingsService) {}
 
+  @ProjectAccess('read')
   @Get()
   async findAll(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -35,6 +37,7 @@ export class MeetingsController {
     };
   }
 
+  @ProjectAccess('read')
   @Get(':id')
   async findOne(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -47,6 +50,7 @@ export class MeetingsController {
     };
   }
 
+  @ProjectAccess('write')
   @Post()
   async create(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -59,6 +63,7 @@ export class MeetingsController {
     };
   }
 
+  @ProjectAccess('write')
   @Patch(':id')
   async update(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -72,6 +77,7 @@ export class MeetingsController {
     };
   }
 
+  @ProjectAccess('write')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(

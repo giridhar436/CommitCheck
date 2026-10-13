@@ -9,6 +9,7 @@ import { RetrievalService } from './retrieval.service';
 import { RetrievalQueryDto } from './dto/retrieval-query.dto';
 import { RetrievalScopeResponseDto } from './dto/retrieval-response.dto';
 import { ApiResponse } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /**
  * Phase 14 — read-only semantic scope retrieval, nested under its project.
@@ -19,6 +20,7 @@ import { ApiResponse } from '../common/api-response';
 export class RetrievalController {
   constructor(private readonly retrievalService: RetrievalService) {}
 
+  @ProjectAccess('read')
   @Get('scope')
   async retrieveScope(
     @Param('projectId', ParseUUIDPipe) projectId: string,

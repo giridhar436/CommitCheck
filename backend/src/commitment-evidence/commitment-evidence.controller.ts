@@ -15,12 +15,14 @@ import { CreateCommitmentEvidenceDto } from './dto/create-commitment-evidence.dt
 import { GetCommitmentEvidenceQueryDto } from './dto/get-commitment-evidence-query.dto';
 import { CommitmentEvidenceResponseDto } from './dto/commitment-evidence-response.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
 
 /** Evidence is always nested under its commitment, itself nested under its project. */
 @Controller('projects/:projectId/commitments/:commitmentId/evidence')
 export class CommitmentEvidenceController {
   constructor(private readonly evidenceService: CommitmentEvidenceService) {}
 
+  @ProjectAccess('read')
   @Get()
   async findAll(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -34,6 +36,7 @@ export class CommitmentEvidenceController {
     };
   }
 
+  @ProjectAccess('read')
   @Get(':id')
   async findOne(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -47,6 +50,7 @@ export class CommitmentEvidenceController {
     };
   }
 
+  @ProjectAccess('write')
   @Post()
   async create(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -61,6 +65,7 @@ export class CommitmentEvidenceController {
   }
 
   /** Deliberately no PATCH — evidence is immutable; delete and recreate. */
+  @ProjectAccess('write')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(

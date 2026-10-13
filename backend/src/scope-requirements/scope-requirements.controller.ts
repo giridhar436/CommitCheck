@@ -17,6 +17,9 @@ import { GetScopeRequirementsQueryDto } from './dto/get-scope-requirements-query
 import { UpdateScopeRequirementDto } from './dto/update-scope-requirement.dto';
 import { ScopeRequirementResponseDto } from './dto/scope-requirement-response.dto';
 import { ApiResponse, Paginated } from '../common/api-response';
+import { ProjectAccess } from '../access/project-access.decorator';
+import { CurrentAccess } from '../access/current-access.decorator';
+import type { ProjectAccessContext } from '../access/project-access.service';
 
 /** Scope requirements are always nested under their project. */
 @Controller('projects/:projectId/scope')
@@ -25,6 +28,7 @@ export class ScopeRequirementsController {
     private readonly scopeRequirementsService: ScopeRequirementsService,
   ) {}
 
+  @ProjectAccess('read')
   @Get()
   async findAll(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -37,6 +41,7 @@ export class ScopeRequirementsController {
     };
   }
 
+  @ProjectAccess('read')
   @Get(':id')
   async findOne(
     @Param('projectId', ParseUUIDPipe) projectId: string,
@@ -49,31 +54,36 @@ export class ScopeRequirementsController {
     };
   }
 
+  @ProjectAccess('write')
   @Post()
   async create(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body() dto: CreateScopeRequirementDto,
+    @CurrentAccess() access: ProjectAccessContext,
   ): Promise<ApiResponse<ScopeRequirementResponseDto>> {
     return {
       success: true,
       message: 'Scope requirement created successfully',
-      data: await this.scopeRequirementsService.create(projectId, dto),
+      data: await this.scopeRequirementsService.create(projectId, dto, access?.role),
     };
   }
 
+  @ProjectAccess('write')
   @Patch(':id')
   async update(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateScopeRequirementDto,
+    @CurrentAccess() access: ProjectAccessContext,
   ): Promise<ApiResponse<ScopeRequirementResponseDto>> {
     return {
       success: true,
       message: 'Scope requirement updated successfully',
-      data: await this.scopeRequirementsService.update(projectId, id, dto),
+      data: await this.scopeRequirementsService.update(projectId, id, dto, access?.role),
     };
   }
 
+  @ProjectAccess('write')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async remove(

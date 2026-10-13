@@ -1,8 +1,10 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   ActivityAction,
   ActivityEntityType,
@@ -15,6 +17,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScopeVerificationService } from '../scope-verification/scope-verification.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { GetChangeRequestsQueryDto } from './dto/get-change-requests-query.dto';
 import {
   ChangeRequestWithContext,
@@ -49,9 +52,12 @@ const OPEN_STATUSES: ChangeRequestStatus[] = [
  */
 @Injectable()
 export class ChangeRequestsService {
+  private readonly logger = new Logger(ChangeRequestsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly scopeVerification: ScopeVerificationService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -147,6 +153,11 @@ export class ChangeRequestsService {
 
       return cr;
     });
+
+    // Post-commit: approval-capable audience learns a request awaits them.
+    await this.notifyLifecycle(projectId, created, 'created', 'cr:created',
+      `Change request awaiting approval: ${created.title}`,
+      `A change request "${created.title}" was generated for commitment "${commitment.title}" and is pending approval. ${description}`);
 
     return this.findOne(projectId, created.id);
   }
@@ -261,6 +272,10 @@ export class ChangeRequestsService {
       });
     });
 
+    await this.notifyLifecycle(projectId, updated, 'approved', 'cr:approved',
+      `Change request approved: ${cr.title}`,
+      `The change request "${cr.title}" was approved — commitment "${cr.commitment.title}" is now authorized.`);
+
     return ChangeRequestsMapper.toDetailDto(updated);
   }
 
@@ -302,6 +317,10 @@ export class ChangeRequestsService {
         include: CHANGE_REQUEST_CONTEXT_INCLUDE,
       });
     });
+
+    await this.notifyLifecycle(projectId, updated, 'rejected', 'cr:rejected',
+      `Change request rejected: ${cr.title}`,
+      `The change request "${cr.title}" was rejected${reason ? `: ${reason}` : ''} The related commitment remains unauthorized.`);
 
     return ChangeRequestsMapper.toDetailDto(updated);
   }
@@ -350,6 +369,13 @@ export class ChangeRequestsService {
       });
     });
 
+    // Distinct rounds of clarification are distinct events; the comment hash
+    // makes client retries of the same comment dedupe.
+    const commentKey = createHash('sha256').update(comment).digest('hex').slice(0, 16);
+    await this.notifyLifecycle(projectId, updated, 'clarification', `cr:clarified:${commentKey}`,
+      `Clarification requested: ${cr.title}`,
+      `Clarification was requested on the change request "${cr.title}": ${comment}`);
+
     return ChangeRequestsMapper.toDetailDto(updated);
   }
 
@@ -377,6 +403,43 @@ export class ChangeRequestsService {
       );
     }
     return cr;
+  }
+
+  /**
+   * Post-commit lifecycle notification to the approval-capable audience
+   * (OWNER + ADMINs). Fired only after the transaction has committed;
+   * notify() never throws, so a notification problem can never corrupt a
+   * change-request decision. Event keys dedupe retries.
+   */
+  private async notifyLifecycle(
+    projectId: string,
+    cr: { id: string; title: string },
+    event: string,
+    eventKey: string,
+    subject: string,
+    body: string,
+  ): Promise<void> {
+    try {
+      const recipients = await this.notifications.resolveApprovers(projectId);
+      await this.notifications
+        .notify({
+          eventKey,
+          type: `change_request.${event}`,
+          projectId,
+          entityType: ActivityEntityType.CHANGE_REQUEST,
+          entityId: cr.id,
+          recipients,
+          subject,
+          body,
+        })
+        .catch(() => undefined);
+    } catch (error) {
+      this.logger.warn(
+        `Change-request notification flow failed (decision unaffected): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private async assertProjectExists(projectId: string): Promise<void> {

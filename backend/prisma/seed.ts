@@ -11,7 +11,7 @@
  * Deterministic UUIDs are used so re-seeding is idempotent-friendly.
  * ————————————————————————————————————————————————————————————————————————— */
 
-import { PrismaClient, Priority, RiskLevel, ApprovalStatus, MeetingAnalysisStatus, ChangeRequestStatus, DocumentType, EvidenceSource, ActivityAction, ActivityEntityType } from '@prisma/client';
+import { PrismaClient, Priority, RiskLevel, ApprovalStatus, MeetingAnalysisStatus, ChangeRequestStatus, DocumentType, EvidenceSource, ActivityAction, ActivityEntityType, ProjectRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -22,12 +22,18 @@ const IDS = {
   novaProject: 'a1111111-1111-4111-8111-111111111111',
   // Project 2 — FreshCART
   cartProject: 'a2222222-2222-4222-8222-222222222222',
+  // Demo owner (Supabase Auth user id — matches a user in the configured
+  // Supabase Auth instance; in tests it matches the token minted by the
+  // verification suites).
+  demoUser: 'b1111111-1111-4111-8111-111111111111',
 };
 
 async function main() {
   console.log('🌱 Seeding CommitCheck demo data…');
 
   // Clear in FK-safe order (children first).
+  await prisma.notificationLog.deleteMany();
+  await prisma.projectMember.deleteMany();
   await prisma.activity.deleteMany();
   await prisma.changeRequest.deleteMany();
   await prisma.commitmentEvidence.deleteMany();
@@ -52,6 +58,10 @@ async function main() {
       startDate: new Date('2026-08-03'),
       endDate: new Date('2026-12-18'),
       budget: 86000,
+      ownerUserId: IDS.demoUser,
+      members: {
+        create: { userId: IDS.demoUser, role: ProjectRole.OWNER, email: 'rahul@pixelforge.io' },
+      },
     },
   });
 
@@ -322,6 +332,10 @@ async function main() {
       startDate: new Date('2026-05-11'),
       endDate: null,
       budget: 42000,
+      ownerUserId: IDS.demoUser,
+      members: {
+        create: { userId: IDS.demoUser, role: ProjectRole.OWNER, email: 'rahul@pixelforge.io' },
+      },
     },
   });
 
@@ -477,6 +491,7 @@ async function main() {
   // ——— Summary ———
   const counts = {
     projects: await prisma.project.count(),
+    projectMembers: await prisma.projectMember.count(),
     scopeRequirements: await prisma.scopeRequirement.count(),
     meetings: await prisma.meeting.count(),
     meetingAttachments: await prisma.meetingAttachment.count(),

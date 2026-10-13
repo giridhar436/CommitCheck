@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { AccessModule } from './access/access.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ProjectsModule } from './projects/projects.module';
 import { ScopeRequirementsModule } from './scope-requirements/scope-requirements.module';
 import { MeetingsModule } from './meetings/meetings.module';
@@ -22,11 +25,15 @@ import { RetrievalModule } from './retrieval/retrieval.module';
  * Phase 9: Fireworks AI provider · Phase 10: Scope Verification ·
  * Phase 11: Change Request workflow · Phase 12: Dashboard & audit intelligence ·
  * Phase 13: Scope & document intelligence ·
- * Phase 14: Document intelligence & semantic scope retrieval.
+ * Phase 14: Document intelligence & semantic scope retrieval ·
+ * Phase 15: Authentication (Supabase Auth), RBAC, notifications, hardening.
  */
 @Module({
   imports: [
     PrismaModule,
+    AuthModule,
+    AccessModule,
+    NotificationsModule,
     EmbeddingsModule,
     ProjectsModule,
     ScopeRequirementsModule,

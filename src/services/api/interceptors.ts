@@ -3,27 +3,16 @@
  *
  * Plug-and-play interceptors registered on the
  * singleton apiClient during app bootstrap.
+ *
+ * Phase 15: token injection moved into the Supabase session
+ * plumbing (useAuth → apiClient.setToken); the previous
+ * localStorage token interceptor is gone — a stale demo token
+ * from an old build must never overwrite the live Bearer header.
  * —————————————————————————————————————————————————— */
 
 import { toast } from 'sonner'
 import { apiClient, ApiError } from './client'
-import type { RequestInterceptor, ResponseInterceptor } from './client'
-
-// ——— Auth Interceptor ———
-// Automatically attaches the stored JWT from localStorage.
-
-const TOKEN_KEY = 'commitcheck-token'
-
-const authInterceptor: RequestInterceptor = {
-  onRequest(_url, init) {
-    const token = localStorage.getItem(TOKEN_KEY)
-    if (token && init.headers) {
-      ;(init.headers as Record<string, string>)['Authorization'] =
-        `Bearer ${token}`
-    }
-    return init
-  },
-}
+import type { ResponseInterceptor } from './client'
 
 // ——— Error Interceptor ———
 // Global error handler: toasts + auth redirect on 401.
@@ -35,10 +24,9 @@ const errorInterceptor: ResponseInterceptor = {
 
   onError(error: ApiError, _url: string) {
     if (error.isUnauthorized) {
-      // Clear stale auth state and redirect to login
-      localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem('commitcheck-user')
-
+      // Session state itself is cleared by the Supabase auth plumbing in
+      // useAuth; here we only surface the expiry and hard-navigate out of
+      // the shell for direct visits (RequireAuth handles SPA redirects).
       // Avoid redirect loop if already on login page
       if (!window.location.pathname.startsWith('/login')) {
         toast.error('Session expired. Please sign in again.')
@@ -72,7 +60,7 @@ const errorInterceptor: ResponseInterceptor = {
 // ——— Logging Interceptor (dev only) ———
 // Logs request/response in development for debugging.
 
-const loggingRequestInterceptor: RequestInterceptor = {
+const loggingRequestInterceptor = {
   onRequest(url, init) {
     if (import.meta.env.DEV) {
       console.groupCollapsed(
@@ -90,7 +78,7 @@ const loggingRequestInterceptor: RequestInterceptor = {
     }
     return init
   },
-}
+} as import('./client').RequestInterceptor
 
 const loggingResponseInterceptor: ResponseInterceptor = {
   onResponse(response, url) {
@@ -119,7 +107,6 @@ export function setupInterceptors(): void {
   if (initialized) return
   initialized = true
 
-  apiClient.addRequestInterceptor(authInterceptor)
   apiClient.addResponseInterceptor(errorInterceptor)
 
   // Logging interceptors in development only
@@ -127,4 +114,9 @@ export function setupInterceptors(): void {
     apiClient.addRequestInterceptor(loggingRequestInterceptor)
     apiClient.addResponseInterceptor(loggingResponseInterceptor)
   }
+
+  // One-time cleanup of localStorage keys written by the pre-Phase-15 demo
+  // auth — they are never read again, and stale values must not linger.
+  localStorage.removeItem('commitcheck-token')
+  localStorage.removeItem('commitcheck-user')
 }
