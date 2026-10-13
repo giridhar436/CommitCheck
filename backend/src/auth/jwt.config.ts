@@ -1,13 +1,26 @@
 /**
  * Authentication configuration (Phase 15).
  *
- * Supabase Auth is the sole identity source: it issues HS256 access tokens
- * signed with the project JWT secret. The backend never authenticates users
- * itself — it only verifies those tokens to establish identity. This file is
- * therefore deliberately tiny: one secret, loaded once, never logged.
+ * Supabase Auth is the sole identity source: it issues signed access tokens
+ * and the backend verifies them to establish identity — it never
+ * authenticates users itself. Two token eras exist in the wild:
+ *
+ * - **Legacy projects** sign access tokens with the shared HS256 project JWT
+ *   secret (`SUPABASE_JWT_SECRET`).
+ * - **Current projects** publish asymmetric signing keys (ES256/RS256/…)
+ *   through a public JWKS endpoint and sign user tokens with the current
+ *   key. A shared-secret HS256 check can never validate those tokens —
+ *   they must be verified against the project's published public keys
+ *   (`SUPABASE_URL` + `/auth/v1/.well-known/jwks.json`).
+ *
+ * The guard routes a token by its `alg` header claim (see
+ * supabase-auth.guard.ts); this module only resolves verifiers. Secret
+ * values are never logged.
  */
 
-/** Thrown when the JWT secret is missing/blank. Mapped to a clear startup failure. */
+import { createRemoteJWKSet } from 'jose';
+
+/** Thrown when authentication cannot be configured at all. Mapped to a clear startup failure. */
 export class AuthConfigError extends Error {
   readonly configKey: string;
 
@@ -18,24 +31,54 @@ export class AuthConfigError extends Error {
   }
 }
 
-let cachedSecret: Uint8Array | undefined;
+let cachedSecret: Uint8Array | null | undefined;
 
 /**
- * Returns the Supabase JWT secret as bytes for jose's HS256 verification.
- * Fails fast (instead of silently disabling authentication) when unset.
- * Never throws after the first successful load.
+ * Returns the Supabase JWT secret as bytes for jose's HS256 verification,
+ * or null when unset (asymmetric-key projects verify via JWKS instead).
+ * Never logs the secret.
  */
-export function getSupabaseJwtSecret(): Uint8Array {
-  if (cachedSecret) return cachedSecret;
+export function getSupabaseJwtSecret(): Uint8Array | null {
+  if (cachedSecret !== undefined) return cachedSecret;
 
   const raw = process.env.SUPABASE_JWT_SECRET;
-  if (!raw || raw.trim() === '') {
-    throw new AuthConfigError(
-      'SUPABASE_JWT_SECRET',
-      'required so the API can verify Supabase Auth tokens. Set it to your Supabase project JWT secret (Dashboard → Settings → API). The API refuses to start without it — authentication cannot be silently disabled.',
-    );
-  }
-
-  cachedSecret = new TextEncoder().encode(raw.trim());
+  cachedSecret = raw && raw.trim() !== '' ? new TextEncoder().encode(raw.trim()) : null;
   return cachedSecret;
+}
+
+let cachedJwks: ReturnType<typeof import('jose').createRemoteJWKSet> | null = null;
+
+/**
+ * Remote JWK set for the project's published signing keys, or null when
+ * SUPABASE_URL is unset. jose caches the keys and refreshes them on key
+ * rotation (unknown kid), so JWKS resolution costs one HTTP fetch. The
+ * endpoint is public — no service key is involved.
+ */
+export function getSupabaseJwks() {
+  if (cachedJwks) return cachedJwks;
+
+  const raw = process.env.SUPABASE_URL?.trim();
+  if (!raw) return null;
+
+  const base = raw.replace(/\/+$/, '');
+  cachedJwks = createRemoteJWKSet(
+    new URL(`${base}/auth/v1/.well-known/jwks.json`),
+  );
+  return cachedJwks;
+}
+
+/**
+ * Startup gate: refuse to start when NO verifier can be configured. A
+ * deployment needs at least one of:
+ * - SUPABASE_JWT_SECRET (legacy HS256 token verification), or
+ * - SUPABASE_URL (asymmetric tokens verified against the project JWKS).
+ */
+export function assertAuthConfigured(): void {
+  if (getSupabaseJwks()) return;
+  if (getSupabaseJwtSecret()) return;
+
+  throw new AuthConfigError(
+    'SUPABASE_URL / SUPABASE_JWT_SECRET',
+    'the API cannot verify Supabase Auth tokens. Set SUPABASE_URL (access tokens are verified against the project JWKS) and/or SUPABASE_JWT_SECRET (legacy HS256 projects). The API refuses to start without either — authentication cannot be silently disabled.',
+  );
 }

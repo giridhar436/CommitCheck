@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { jwtVerify } from 'jose';
-import { getSupabaseJwtSecret } from './jwt.config';
+import { decodeProtectedHeader, jwtVerify } from 'jose';
+import { getSupabaseJwks, getSupabaseJwtSecret } from './jwt.config';
 import type { AuthUser } from './auth-user.interface';
 
 /** Supabase access tokens carry a UUID in `sub`; reject anything else early
@@ -12,10 +12,21 @@ const UUID_RE =
  * Global authentication guard (Phase 15): verifies the Supabase Auth
  * access token on every request before anything else runs.
  *
+ * Verification is routed by the token's `alg` header claim (never by the
+ * caller's input beyond that):
+ *
+ * - `HS256` — legacy Supabase projects: verify against the shared project
+ *   JWT secret (`SUPABASE_JWT_SECRET`). Only the symmetric algorithm is
+ *   accepted here, so an attacker cannot downgrade an asymmetric token.
+ * - any other algorithm (ES256/RS256/…) — current Supabase projects: verify
+ *   against the project's published JWKS (`SUPABASE_URL`). jose binds each
+ *   key to its published algorithm, so there is no algorithm-confusion
+ *   surface; `alg: none` has no verifier and always fails.
+ *
  * - No/blank Bearer header → 401 "Authentication required".
- * - Signature/expiry/format failure → 401 "Invalid or expired token"
- *   (deliberately uniform — verification internals are never echoed, so
- *   callers cannot distinguish malformed vs expired vs wrong-tenant).
+ * - Any verification failure → 401 "Invalid or expired token" (deliberately
+ *   uniform — verification internals are never echoed, so callers cannot
+ *   distinguish malformed vs expired vs wrong-tenant).
  * - On success the token's `sub`/`email` claims are attached as
  *   `request.authUser`; downstream code must use these values (via
  *   @CurrentUser()) and never client-supplied user ids.
@@ -33,9 +44,7 @@ export class SupabaseAuthGuard implements CanActivate {
     const token = header.replace(/^Bearer\s+/i, '').trim();
 
     try {
-      const { payload } = await jwtVerify(token, getSupabaseJwtSecret(), {
-        algorithms: ['HS256'],
-      });
+      const payload = await this.verify(token);
 
       const subject = payload.sub;
       if (typeof subject !== 'string' || !UUID_RE.test(subject)) {
@@ -51,5 +60,23 @@ export class SupabaseAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
+  }
+
+  /** Verify the token with the verifier its algorithm requires. Throws on
+   * any failure; the caller maps everything to the uniform 401. */
+  private async verify(token: string) {
+    const protectedHeader = decodeProtectedHeader(token);
+    if (protectedHeader.alg === 'HS256') {
+      const secret = getSupabaseJwtSecret();
+      if (!secret) throw new Error('HS256 token but no SUPABASE_JWT_SECRET configured');
+      return (await jwtVerify(token, secret, { algorithms: ['HS256'] })).payload;
+    }
+
+    const jwks = getSupabaseJwks();
+    if (!jwks) throw new Error(`token alg ${String(protectedHeader.alg)} requires SUPABASE_URL (JWKS) configuration`);
+    // Algorithm deliberately unrestricted: jose selects only JWKS keys whose
+    // published alg matches the token's, so each key verifies exactly the
+    // algorithm Supabase publishes for it.
+    return (await jwtVerify(token, jwks)).payload;
   }
 }

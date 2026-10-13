@@ -3,15 +3,21 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { AuthConfigError, getSupabaseJwtSecret } from './auth/jwt.config';
+import {
+  AuthConfigError,
+  assertAuthConfigured,
+  getSupabaseJwks,
+  getSupabaseJwtSecret,
+} from './auth/jwt.config';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
 
   // Fail fast — authentication cannot be silently disabled. Refuse to start
-  // without a JWT secret rather than serving unprotected routes.
+  // when no token verifier can be configured (JWKS via SUPABASE_URL and/or
+  // the legacy HS256 secret) rather than serving unprotected routes.
   try {
-    getSupabaseJwtSecret();
+    assertAuthConfigured();
   } catch (error) {
     const reason =
       error instanceof AuthConfigError ? error.message : 'unknown configuration error';
@@ -54,7 +60,13 @@ async function bootstrap(): Promise<void> {
   // Startup configuration summary — feature flags and endpoints only, never
   // secret values (spec: secrets must not reach logs).
   logger.log(`CommitCheck API listening on http://localhost:${port}/api`);
-  logger.log(`Auth: Supabase Auth (HS256) — all routes require a Bearer token`);
+  const authModes = [
+    getSupabaseJwks() ? 'JWKS (asymmetric tokens)' : null,
+    getSupabaseJwtSecret() ? 'HS256 secret (legacy tokens)' : null,
+  ].filter(Boolean);
+  logger.log(
+    `Auth: Supabase Auth (${authModes.join(' + ')}) — all routes require a Bearer token`,
+  );
   logger.log(
     `Embeddings: ${process.env.EMBEDDING_PROVIDER?.trim() || 'disabled'} · Notifications: ${
       process.env.RESEND_API_KEY?.trim() ? 'email (Resend)' : 'log (dev default)'
