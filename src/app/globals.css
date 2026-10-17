@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), Circular, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+
+  --color-primary: #ff385c;
+  --color-primary-active: #e00b41;
+  --color-primary-disabled: #ffd1da;
+  --color-ink: #222222;
+  --color-body: #3f3f3f;
+  --color-muted: #6a6a6a;
+  --color-muted-soft: #929292;
+  --color-hairline: #dddddd;
+  --color-hairline-soft: #ebebeb;
+  --color-border-strong: #c1c1c1;
+  --color-canvas: #ffffff;
+  --color-surface-soft: #f7f7f7;
+  --color-surface-card: #ffffff;
+  --color-surface-strong: #f2f2f2;
+  --color-on-primary: #ffffff;
+  --color-error: #c13515;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  --shadow-airbnb: rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+  --shadow-airbnb-hover: rgba(0, 0, 0, 0.04) 0 0 0 1px, rgba(0, 0, 0, 0.08) 0 4px 12px 0, rgba(0, 0, 0, 0.12) 0 8px 16px 0;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #222222;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Airbnb button & card utilities */
+.airbnb-shadow {
+  box-shadow: rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+}
+
+.airbnb-shadow-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.airbnb-shadow-hover:hover {
+  box-shadow: rgba(0, 0, 0, 0.04) 0 0 0 1px, rgba(0, 0, 0, 0.08) 0 4px 12px 0, rgba(0, 0, 0, 0.12) 0 8px 16px 0;
+  transform: translateY(-1px);
+}

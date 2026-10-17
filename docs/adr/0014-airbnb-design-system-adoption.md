@@ -1,0 +1,3 @@
+# 0014: Airbnb Design System Adoption
+
+We decided to standardize the entire CommitCheck frontend user interface on the Airbnb design system specification defined in `DESIGN.md`. All components, cards, navigation bars, buttons, and audit steppers must use the Airbnb visual tokens: pure white canvas (`#ffffff`), near-black ink typography (`#222222`), single-voltage Rausch accent (`#ff385c`), soft rounded geometry (8px buttons, 14px cards, full pill badges), and single-tier elevation. This delivers a generous, high-trust, and human-friendly executive interface that avoids cluttered enterprise dashboard tropes.

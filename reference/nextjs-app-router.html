@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reference: Next.js App Router Architecture | CommitCheck</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .ref-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 15px;
+    }
+    .ref-table th, .ref-table td {
+      border: 1px solid var(--divider);
+      padding: 12px 16px;
+      text-align: left;
+    }
+    .ref-table th {
+      background-color: var(--surface);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="lesson-header">
+      <div class="lesson-badge"><span class="dot"></span> Reference Sheet 02</div>
+      <h1>Next.js App Router Architecture</h1>
+      <p class="subtitle">File conventions, request lifecycles, and component boundaries.</p>
+    </div>
+
+    <h2>1. Special File Conventions in <code>src/app/</code></h2>
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>File Name</th>
+          <th>Role</th>
+          <th>Execution Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>page.tsx</code></td>
+          <td>Public UI view for this route folder</td>
+          <td>Server by default</td>
+        </tr>
+        <tr>
+          <td><code>layout.tsx</code></td>
+          <td>Persistent UI wrapper (navbars, headers)</td>
+          <td>Server by default</td>
+        </tr>
+        <tr>
+          <td><code>route.ts</code></td>
+          <td>Backend HTTP endpoint (GET, POST, etc.)</td>
+          <td>Server only (never renders HTML)</td>
+        </tr>
+        <tr>
+          <td><code>loading.tsx</code></td>
+          <td>Automatic streaming loading fallback</td>
+          <td>Client & Server</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. Route Handler Anatomy (<code>route.ts</code>)</h2>
+    <p>Export functions named after standard HTTP methods:</p>
+    <pre><code>import { NextRequest, NextResponse } from "next/server";
+
+// Handles GET /api/example
+export async function GET(request: NextRequest) {
+  const searchParam = request.nextUrl.searchParams.get("query");
+  return NextResponse.json({ success: true, param: searchParam });
+}
+
+// Handles POST /api/example
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  return NextResponse.json({ received: body }, { status: 201 });
+}</code></pre>
+
+    <h2>3. Server Components vs Client Components</h2>
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Server Component (Default)</th>
+          <th>Client Component (<code>"use client"</code>)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Direct Database Access</strong></td>
+          <td>Yes (Prisma, secrets, DB)</td>
+          <td>No (must call an API)</td>
+        </tr>
+        <tr>
+          <td><strong>Browser Interactivity</strong></td>
+          <td>No (no <code>onClick</code>, <code>useState</code>)</td>
+          <td>Yes (state, effects, events)</td>
+        </tr>
+        <tr>
+          <td><strong>Bundle Size</strong></td>
+          <td>Zero JS sent to browser</td>
+          <td>Sends JavaScript bundle</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer-prompt">
+      <p>← <a href="../lessons/0002-nextjs-app-router-and-routes.html">Return to Lesson 0002</a> | Prepared for the CommitCheck Teaching Workspace</p>
+    </div>
+  </div>
+</body>
+</html>
