@@ -91,11 +91,14 @@ model AuditReport {
   id                 String   @id @default(cuid())
   projectId          String
   status             String   @default("COMPLETED")
+  auditorRole        String   @default("FREELANCER_SELF_CHECK") // "CLIENT" | "FREELANCER_SELF_CHECK"
   summary            String
   verifiedPercentage Float
-  discrepanciesJson  String
+  verifiedTasksJson  String   @default("[]")
+  discrepanciesJson  String   @default("[]")
   ghostCompletions   Int      @default(0)
   untrackedCommits   Int      @default(0)
+  latestCommitSha    String?
   triggeredById      String
   project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt          DateTime @default(now())
