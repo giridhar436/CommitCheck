@@ -84,6 +84,27 @@ export class PrismaUserRepository implements UserRepository {
     return this.mapToAuthUser(created);
   }
 
+  async updateLinearCredentials(
+    userId: string,
+    data: {
+      linearAccessToken: string | null;
+      linearRefreshToken?: string | null;
+      linearWorkspaceId: string | null;
+      linearWorkspaceName: string | null;
+    }
+  ): Promise<AuthUser> {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        linearAccessToken: data.linearAccessToken,
+        linearRefreshToken: data.linearRefreshToken ?? null,
+        linearWorkspaceId: data.linearWorkspaceId,
+        linearWorkspaceName: data.linearWorkspaceName,
+      },
+    });
+    return this.mapToAuthUser(updated);
+  }
+
   private mapToAuthUser(raw: any): AuthUser {
     return {
       id: raw.id,
@@ -179,6 +200,28 @@ export class InMemoryUserRepository implements UserRepository {
     };
     this.users.set(id, newUser);
     return { ...newUser };
+  }
+
+  async updateLinearCredentials(
+    userId: string,
+    data: {
+      linearAccessToken: string | null;
+      linearRefreshToken?: string | null;
+      linearWorkspaceId: string | null;
+      linearWorkspaceName: string | null;
+    }
+  ): Promise<AuthUser> {
+    const existing = this.users.get(userId);
+    if (!existing) throw new Error("User not found");
+    const updated: AuthUser = {
+      ...existing,
+      linearAccessToken: data.linearAccessToken,
+      linearWorkspaceId: data.linearWorkspaceId,
+      linearWorkspaceName: data.linearWorkspaceName,
+      updatedAt: new Date(),
+    };
+    this.users.set(userId, updated);
+    return { ...updated };
   }
 
   clear() {

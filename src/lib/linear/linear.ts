@@ -1,0 +1,193 @@
+import { LinearOAuthTokenResponse, LinearService, LinearTeam, LinearWorkspace } from "./types";
+
+export class LiveLinearService implements GitHubLinearService {
+  getAuthorizationUrl(redirectUri: string, state?: string): string {
+    const clientId = process.env.LINEAR_CLIENT_ID || "";
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "read,write,issues:create",
+      actor: "user",
+      ...(state ? { state } : {}),
+    });
+    return `https://linear.app/oauth/authorize?${params.toString()}`;
+  }
+
+  async exchangeCodeForToken(code: string, redirectUri: string): Promise<LinearOAuthTokenResponse> {
+    const clientId = process.env.LINEAR_CLIENT_ID;
+    const clientSecret = process.env.LINEAR_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret || clientId.startsWith("mock_")) {
+      return {
+        access_token: "lin_mock_token_dev_123",
+        token_type: "Bearer",
+        scope: ["read", "write", "issues:create"],
+        refresh_token: "lin_mock_refresh_token_dev_123",
+      };
+    }
+
+    const res = await fetch("https://api.linear.app/oauth/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Linear OAuth error (${res.status}): ${errText}`);
+    }
+
+    return res.json();
+  }
+
+  async getViewerWorkspace(accessToken: string): Promise<LinearWorkspace> {
+    if (!accessToken || accessToken.startsWith("lin_mock_")) {
+      return {
+        id: "ws_demo_linear_1",
+        name: "Acme Freelance Studio",
+        urlKey: "acme-studio",
+      };
+    }
+
+    const query = `
+      query {
+        viewer {
+          id
+          organization {
+            id
+            name
+            urlKey
+          }
+        }
+      }
+    `;
+
+    const res = await fetch("https://api.linear.app/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch Linear workspace (${res.status})`);
+    }
+
+    const json = await res.json();
+    const org = json.data?.viewer?.organization;
+    if (!org) {
+      throw new Error("No organization found in Linear profile");
+    }
+
+    return {
+      id: org.id,
+      name: org.name,
+      urlKey: org.urlKey,
+    };
+  }
+
+  async listTeams(accessToken: string): Promise<LinearTeam[]> {
+    if (!accessToken || accessToken.startsWith("lin_mock_")) {
+      return [
+        { id: "team_1", name: "Engineering", key: "ENG" },
+        { id: "team_2", name: "Product Design", key: "DES" },
+      ];
+    }
+
+    const query = `
+      query {
+        teams {
+          nodes {
+            id
+            name
+            key
+          }
+        }
+      }
+    `;
+
+    const res = await fetch("https://api.linear.app/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to list Linear teams (${res.status})`);
+    }
+
+    const json = await res.json();
+    return json.data?.teams?.nodes || [];
+  }
+}
+
+interface GitHubLinearService extends LinearService {}
+
+export class MockLinearService implements LinearService {
+  private workspace: LinearWorkspace;
+  private teams: LinearTeam[];
+
+  constructor(
+    workspace: LinearWorkspace = {
+      id: "ws_mock_linear_99",
+      name: "Freelance Agency Hub",
+      urlKey: "freelance-agency",
+    },
+    teams: LinearTeam[] = [
+      { id: "team_dev", name: "Development", key: "DEV" },
+      { id: "team_ops", name: "Operations", key: "OPS" },
+    ]
+  ) {
+    this.workspace = workspace;
+    this.teams = teams;
+  }
+
+  getAuthorizationUrl(redirectUri: string, state?: string): string {
+    const params = new URLSearchParams({
+      client_id: "mock_linear_client",
+      redirect_uri: redirectUri,
+      ...(state ? { state } : {}),
+    });
+    return `https://linear.app/oauth/authorize?${params.toString()}`;
+  }
+
+  async exchangeCodeForToken(code: string, _redirectUri: string): Promise<LinearOAuthTokenResponse> {
+    if (code === "invalid_code") {
+      throw new Error("Invalid or expired authorization code");
+    }
+    return {
+      access_token: `lin_token_${code}`,
+      token_type: "Bearer",
+      scope: ["read", "write", "issues:create"],
+      refresh_token: `lin_refresh_${code}`,
+    };
+  }
+
+  async getViewerWorkspace(accessToken: string): Promise<LinearWorkspace> {
+    if (!accessToken || accessToken === "invalid_token") {
+      throw new Error("Authentication failed: invalid token");
+    }
+    return { ...this.workspace };
+  }
+
+  async listTeams(accessToken: string): Promise<LinearTeam[]> {
+    if (!accessToken || accessToken === "invalid_token") {
+      throw new Error("Authentication failed: invalid token");
+    }
+    return [...this.teams];
+  }
+}

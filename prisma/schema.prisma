@@ -23,6 +23,7 @@ model User {
   githubAccessToken   String?
   googleId            String?   @unique
   linearAccessToken   String?
+  linearRefreshToken  String?
   linearWorkspaceId   String?
   linearWorkspaceName String?
   createdAt           DateTime  @default(now())

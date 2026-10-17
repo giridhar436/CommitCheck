@@ -49,4 +49,13 @@ export interface UserRepository {
   findByGithubId(githubId: string): Promise<AuthUser | null>;
   findByGoogleId(googleId: string): Promise<AuthUser | null>;
   upsertOAuthUser(profile: OAuthProfile, role: Role): Promise<AuthUser>;
+  updateLinearCredentials(
+    userId: string,
+    data: {
+      linearAccessToken: string | null;
+      linearRefreshToken?: string | null;
+      linearWorkspaceId: string | null;
+      linearWorkspaceName: string | null;
+    }
+  ): Promise<AuthUser>;
 }

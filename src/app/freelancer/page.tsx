@@ -13,6 +13,7 @@ import {
   Calendar,
   Mail,
   ArrowRight,
+  Settings,
 } from "lucide-react";
 
 export default async function FreelancerDashboardPage() {
@@ -71,6 +72,14 @@ export default async function FreelancerDashboardPage() {
             <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-[#f7f7f7] text-[#222222] border border-[#dddddd]">
               FREELANCER
             </span>
+
+            <Link
+              href="/freelancer/settings"
+              className="p-2 text-[#6a6a6a] hover:text-[#222222] transition-colors rounded-full hover:bg-[#f7f7f7]"
+              title="Workspace Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
 
             <a
               href="/api/auth/logout"
@@ -131,19 +140,37 @@ export default async function FreelancerDashboardPage() {
           <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Linear Workspace</span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6a6a6a] bg-[#f7f7f7] px-2 py-0.5 rounded-full border border-[#dddddd]">
-                Ready for VAR-8
-              </span>
+              {user?.linearAccessToken ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Connected
+                </span>
+              ) : (
+                <Link
+                  href="/freelancer/settings"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#ff385c] hover:underline"
+                >
+                  Connect
+                </Link>
+              )}
             </div>
             <div className="flex items-center gap-3 my-2">
               <Layers className="w-5 h-5 text-[#222222]" />
               <span className="text-base font-semibold text-[#222222]">
-                {user?.linearWorkspaceName || "Connect Linear (Ticket 3)"}
+                {user?.linearWorkspaceName || "Not Connected"}
               </span>
             </div>
-            <p className="text-xs text-[#6a6a6a] mt-2">
-              Sync staged discovery tasks directly into your Linear workspace.
-            </p>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#f7f7f7]">
+              <p className="text-xs text-[#6a6a6a]">
+                {user?.linearAccessToken ? "Ready to sync scoped tickets" : "Connect your workspace"}
+              </p>
+              <Link
+                href="/freelancer/settings"
+                className="text-xs font-medium text-[#222222] hover:text-[#ff385c] underline"
+              >
+                Settings
+              </Link>
+            </div>
           </div>
 
           <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
