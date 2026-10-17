@@ -33,18 +33,23 @@ model User {
 }
 
 model Project {
-  id              String        @id @default(cuid())
-  name            String
-  githubRepo      String
-  linearProjectId String?
-  freelancerId    String
-  clientId        String?
-  freelancer      User          @relation("FreelancerProjects", fields: [freelancerId], references: [id], onDelete: Cascade)
-  client          User?         @relation("ClientProjects", fields: [clientId], references: [id], onDelete: SetNull)
-  meetings        Meeting[]
-  auditReports    AuditReport[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  title              String?
+  description        String?
+  clientEmail        String?
+  githubRepo         String
+  githubRepoFullName String?
+  status             String        @default("ACTIVE")
+  linearProjectId    String?
+  freelancerId       String
+  clientId           String?
+  freelancer         User          @relation("FreelancerProjects", fields: [freelancerId], references: [id], onDelete: Cascade)
+  client             User?         @relation("ClientProjects", fields: [clientId], references: [id], onDelete: SetNull)
+  meetings           Meeting[]
+  auditReports       AuditReport[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 }
 
 model Meeting {

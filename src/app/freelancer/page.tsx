@@ -1,8 +1,19 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentSession } from "@/lib/auth";
-import { defaultUserRepository } from "@/lib/auth";
-import { ShieldCheck, Plus, GitBranch, Layers, Video, LogOut, CheckCircle2 } from "lucide-react";
+import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
+import { defaultProjectRepository } from "@/lib/projects";
+import {
+  ShieldCheck,
+  Plus,
+  GitBranch,
+  Layers,
+  Video,
+  LogOut,
+  CheckCircle2,
+  Calendar,
+  Mail,
+  ArrowRight,
+} from "lucide-react";
 
 export default async function FreelancerDashboardPage() {
   const session = await getCurrentSession();
@@ -16,6 +27,7 @@ export default async function FreelancerDashboardPage() {
   }
 
   const user = await defaultUserRepository.findById(session.userId);
+  const projects = await defaultProjectRepository.listProjectsForFreelancer(session.userId);
 
   return (
     <div className="min-h-screen bg-white text-[#222222] flex flex-col font-sans">
@@ -85,14 +97,13 @@ export default async function FreelancerDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              disabled
-              title="Ready in Ticket 2: Project Creation & GitHub Binding"
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-colors shadow-sm cursor-pointer opacity-90 hover:opacity-100"
+            <Link
+              href="/freelancer/projects/new"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-colors shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               New Project
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -113,7 +124,7 @@ export default async function FreelancerDashboardPage() {
               </span>
             </div>
             <p className="text-xs text-[#6a6a6a] mt-2">
-              Authenticated for commit analysis and repository binding.
+              Repository binding & commit analysis active.
             </p>
           </div>
 
@@ -121,17 +132,17 @@ export default async function FreelancerDashboardPage() {
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Linear Workspace</span>
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6a6a6a] bg-[#f7f7f7] px-2 py-0.5 rounded-full border border-[#dddddd]">
-                VAR-8 Frontier
+                Ready for VAR-8
               </span>
             </div>
             <div className="flex items-center gap-3 my-2">
               <Layers className="w-5 h-5 text-[#222222]" />
               <span className="text-base font-semibold text-[#222222]">
-                {user?.linearWorkspaceName || "Not Connected"}
+                {user?.linearWorkspaceName || "Connect Linear (Ticket 3)"}
               </span>
             </div>
             <p className="text-xs text-[#6a6a6a] mt-2">
-              Linear OAuth connection enables 1-click project synchronization.
+              Sync staged discovery tasks directly into your Linear workspace.
             </p>
           </div>
 
@@ -152,22 +163,94 @@ export default async function FreelancerDashboardPage() {
           </div>
         </div>
 
-        {/* Active Projects Empty State */}
-        <div className="rounded-[14px] border border-dashed border-[#dddddd] bg-[#f7f7f7] p-12 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="w-12 h-12 rounded-full bg-white border border-[#dddddd] flex items-center justify-center mx-auto mb-4 text-[#222222]">
-              <GitBranch className="w-6 h-6 text-[#222222]" />
-            </div>
-            <h3 className="text-lg font-semibold text-[#222222] mb-1">No Projects Bound Yet</h3>
-            <p className="text-sm text-[#6a6a6a] mb-6">
-              You&apos;re authenticated via GitHub! In Ticket 2 (VAR-7), you will create projects, bind GitHub repositories, and invite clients.
-            </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#dddddd] text-xs font-medium text-[#222222]">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              Foundation & Dual OAuth (VAR-6) Complete
+        {/* Projects Section */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#222222]">Active Projects ({projects.length})</h2>
+          {projects.length > 0 && (
+            <Link
+              href="/freelancer/projects/new"
+              className="text-xs font-medium text-[#ff385c] hover:underline"
+            >
+              + Add another project
+            </Link>
+          )}
+        </div>
+
+        {projects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {project.status}
+                    </span>
+                    <span className="text-xs text-[#6a6a6a] flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {new Date(project.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-[#222222] mb-1">{project.title}</h3>
+                  {project.description && (
+                    <p className="text-xs text-[#6a6a6a] mb-4 line-clamp-2">{project.description}</p>
+                  )}
+
+                  <div className="space-y-2 my-4 pt-3 border-t border-[#f7f7f7] text-xs">
+                    <div className="flex items-center gap-2 text-[#222222]">
+                      <GitBranch className="w-4 h-4 text-[#6a6a6a]" />
+                      <span className="font-mono bg-[#f7f7f7] px-2 py-0.5 rounded border border-[#dddddd]">
+                        {project.githubRepo}
+                      </span>
+                    </div>
+
+                    {project.clientEmail && (
+                      <div className="flex items-center gap-2 text-[#6a6a6a]">
+                        <Mail className="w-4 h-4 text-[#6a6a6a]" />
+                        <span>Client: {project.clientEmail}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#dddddd] flex items-center justify-between mt-2">
+                  <div className="text-[11px] text-[#6a6a6a]">
+                    Repository Bound & Verified
+                  </div>
+                  <Link
+                    href={`/freelancer/projects/${project.id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#ff385c] hover:text-[#e00b41]"
+                  >
+                    View Project
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[14px] border border-dashed border-[#dddddd] bg-[#f7f7f7] p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-12 h-12 rounded-full bg-white border border-[#dddddd] flex items-center justify-center mx-auto mb-4 text-[#222222]">
+                <GitBranch className="w-6 h-6 text-[#222222]" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#222222] mb-1">No Projects Bound Yet</h3>
+              <p className="text-sm text-[#6a6a6a] mb-6">
+                Create your first project to bind an authorized GitHub repository and invite your client.
+              </p>
+              <Link
+                href="/freelancer/projects/new"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#ff385c] hover:bg-[#e00b41] text-white font-medium text-sm transition-all shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Initialize First Project
+              </Link>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
