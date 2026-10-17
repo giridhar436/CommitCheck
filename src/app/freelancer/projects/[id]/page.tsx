@@ -5,8 +5,10 @@ import { defaultProjectRepository } from "@/lib/projects";
 import { defaultMeetingRepository } from "@/lib/meetings";
 import { defaultTaskDraftRepository } from "@/lib/scope";
 import { defaultLinearService } from "@/lib/linear";
+import { defaultAuditRepository } from "@/lib/audit";
 import { MeetingSection } from "./meeting-section";
 import { ScopeReviewSection } from "./scope-review-section";
+import { ExecutiveAuditDashboard } from "@/app/client/audit-dashboard";
 import {
   ArrowLeft,
   ShieldCheck,
@@ -79,6 +81,20 @@ export default async function ProjectDetailPage({
 
   const activeMeetingWithTranscript = meetings.find((m) => !!m.transcript);
 
+  const rawReport = await defaultAuditRepository.findLatestReportForProject(project.id);
+  const initialReport = rawReport
+    ? {
+        ...rawReport,
+        createdAt: rawReport.createdAt.toISOString(),
+      }
+    : null;
+
+  const rawHistory = await defaultAuditRepository.listReportsForProject(project.id);
+  const history = rawHistory.map((h) => ({
+    ...h,
+    createdAt: h.createdAt.toISOString(),
+  }));
+
   return (
     <div className="min-h-screen bg-white text-[#222222] font-sans flex flex-col">
       {/* Top Header */}
@@ -102,9 +118,9 @@ export default async function ProjectDetailPage({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-[1280px] mx-auto px-6 py-10 w-full">
+      <main className="flex-1 max-w-[1280px] mx-auto px-6 py-10 w-full space-y-12">
         {/* Project Header */}
-        <div className="pb-8 mb-8 border-b border-[#dddddd] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="pb-8 border-b border-[#dddddd] flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -130,7 +146,7 @@ export default async function ProjectDetailPage({
         </div>
 
         {/* Project Metadata Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Bound Repository</span>
             <div className="flex items-center gap-2 my-2 font-mono text-sm text-[#222222]">
@@ -192,6 +208,42 @@ export default async function ProjectDetailPage({
           initialLinearProjectId={project.linearProjectId}
           initialLinearProjectUrl={project.linearProjectUrl}
         />
+
+        {/* Audit & Self-Check Section */}
+        <div className="pt-8 border-t border-[#dddddd]">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c]">
+                Verification Self-Check
+              </span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#f7f7f7] text-[#6a6a6a] border border-[#dddddd]">
+                Freelancer Preview
+              </span>
+            </div>
+            <h2 className="text-xl font-semibold text-[#222222]">
+              Code Audit & Deliverable Verification
+            </h2>
+            <p className="text-sm text-[#6a6a6a] mt-1">
+              Test how your current GitHub commits align with Linear tasks, detect any ghost completions early, and run verification audits before client review.
+            </p>
+          </div>
+
+          <ExecutiveAuditDashboard
+            project={{
+              id: project.id,
+              title: project.title,
+              description: project.description,
+              githubRepo: project.githubRepo,
+              linearProjectId: project.linearProjectId,
+              linearProjectUrl: project.linearProjectUrl || null,
+              clientEmail: project.clientEmail,
+              createdAt: project.createdAt.toISOString(),
+            }}
+            initialReport={initialReport}
+            history={history}
+            auditorRole="FREELANCER_SELF_CHECK"
+          />
+        </div>
       </main>
     </div>
   );
