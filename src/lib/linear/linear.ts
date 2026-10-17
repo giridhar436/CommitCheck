@@ -1,4 +1,13 @@
-import { LinearOAuthTokenResponse, LinearService, LinearTeam, LinearWorkspace } from "./types";
+import {
+  CreateLinearIssueInput,
+  CreateLinearProjectInput,
+  LinearCreatedIssue,
+  LinearCreatedProject,
+  LinearOAuthTokenResponse,
+  LinearService,
+  LinearTeam,
+  LinearWorkspace,
+} from "./types";
 
 export class LiveLinearService implements GitHubLinearService {
   getAuthorizationUrl(redirectUri: string, state?: string): string {
@@ -133,6 +142,140 @@ export class LiveLinearService implements GitHubLinearService {
     const json = await res.json();
     return json.data?.teams?.nodes || [];
   }
+
+  async createProject(
+    accessToken: string,
+    input: CreateLinearProjectInput
+  ): Promise<LinearCreatedProject> {
+    if (!accessToken || accessToken.startsWith("lin_mock_")) {
+      const slug = input.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+      return {
+        id: `lin_proj_${Math.random().toString(36).substring(2, 9)}`,
+        name: input.name,
+        url: `https://linear.app/freelance-agency/project/${slug}`,
+        slugId: slug,
+      };
+    }
+
+    const mutation = `
+      mutation CreateProject($name: String!, $teamIds: [String!]!, $description: String) {
+        projectCreate(input: { name: $name, teamIds: $teamIds, description: $description }) {
+          success
+          project {
+            id
+            name
+            url
+            slugId
+          }
+        }
+      }
+    `;
+
+    const res = await fetch("https://api.linear.app/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables: {
+          name: input.name,
+          teamIds: input.teamIds,
+          description: input.description,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to create Linear project (${res.status})`);
+    }
+
+    const json = await res.json();
+    const proj = json.data?.projectCreate?.project;
+    if (!proj) {
+      throw new Error("Linear project creation failed: No project returned");
+    }
+
+    return proj;
+  }
+
+  async createIssue(
+    accessToken: string,
+    input: CreateLinearIssueInput
+  ): Promise<LinearCreatedIssue> {
+    if (!accessToken || accessToken.startsWith("lin_mock_")) {
+      const num = Math.floor(100 + Math.random() * 900);
+      const identifier = `DEV-${num}`;
+      return {
+        id: `lin_issue_${Math.random().toString(36).substring(2, 9)}`,
+        identifier,
+        title: input.title,
+        url: `https://linear.app/freelance-agency/issue/${identifier}`,
+      };
+    }
+
+    const mutation = `
+      mutation CreateIssue(
+        $teamId: String!
+        $projectId: String
+        $title: String!
+        $description: String
+        $priority: Int
+        $estimate: Int
+      ) {
+        issueCreate(
+          input: {
+            teamId: $teamId
+            projectId: $projectId
+            title: $title
+            description: $description
+            priority: $priority
+            estimate: $estimate
+          }
+        ) {
+          success
+          issue {
+            id
+            identifier
+            title
+            url
+          }
+        }
+      }
+    `;
+
+    const res = await fetch("https://api.linear.app/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables: {
+          teamId: input.teamId,
+          projectId: input.projectId,
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          estimate: input.estimate,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to create Linear issue (${res.status})`);
+    }
+
+    const json = await res.json();
+    const issue = json.data?.issueCreate?.issue;
+    if (!issue) {
+      throw new Error("Linear issue creation failed: No issue returned");
+    }
+
+    return issue;
+  }
 }
 
 interface GitHubLinearService extends LinearService {}
@@ -189,5 +332,39 @@ export class MockLinearService implements LinearService {
       throw new Error("Authentication failed: invalid token");
     }
     return [...this.teams];
+  }
+
+  async createProject(
+    accessToken: string,
+    input: CreateLinearProjectInput
+  ): Promise<LinearCreatedProject> {
+    if (!accessToken || accessToken === "invalid_token") {
+      throw new Error("Authentication failed: invalid token");
+    }
+    const slug = input.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    return {
+      id: `lin_proj_${Math.random().toString(36).substring(2, 9)}`,
+      name: input.name,
+      url: `https://linear.app/${this.workspace.urlKey || "freelance-agency"}/project/${slug}`,
+      slugId: slug,
+    };
+  }
+
+  async createIssue(
+    accessToken: string,
+    input: CreateLinearIssueInput
+  ): Promise<LinearCreatedIssue> {
+    if (!accessToken || accessToken === "invalid_token") {
+      throw new Error("Authentication failed: invalid token");
+    }
+    const team = this.teams.find((t) => t.id === input.teamId) || this.teams[0] || { key: "DEV" };
+    const num = Math.floor(100 + Math.random() * 900);
+    const identifier = `${team.key}-${num}`;
+    return {
+      id: `lin_issue_${Math.random().toString(36).substring(2, 9)}`,
+      identifier,
+      title: input.title,
+      url: `https://linear.app/${this.workspace.urlKey || "freelance-agency"}/issue/${identifier}`,
+    };
   }
 }

@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentSession } from "@/lib/auth";
+import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
 import { defaultProjectRepository } from "@/lib/projects";
 import { defaultMeetingRepository } from "@/lib/meetings";
 import { defaultTaskDraftRepository } from "@/lib/scope";
+import { defaultLinearService } from "@/lib/linear";
 import { MeetingSection } from "./meeting-section";
 import { ScopeReviewSection } from "./scope-review-section";
 import {
@@ -13,6 +14,7 @@ import {
   Mail,
   Calendar,
   Layers,
+  ExternalLink,
 } from "lucide-react";
 
 export default async function ProjectDetailPage({
@@ -37,6 +39,17 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
+  const user = await defaultUserRepository.findById(session.userId);
+  const isLinearConnected = !!user?.linearAccessToken;
+  let linearTeams: Array<{ id: string; name: string; key: string }> = [];
+  if (isLinearConnected && user?.linearAccessToken) {
+    try {
+      linearTeams = await defaultLinearService.listTeams(user.linearAccessToken);
+    } catch {
+      linearTeams = [];
+    }
+  }
+
   const rawMeetings = await defaultMeetingRepository.listMeetingsForProject(id);
   const meetings = rawMeetings.map((m) => ({
     id: m.id,
@@ -57,6 +70,9 @@ export default async function ProjectDetailPage({
     priority: d.priority,
     estimate: d.estimate,
     status: d.status,
+    linearIssueId: d.linearIssueId,
+    linearIssueKey: d.linearIssueKey,
+    linearIssueUrl: d.linearIssueUrl,
     createdAt: d.createdAt.toISOString(),
     updatedAt: d.updatedAt.toISOString(),
   }));
@@ -140,11 +156,24 @@ export default async function ProjectDetailPage({
           <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Linear Project</span>
             <div className="flex items-center gap-2 my-2 text-sm text-[#222222]">
-              <Layers className="w-4 h-4 text-[#6a6a6a]" />
-              {project.linearProjectId || "Not Synced Yet"}
+              <Layers className="w-4 h-4 text-[#ff385c]" />
+              {project.linearProjectUrl ? (
+                <a
+                  href={project.linearProjectUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-[#ff385c] hover:underline flex items-center gap-1"
+                >
+                  {project.title} <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ) : (
+                <span className="text-[#6a6a6a]">Not Synced Yet</span>
+              )}
             </div>
             <p className="text-xs text-[#6a6a6a]">
-              Tasks will be published upon scope review approval.
+              {project.linearProjectUrl
+                ? "Published and tracked in your Linear workspace."
+                : "Tasks will be published upon scope review approval."}
             </p>
           </div>
         </div>
@@ -158,6 +187,10 @@ export default async function ProjectDetailPage({
           meetingId={activeMeetingWithTranscript?.id || meetings[0]?.id || null}
           initialDrafts={drafts}
           hasTranscript={!!activeMeetingWithTranscript}
+          isLinearConnected={isLinearConnected}
+          linearTeams={linearTeams}
+          initialLinearProjectId={project.linearProjectId}
+          initialLinearProjectUrl={project.linearProjectUrl}
         />
       </main>
     </div>

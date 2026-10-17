@@ -47,6 +47,21 @@ export class PrismaProjectRepository implements ProjectRepository {
     return records.map(this.mapToProject);
   }
 
+  async updateLinearProject(
+    id: string,
+    data: { linearProjectId: string; linearProjectUrl?: string | null; linearTeamId?: string | null }
+  ): Promise<Project> {
+    const raw = await prisma.project.update({
+      where: { id },
+      data: {
+        linearProjectId: data.linearProjectId,
+        linearProjectUrl: data.linearProjectUrl ?? null,
+        linearTeamId: data.linearTeamId ?? null,
+      },
+    });
+    return this.mapToProject(raw);
+  }
+
   private mapToProject(raw: any): Project {
     return {
       id: raw.id,
@@ -58,6 +73,8 @@ export class PrismaProjectRepository implements ProjectRepository {
       githubRepoFullName: raw.githubRepoFullName || raw.githubRepo,
       status: raw.status || "ACTIVE",
       linearProjectId: raw.linearProjectId,
+      linearProjectUrl: raw.linearProjectUrl ?? null,
+      linearTeamId: raw.linearTeamId ?? null,
       freelancerId: raw.freelancerId,
       clientId: raw.clientId,
       createdAt: raw.createdAt,
@@ -86,6 +103,8 @@ export class InMemoryProjectRepository implements ProjectRepository {
       githubRepoFullName: input.githubRepoFullName,
       status: "ACTIVE",
       linearProjectId: null,
+      linearProjectUrl: null,
+      linearTeamId: null,
       freelancerId,
       clientId: clientId ?? null,
       createdAt: now,
@@ -116,6 +135,24 @@ export class InMemoryProjectRepository implements ProjectRepository {
       if (p.clientEmail?.toLowerCase() === lower) list.push({ ...p });
     }
     return list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async updateLinearProject(
+    id: string,
+    data: { linearProjectId: string; linearProjectUrl?: string | null; linearTeamId?: string | null }
+  ): Promise<Project> {
+    const existing = this.projects.get(id);
+    if (!existing) throw new Error("Project not found");
+
+    const updated: Project = {
+      ...existing,
+      linearProjectId: data.linearProjectId,
+      linearProjectUrl: data.linearProjectUrl ?? null,
+      linearTeamId: data.linearTeamId ?? null,
+      updatedAt: new Date(),
+    };
+    this.projects.set(id, updated);
+    return { ...updated };
   }
 
   clear() {

@@ -96,6 +96,9 @@ export class PrismaTaskDraftRepository implements TaskDraftRepository {
       priority: raw.priority ?? 0,
       estimate: raw.estimate,
       status: raw.status as TaskDraftStatus,
+      linearIssueId: raw.linearIssueId ?? null,
+      linearIssueKey: raw.linearIssueKey ?? null,
+      linearIssueUrl: raw.linearIssueUrl ?? null,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     };
@@ -125,6 +128,9 @@ export class InMemoryTaskDraftRepository implements TaskDraftRepository {
       priority: data.priority ?? 0,
       estimate: data.estimate ?? null,
       status: data.status ?? "DRAFT",
+      linearIssueId: null,
+      linearIssueKey: null,
+      linearIssueUrl: null,
       createdAt: now,
       updatedAt: now,
     };

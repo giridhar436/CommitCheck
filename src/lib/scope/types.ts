@@ -17,6 +17,9 @@ export interface TaskDraft {
   priority: number;
   estimate: number | null;
   status: TaskDraftStatus;
+  linearIssueId?: string | null;
+  linearIssueKey?: string | null;
+  linearIssueUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,7 +48,19 @@ export interface TaskDraftRepository {
   findDraftById(id: string): Promise<TaskDraft | null>;
   updateTaskDraft(
     id: string,
-    updates: Partial<Pick<TaskDraft, "title" | "description" | "priority" | "estimate" | "status">>
+    updates: Partial<
+      Pick<
+        TaskDraft,
+        | "title"
+        | "description"
+        | "priority"
+        | "estimate"
+        | "status"
+        | "linearIssueId"
+        | "linearIssueKey"
+        | "linearIssueUrl"
+      >
+    >
   ): Promise<TaskDraft>;
   deleteTaskDraft(id: string): Promise<void>;
 }

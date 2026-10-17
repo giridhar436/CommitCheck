@@ -8,6 +8,8 @@ export interface Project {
   githubRepoFullName: string;
   status: string;
   linearProjectId: string | null;
+  linearProjectUrl?: string | null;
+  linearTeamId?: string | null;
   freelancerId: string;
   clientId: string | null;
   createdAt: Date;
@@ -47,4 +49,8 @@ export interface ProjectRepository {
   findProjectById(id: string): Promise<Project | null>;
   listProjectsForFreelancer(freelancerId: string): Promise<Project[]>;
   listProjectsForClient(clientEmail: string): Promise<Project[]>;
+  updateLinearProject(
+    id: string,
+    data: { linearProjectId: string; linearProjectUrl?: string | null; linearTeamId?: string | null }
+  ): Promise<Project>;
 }

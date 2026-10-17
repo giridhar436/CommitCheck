@@ -14,6 +14,8 @@ import {
   ChevronDown,
   Clock,
   ListTodo,
+  ExternalLink,
+  Send,
 } from "lucide-react";
 
 export interface TaskDraftUI {
@@ -25,8 +27,17 @@ export interface TaskDraftUI {
   priority: number;
   estimate: number | null;
   status: "DRAFT" | "APPROVED" | "DISCARDED" | "SYNCED";
+  linearIssueId?: string | null;
+  linearIssueKey?: string | null;
+  linearIssueUrl?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LinearTeamUI {
+  id: string;
+  name: string;
+  key: string;
 }
 
 export function ScopeReviewSection({
@@ -34,16 +45,31 @@ export function ScopeReviewSection({
   meetingId,
   initialDrafts,
   hasTranscript,
+  isLinearConnected,
+  linearTeams = [],
+  initialLinearProjectId = null,
+  initialLinearProjectUrl = null,
 }: {
   projectId: string;
   meetingId: string | null;
   initialDrafts: TaskDraftUI[];
   hasTranscript: boolean;
+  isLinearConnected: boolean;
+  linearTeams?: LinearTeamUI[];
+  initialLinearProjectId?: string | null;
+  initialLinearProjectUrl?: string | null;
 }) {
   const [drafts, setDrafts] = useState<TaskDraftUI[]>(initialDrafts);
   const [extracting, setExtracting] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [linearProjectUrl, setLinearProjectUrl] = useState<string | null>(
+    initialLinearProjectUrl || null
+  );
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(
+    linearTeams[0]?.id || ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -223,6 +249,41 @@ export function ScopeReviewSection({
       setError(err.message);
     } finally {
       setApproving(false);
+    }
+  }
+
+  async function handlePublishToLinear() {
+    setPublishing(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}/linear/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId: selectedTeamId || undefined }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to publish to Linear");
+      }
+
+      setLinearProjectUrl(data.result.linearProjectUrl);
+      setSuccessMessage(
+        `Successfully published ${data.result.publishedIssuesCount} issues to Linear! Stakeholder notification email dispatched.`
+      );
+
+      // Refresh drafts
+      const draftsRes = await fetch(`/api/projects/${projectId}/scope/drafts`);
+      if (draftsRes.ok) {
+        const draftsData = await draftsRes.json();
+        setDrafts(draftsData.drafts || []);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -578,7 +639,18 @@ export function ScopeReviewSection({
                           </span>
                         )}
 
-                        {isApproved ? (
+                        {draft.status === "SYNCED" ? (
+                          <a
+                            href={draft.linearIssueUrl || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors"
+                          >
+                            <Layers className="w-3 h-3 text-violet-600" />
+                            {draft.linearIssueKey || "Linear Issue"}
+                            <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                          </a>
+                        ) : isApproved ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                             Approved
@@ -620,42 +692,118 @@ export function ScopeReviewSection({
               );
             })}
 
-            {/* Scope Approval Bottom Action Bar */}
+            {/* Scope Approval & Linear Publish Bottom Action Bar */}
             <div className="mt-8 pt-6 border-t border-[#dddddd] flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#f7f7f7] -mx-6 -mb-6 md:-mx-8 md:-mb-8 p-6 rounded-b-[14px]">
-              <div>
-                <div className="text-xs font-semibold text-[#222222] flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Pre-Publish Gate
-                </div>
-                <p className="text-xs text-[#6a6a6a] mt-0.5">
-                  Approving scope locks requirements and readies issues for Linear workspace sync.
-                </p>
-              </div>
+              {linearProjectUrl ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                  <div>
+                    <div className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Active Linear Project & Stakeholders Notified
+                    </div>
+                    <p className="text-xs text-[#6a6a6a] mt-0.5">
+                      Deliverables are live on Linear. Resend notification email was dispatched to both client and freelancer.
+                    </p>
+                  </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <button
-                  onClick={handleApproveAll}
-                  disabled={approving || drafts.length === 0 || allApproved}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-[8px] bg-[#ff385c] hover:bg-[#e00b41] text-white text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {approving ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Approving Scope...
-                    </>
-                  ) : allApproved ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white" />
-                      Scope Approved & Ready for Sync
-                    </>
+                  <a
+                    href={linearProjectUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#222222] hover:bg-black text-white text-xs font-semibold cursor-pointer shadow-sm transition-all"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-[#ff385c]" />
+                    Open Linear Project
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              ) : allApproved ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                  <div>
+                    <div className="text-xs font-semibold text-[#222222] flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Scope Approved & Ready to Publish
+                    </div>
+                    <p className="text-xs text-[#6a6a6a] mt-0.5">
+                      Create a Linear project and publish all {drafts.length} issues in one click.
+                    </p>
+                  </div>
+
+                  {!isLinearConnected ? (
+                    <a
+                      href="/freelancer/settings"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[8px] bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold cursor-pointer shadow-sm transition-all"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Connect Linear to Publish
+                    </a>
                   ) : (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Approve All Scope ({drafts.length})
-                    </>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {linearTeams.length > 1 && (
+                        <select
+                          value={selectedTeamId}
+                          onChange={(e) => setSelectedTeamId(e.target.value)}
+                          className="h-10 px-3 rounded-[8px] border border-[#dddddd] bg-white text-xs font-medium text-[#222222]"
+                        >
+                          {linearTeams.map((team) => (
+                            <option key={team.id} value={team.id}>
+                              Team: {team.name} ({team.key})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      <button
+                        onClick={handlePublishToLinear}
+                        disabled={publishing}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-[8px] bg-[#ff385c] hover:bg-[#e00b41] text-white text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
+                      >
+                        {publishing ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Publishing to Linear...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5" />
+                            Publish Project to Linear
+                          </>
+                        )}
+                      </button>
+                    </div>
                   )}
-                </button>
-              </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                  <div>
+                    <div className="text-xs font-semibold text-[#222222] flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-[#ff385c]" />
+                      Pre-Publish Gate
+                    </div>
+                    <p className="text-xs text-[#6a6a6a] mt-0.5">
+                      Review deliverables above. Approving scope locks requirements and readies issues for Linear sync.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleApproveAll}
+                    disabled={approving || drafts.length === 0}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-[8px] bg-[#222222] hover:bg-black text-white text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
+                  >
+                    {approving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Approving Scope...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#ff385c]" />
+                        Approve All Scope ({drafts.length})
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
