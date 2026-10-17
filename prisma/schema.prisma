@@ -71,9 +71,10 @@ model Meeting {
 model LinearTaskDraft {
   id          String   @id @default(cuid())
   meetingId   String
+  projectId   String?
   title       String
   description String
-  status      String   @default("STAGED")
+  status      String   @default("DRAFT")
   priority    Int      @default(0)
   estimate    Int?
   meeting     Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)

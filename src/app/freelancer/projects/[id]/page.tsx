@@ -3,7 +3,9 @@ import Link from "next/link";
 import { getCurrentSession } from "@/lib/auth";
 import { defaultProjectRepository } from "@/lib/projects";
 import { defaultMeetingRepository } from "@/lib/meetings";
+import { defaultTaskDraftRepository } from "@/lib/scope";
 import { MeetingSection } from "./meeting-section";
+import { ScopeReviewSection } from "./scope-review-section";
 import {
   ArrowLeft,
   ShieldCheck,
@@ -44,6 +46,22 @@ export default async function ProjectDetailPage({
     transcriptJson: m.transcriptJson,
     createdAt: m.createdAt.toISOString(),
   }));
+
+  const rawDrafts = await defaultTaskDraftRepository.listDraftsForProject(id);
+  const drafts = rawDrafts.map((d) => ({
+    id: d.id,
+    meetingId: d.meetingId,
+    projectId: d.projectId,
+    title: d.title,
+    description: d.description,
+    priority: d.priority,
+    estimate: d.estimate,
+    status: d.status,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+  }));
+
+  const activeMeetingWithTranscript = meetings.find((m) => !!m.transcript);
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-sans flex flex-col">
@@ -131,8 +149,16 @@ export default async function ProjectDetailPage({
           </div>
         </div>
 
-        {/* Meeting Bot & Scope Staging Section */}
+        {/* Meeting Bot Section */}
         <MeetingSection projectId={project.id} initialMeetings={meetings} />
+
+        {/* AI Scope Extraction & Pre-Publish Review Staging */}
+        <ScopeReviewSection
+          projectId={project.id}
+          meetingId={activeMeetingWithTranscript?.id || meetings[0]?.id || null}
+          initialDrafts={drafts}
+          hasTranscript={!!activeMeetingWithTranscript}
+        />
       </main>
     </div>
   );

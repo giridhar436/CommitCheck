@@ -270,26 +270,25 @@ export function MeetingSection({
             )}
           </div>
 
-          {/* Ticket 5 Gate Preview */}
+          {/* Ticket 5 Scope Review Indicator */}
           <div className="mt-6 pt-6 border-t border-[#dddddd] flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#f7f7f7] -mx-6 -mb-6 md:-mx-8 md:-mb-8 p-6 rounded-b-[14px]">
             <div>
               <div className="text-xs font-semibold text-[#222222] flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-[#ff385c]" />
-                Next Step: AI Scope Extraction (Ticket 5 / VAR-10)
+                Transcript Ingested & Diarized
               </div>
               <p className="text-xs text-[#6a6a6a] mt-0.5">
-                Ready to parse this transcript into atomic, testable Linear tasks with Gemini 1.5 Pro.
+                Atomic deliverables and requirements are ready for Gemini 1.5 Pro scope extraction in the section below.
               </p>
             </div>
 
-            <button
-              disabled
-              title="Unlocks in Ticket 5"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#222222] text-white text-xs font-semibold opacity-90 cursor-not-allowed shrink-0"
+            <a
+              href="#scope-review"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#222222] hover:bg-black text-white text-xs font-semibold shadow-sm transition-all shrink-0 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#ff385c]" />
-              Extract Scope with Gemini
-            </button>
+              Review Extracted Scope
+            </a>
           </div>
         </div>
       )}
