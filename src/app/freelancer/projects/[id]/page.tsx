@@ -2,15 +2,15 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/auth";
 import { defaultProjectRepository } from "@/lib/projects";
+import { defaultMeetingRepository } from "@/lib/meetings";
+import { MeetingSection } from "./meeting-section";
 import {
   ArrowLeft,
   ShieldCheck,
   GitBranch,
-  Video,
   Mail,
   Calendar,
   Layers,
-  Sparkles,
 } from "lucide-react";
 
 export default async function ProjectDetailPage({
@@ -34,6 +34,16 @@ export default async function ProjectDetailPage({
   if (!project || project.freelancerId !== session.userId) {
     notFound();
   }
+
+  const rawMeetings = await defaultMeetingRepository.listMeetingsForProject(id);
+  const meetings = rawMeetings.map((m) => ({
+    id: m.id,
+    meetUrl: m.meetUrl,
+    status: m.status,
+    transcript: m.transcript,
+    transcriptJson: m.transcriptJson,
+    createdAt: m.createdAt.toISOString(),
+  }));
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-sans flex flex-col">
@@ -85,7 +95,7 @@ export default async function ProjectDetailPage({
           </div>
         </div>
 
-        {/* Project Metadata & Actions */}
+        {/* Project Metadata Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Bound Repository</span>
@@ -121,25 +131,8 @@ export default async function ProjectDetailPage({
           </div>
         </div>
 
-        {/* Meeting Bot & Scope Staging Section (Ready for VAR-9 & VAR-10) */}
-        <div className="rounded-[14px] border border-[#dddddd] bg-[#f7f7f7] p-8">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#dddddd] text-xs font-semibold text-[#222222] mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-[#ff385c]" />
-              Upcoming: Meeting Bot Dispatch (Ticket 4 / VAR-9)
-            </div>
-            <h3 className="text-lg font-semibold text-[#222222] mb-2">
-              Ready to Record Your Discovery Call?
-            </h3>
-            <p className="text-sm text-[#6a6a6a] mb-6">
-              In Ticket 4 (VAR-9), you will paste your Google Meet link here to dispatch our Recall.ai meeting bot, record commitments, and generate a verified scope transcript.
-            </p>
-            <div className="flex items-center gap-2 text-xs font-medium text-[#6a6a6a]">
-              <Video className="w-4 h-4" />
-              <span>Google Meet Bot Dispatch ready for Ticket 4</span>
-            </div>
-          </div>
-        </div>
+        {/* Meeting Bot & Scope Staging Section */}
+        <MeetingSection projectId={project.id} initialMeetings={meetings} />
       </main>
     </div>
   );
