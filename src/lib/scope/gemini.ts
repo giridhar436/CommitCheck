@@ -1,4 +1,9 @@
-import { ExtractedTask, LLMExtractionService } from "./types";
+import {
+  ClassifiedScopeItem,
+  ComprehensiveScopeAnalysis,
+  ExtractedTask,
+  LLMExtractionService,
+} from "./types";
 
 export class GeminiExtractionService implements LLMExtractionService {
   private apiKey: string;
@@ -7,26 +12,40 @@ export class GeminiExtractionService implements LLMExtractionService {
     this.apiKey = apiKey;
   }
 
-  async extractTasksFromTranscript(transcript: string): Promise<ExtractedTask[]> {
+  async analyzeTranscript(transcript: string): Promise<ComprehensiveScopeAnalysis> {
     if (!this.apiKey || this.apiKey.startsWith("mock_")) {
-      return this.fallbackExtraction(transcript);
+      return this.fallbackAnalysis(transcript);
     }
 
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${this.apiKey}`;
       const systemInstruction = `
-You are an expert technical product manager. Analyze the following meeting transcript between a Freelancer and a Client. 
-Extract atomic, implementable, testable software engineering tasks and milestones.
-Output ONLY a JSON array of task objects matching this structure:
-[
-  {
-    "title": "Short, clear action-oriented title",
-    "description": "Markdown description with detailed acceptance criteria",
-    "priority": 1-4 (1=Urgent, 2=High, 3=Medium, 4=Low, 0=None),
-    "estimate": story point integer (1, 2, 3, 5, 8),
-    "suggestedMilestone": "Milestone name"
-  }
-]
+You are an expert technical product manager and scope auditor for CommitCheck.
+Analyze the following meeting transcript between a Freelancer and a Client.
+You must perform ONE single, comprehensive classification of all topics discussed into four strict categories:
+
+1. "explicitRequirements": Clearly and mutually agreed software engineering deliverables.
+2. "aiInferredRequirements": Reasonable technical baseline requirements deduced from the overall product goal (e.g. database schema migrations, auth middleware, test suite), clearly marked as AI-suggested.
+3. "tentativeRequirements": Casual, uncertain, speculative, or proposed ideas mentioned in conversation that lack explicit agreement or commitment. DO NOT assume they are approved.
+4. "confirmedCommitments": Concrete commitments, milestones, or delivery promises made with an agreed timeline or deadline.
+
+For EVERY item, include:
+- "title": Action-oriented title
+- "description": Clear description with acceptance criteria
+- "priority": 1 (Urgent), 2 (High), 3 (Medium), 4 (Low), 0 (None)
+- "estimate": integer story points (1, 2, 3, 5, 8)
+- "evidence": Direct quote from transcript showing speaker and context
+- "confidence": Float between 0.0 and 1.0 reflecting certainty of classification
+- "suggestedMilestone": Milestone name (e.g. "Milestone 1: Core Setup")
+
+Output ONLY a JSON object matching this schema:
+{
+  "summary": "Brief executive summary of the meeting",
+  "explicitRequirements": [ { "title": "...", "description": "...", "priority": 2, "estimate": 3, "evidence": "...", "confidence": 0.95, "suggestedMilestone": "..." } ],
+  "aiInferredRequirements": [ { "title": "...", "description": "...", "priority": 3, "estimate": 2, "evidence": "...", "confidence": 0.85, "suggestedMilestone": "..." } ],
+  "tentativeRequirements": [ { "title": "...", "description": "...", "priority": 4, "estimate": 2, "evidence": "...", "confidence": 0.60, "suggestedMilestone": "..." } ],
+  "confirmedCommitments": [ { "title": "...", "description": "...", "priority": 1, "estimate": 3, "evidence": "...", "confidence": 0.98, "suggestedMilestone": "..." } ]
+}
 `;
 
       const res = await fetch(url, {
@@ -41,7 +60,7 @@ Output ONLY a JSON array of task objects matching this structure:
           ],
           generationConfig: {
             response_mime_type: "application/json",
-            temperature: 0.2,
+            temperature: 0.1,
           },
         }),
       });
@@ -52,99 +71,221 @@ Output ONLY a JSON array of task objects matching this structure:
 
       const data = await res.json();
       const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) return this.fallbackExtraction(transcript);
+      if (!rawText) return this.fallbackAnalysis(transcript);
 
       const parsed = JSON.parse(rawText);
-      return Array.isArray(parsed) ? parsed : this.fallbackExtraction(transcript);
+      return this.normalizeAnalysis(parsed, transcript);
     } catch {
-      return this.fallbackExtraction(transcript);
+      return this.fallbackAnalysis(transcript);
     }
   }
 
-  private fallbackExtraction(transcript: string): ExtractedTask[] {
-    const isStripe = transcript.toLowerCase().includes("stripe");
+  async extractTasksFromTranscript(transcript: string): Promise<ExtractedTask[]> {
+    const analysis = await this.analyzeTranscript(transcript);
+    return [
+      ...analysis.explicitRequirements,
+      ...analysis.confirmedCommitments,
+      ...analysis.aiInferredRequirements,
+      ...analysis.tentativeRequirements,
+    ];
+  }
+
+  private normalizeAnalysis(parsed: any, transcript: string): ComprehensiveScopeAnalysis {
+    const mapItems = (items: any[], classification: any): ClassifiedScopeItem[] => {
+      if (!Array.isArray(items)) return [];
+      return items.map((i) => ({
+        title: String(i.title || "Untitled deliverable"),
+        description: String(i.description || ""),
+        classification,
+        priority: typeof i.priority === "number" ? i.priority : 3,
+        estimate: typeof i.estimate === "number" ? i.estimate : null,
+        evidence: i.evidence ? String(i.evidence) : undefined,
+        confidence: typeof i.confidence === "number" ? i.confidence : 0.8,
+        suggestedMilestone: i.suggestedMilestone ? String(i.suggestedMilestone) : undefined,
+        notes: i.notes ? String(i.notes) : undefined,
+      }));
+    };
+
+    return {
+      summary: parsed.summary || "Discovery meeting transcript analyzed.",
+      explicitRequirements: mapItems(parsed.explicitRequirements, "EXPLICIT"),
+      aiInferredRequirements: mapItems(parsed.aiInferredRequirements, "AI_INFERRED"),
+      tentativeRequirements: mapItems(parsed.tentativeRequirements, "TENTATIVE"),
+      confirmedCommitments: mapItems(parsed.confirmedCommitments, "CONFIRMED_COMMITMENT"),
+    };
+  }
+
+  private fallbackAnalysis(transcript: string): ComprehensiveScopeAnalysis {
+    const lower = transcript.toLowerCase();
+    const isStripe = lower.includes("stripe") || lower.includes("payment");
 
     if (isStripe) {
-      return [
-        {
-          title: "Implement Stripe Elements Checkout Flow",
-          description: "Embed Stripe Elements in Next.js checkout page with card validation and error handling.",
-          priority: 2,
-          estimate: 3,
-          suggestedMilestone: "Milestone 1: Core Checkout",
-        },
-        {
-          title: "Build Receipt Webhook Processing Endpoint",
-          description: "Handle `payment_intent.succeeded` event, send confirmation email via Resend, and store transaction record.",
-          priority: 2,
-          estimate: 2,
-          suggestedMilestone: "Milestone 1: Core Checkout",
-        },
-        {
-          title: "Write Automated Payment Callback Tests",
-          description: "Integration test coverage for successful charges, failed cards, and webhook signature verification.",
-          priority: 3,
-          estimate: 2,
-          suggestedMilestone: "Milestone 2: QA & Verification",
-        },
-      ];
+      return {
+        summary: "Meeting focused on payment integration and checkout architecture.",
+        explicitRequirements: [
+          {
+            title: "Implement Stripe Elements UI Component",
+            description: "Embed responsive card input form with real-time validation and localized errors.",
+            classification: "EXPLICIT",
+            priority: 2,
+            estimate: 3,
+            evidence: 'Client: "We definitely need Stripe checkout integrated for credit cards."',
+            confidence: 0.95,
+            suggestedMilestone: "Milestone 1: Core Checkout",
+          },
+          {
+            title: "Build Webhook Endpoint for Payment Receipts",
+            description: "Handle payment_intent.succeeded, persist invoice record, and trigger email.",
+            classification: "EXPLICIT",
+            priority: 2,
+            estimate: 2,
+            evidence: 'Freelancer: "I will set up the backend webhook to handle payment confirmations."',
+            confidence: 0.92,
+            suggestedMilestone: "Milestone 1: Core Checkout",
+          },
+        ],
+        aiInferredRequirements: [
+          {
+            title: "Setup Stripe Webhook Signature Verification Middleware",
+            description: "Cryptographically verify Stripe webhook signatures to prevent spoofed payment callbacks.",
+            classification: "AI_INFERRED",
+            priority: 2,
+            estimate: 1,
+            evidence: "Inferred: Standard requirement for secure payment processing pipelines.",
+            confidence: 0.88,
+            suggestedMilestone: "Milestone 1: Core Checkout",
+          },
+          {
+            title: "Configure Database Transaction Rollbacks on Failed Charges",
+            description: "Ensure cart state reverts if external charge gateway times out.",
+            classification: "AI_INFERRED",
+            priority: 3,
+            estimate: 2,
+            evidence: "Inferred: Relational integrity requirement for order records.",
+            confidence: 0.82,
+            suggestedMilestone: "Milestone 2: Reliability",
+          },
+        ],
+        tentativeRequirements: [
+          {
+            title: "Apple Pay & Google Pay One-Click Checkout",
+            description: "Enable mobile wallet express checkout buttons if device supports payment request API.",
+            classification: "TENTATIVE",
+            priority: 4,
+            estimate: 3,
+            evidence: 'Client: "Maybe down the line we could also look into Apple Pay?"',
+            confidence: 0.55,
+            suggestedMilestone: "Milestone 3: Future Polish",
+          },
+          {
+            title: "Custom Multi-Currency Dynamic Conversions",
+            description: "Real-time FX currency switcher for international customers.",
+            classification: "TENTATIVE",
+            priority: 4,
+            estimate: 5,
+            evidence: 'Client: "What if someone wants to pay in Euros? Could be a nice-to-have."',
+            confidence: 0.45,
+            suggestedMilestone: "Milestone 3: Future Polish",
+          },
+        ],
+        confirmedCommitments: [
+          {
+            title: "Deliver Working Staging Checkout by Friday",
+            description: "Deploy end-to-end checkout flow to staging environment for client review.",
+            classification: "CONFIRMED_COMMITMENT",
+            priority: 1,
+            estimate: 2,
+            evidence: 'Freelancer: "I commit to having the test checkout ready on staging by Friday 5 PM."',
+            confidence: 0.99,
+            suggestedMilestone: "Milestone 1: Core Checkout",
+          },
+        ],
+      };
     }
 
-    return [
-      {
-        title: "Setup Foundation & Dual Role OAuth",
-        description: "Configure GitHub OAuth for Freelancer and Google OAuth for Client with role-based routing.",
-        priority: 1,
-        estimate: 3,
-        suggestedMilestone: "Milestone 1: Authentication",
-      },
-      {
-        title: "Repository Binding & Permissions Check",
-        description: "Allow Freelancer to bind GitHub repository and verify read access via GitHub API.",
-        priority: 2,
-        estimate: 2,
-        suggestedMilestone: "Milestone 1: Authentication",
-      },
-      {
-        title: "Linear Workspace Connection & Scope Sync",
-        description: "Connect Freelancer Linear workspace and publish approved scope items directly as Linear issues.",
-        priority: 2,
-        estimate: 3,
-        suggestedMilestone: "Milestone 2: Task Sync",
-      },
-    ];
+    return {
+      summary: "Foundational architecture and authentication kickoff meeting.",
+      explicitRequirements: [
+        {
+          title: "Setup Dual-Role OAuth Authentication",
+          description: "Configure GitHub OAuth for Freelancers and Google OAuth for Clients.",
+          classification: "EXPLICIT",
+          priority: 1,
+          estimate: 3,
+          evidence: 'Client: "We want clients to log in with Google, and developers with GitHub."',
+          confidence: 0.96,
+          suggestedMilestone: "Milestone 1: Foundation",
+        },
+        {
+          title: "GitHub Repository Binding and Access Verification",
+          description: "Allow Freelancer to bind GitHub repo and verify read access.",
+          classification: "EXPLICIT",
+          priority: 2,
+          estimate: 2,
+          evidence: 'Freelancer: "I will connect the GitHub repo so we can track commits."',
+          confidence: 0.94,
+          suggestedMilestone: "Milestone 1: Foundation",
+        },
+      ],
+      aiInferredRequirements: [
+        {
+          title: "Implement Session Expiration & Refresh Cookie Handling",
+          description: "Stateless signed JWT cookies with auto-renewal before expiration.",
+          classification: "AI_INFERRED",
+          priority: 2,
+          estimate: 2,
+          evidence: "Inferred: Required for secure multi-tenant sessions.",
+          confidence: 0.85,
+          suggestedMilestone: "Milestone 1: Foundation",
+        },
+      ],
+      tentativeRequirements: [
+        {
+          title: "Export Audit Reports as White-Labeled PDFs",
+          description: "Generate downloadable PDF summary with client agency logo.",
+          classification: "TENTATIVE",
+          priority: 4,
+          estimate: 3,
+          evidence: 'Client: "It would be cool if we could download a fancy PDF report to show management."',
+          confidence: 0.50,
+          suggestedMilestone: "Milestone 3: Future Polish",
+        },
+      ],
+      confirmedCommitments: [
+        {
+          title: "Initial Architecture Demo in Next Standup",
+          description: "Walk through authenticated project workspace during Tuesday standup.",
+          classification: "CONFIRMED_COMMITMENT",
+          priority: 1,
+          estimate: 1,
+          evidence: 'Freelancer: "I will demo the auth flow in our Tuesday morning standup."',
+          confidence: 0.97,
+          suggestedMilestone: "Milestone 1: Foundation",
+        },
+      ],
+    };
   }
 }
 
 export class MockExtractionService implements LLMExtractionService {
-  private customTasks?: ExtractedTask[];
+  private customAnalysis?: ComprehensiveScopeAnalysis;
 
-  constructor(customTasks?: ExtractedTask[]) {
-    this.customTasks = customTasks;
+  constructor(customAnalysis?: ComprehensiveScopeAnalysis) {
+    this.customAnalysis = customAnalysis;
   }
 
-  async extractTasksFromTranscript(_transcript: string): Promise<ExtractedTask[]> {
-    if (this.customTasks) return [...this.customTasks];
+  async analyzeTranscript(transcript: string): Promise<ComprehensiveScopeAnalysis> {
+    if (this.customAnalysis) return this.customAnalysis;
+    return new GeminiExtractionService().analyzeTranscript(transcript);
+  }
 
+  async extractTasksFromTranscript(transcript: string): Promise<ExtractedTask[]> {
+    const analysis = await this.analyzeTranscript(transcript);
     return [
-      {
-        title: "Implement Stripe Elements UI",
-        description: "Setup embedded card input fields in checkout modal.",
-        priority: 2,
-        estimate: 3,
-      },
-      {
-        title: "Setup Webhook Handler",
-        description: "Listen for successful charge callbacks and dispatch email.",
-        priority: 2,
-        estimate: 2,
-      },
-      {
-        title: "Write Payment Integration Tests",
-        description: "Verify edge cases, declines, and signature checks.",
-        priority: 3,
-        estimate: 2,
-      },
+      ...analysis.explicitRequirements,
+      ...analysis.confirmedCommitments,
+      ...analysis.aiInferredRequirements,
+      ...analysis.tentativeRequirements,
     ];
   }
 }

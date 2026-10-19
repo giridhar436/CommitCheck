@@ -237,4 +237,82 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
       }
     );
   });
+
+  it("strictly excludes tentative and unconfirmed AI-inferred items from being published to Linear", async () => {
+    const userRepo = new InMemoryUserRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const linearService = new MockLinearService();
+    const emailService = new MockEmailService();
+
+    const freelancer = await userRepo.upsertOAuthUser(
+      { provider: "github", providerId: "gh_protect", email: "protect@dev.io" },
+      "FREELANCER"
+    );
+
+    await userRepo.updateLinearCredentials(freelancer.id, {
+      linearAccessToken: "lin_token_protect",
+      linearWorkspaceId: "ws_protect",
+      linearWorkspaceName: "Protect Workspace",
+    });
+
+    const project = await projectRepo.createProject(freelancer.id, {
+      title: "Protected Scope Project",
+      clientEmail: "client@protect.io",
+      githubRepoFullName: "org/protected",
+    });
+
+    // 1. Explicit item (should be published)
+    await draftRepo.createTaskDraft({
+      meetingId: "m1",
+      projectId: project.id,
+      title: "Core Database Schema",
+      description: "Prisma schema setup",
+      priority: 1,
+      classification: "EXPLICIT",
+      status: "APPROVED",
+    });
+
+    // 2. Tentative item NOT confirmed by client (MUST NOT be published)
+    await draftRepo.createTaskDraft({
+      meetingId: "m1",
+      projectId: project.id,
+      title: "Voice Notes Transcription",
+      description: "Casual client suggestion",
+      priority: 4,
+      classification: "TENTATIVE",
+      clientApprovalStatus: "PENDING_CLIENT_APPROVAL",
+      status: "DRAFT",
+    });
+
+    // 3. AI-inferred item NOT confirmed by client (MUST NOT be published)
+    await draftRepo.createTaskDraft({
+      meetingId: "m1",
+      projectId: project.id,
+      title: "Redis Caching Layer",
+      description: "AI-suggested baseline",
+      priority: 3,
+      classification: "AI_INFERRED",
+      clientApprovalStatus: "PENDING_CLIENT_APPROVAL",
+      status: "DRAFT",
+    });
+
+    const result = await publishProjectToLinear(
+      { projectId: project.id, freelancerId: freelancer.id },
+      userRepo,
+      projectRepo,
+      draftRepo,
+      linearService,
+      emailService
+    );
+
+    // Only the 1 explicit item should have been published
+    assert.strictEqual(result.publishedIssuesCount, 1);
+    assert.strictEqual(result.publishedIssues[0].title, "Core Database Schema");
+
+    // Check Linear mock service has only 1 issue created
+    assert.strictEqual(linearService.createdIssues.length, 1);
+    assert.strictEqual(linearService.createdIssues[0].title, "Core Database Schema");
+  });
 });
+

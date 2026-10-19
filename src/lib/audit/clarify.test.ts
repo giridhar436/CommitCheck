@@ -12,6 +12,10 @@ class MockEmailService implements EmailNotificationService {
     this.sentEmails.push(options);
     return { success: true, id: `mock_email_${Date.now()}` };
   }
+
+  async sendScopeConfirmationEmail() {
+    return { success: true, id: `mock_email_${Date.now()}` };
+  }
 }
 
 // Service function modeling the clarification dispatch logic

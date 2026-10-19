@@ -52,4 +52,24 @@ _Avoid_: Fake task, Phantom ticket, False positive
 An incremental batch of tasks derived from a subsequent meeting, appended to an existing Project's Linear board.
 _Avoid_: Change order, Scope creep, Revision
 
+**Explicit Requirement**:
+A functional or technical deliverable directly agreed upon by both Client and Freelancer during a meeting.
+_Avoid_: Hard requirement, Definite task
+
+**AI-Inferred Requirement**:
+A baseline functional or technical deliverable deduced by AI from overall product intent, requiring explicit Client authorization before entering approved scope.
+_Avoid_: Implied task, AI hallucination, Suggested scope
+
+**Tentative Requirement**:
+An idea, proposal, or casual comment discussed during a meeting without definitive commitment, held outside approved scope until confirmed by the Client.
+_Avoid_: Soft scope, Stretch goal, Nice-to-have
+
+**Confirmed Commitment**:
+A concrete deliverable or milestone promised by the Freelancer with an agreed delivery expectation or deadline.
+_Avoid_: Promise, SLA, Handshake
+
+**Scope Confirmation**:
+A formal verification action by the Client converting tentative or AI-inferred requirements into approved scope.
+_Avoid_: Sign-off, Client approval, Scope lock
+
 

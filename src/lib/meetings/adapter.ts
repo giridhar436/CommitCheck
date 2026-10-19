@@ -61,15 +61,31 @@ export class PrismaMeetingRepository implements MeetingRepository {
     return this.mapToMeeting(raw);
   }
 
+  async updateMeetingAnalysis(
+    meetingId: string,
+    analysisJson: string
+  ): Promise<Meeting> {
+    const raw = await (prisma.meeting.update as any)({
+      where: { id: meetingId },
+      data: {
+        analysisJson,
+        analyzedAt: new Date(),
+      },
+    });
+    return this.mapToMeeting(raw);
+  }
+
   private mapToMeeting(raw: any): Meeting {
     return {
       id: raw.id,
       projectId: raw.projectId,
       meetUrl: raw.meetUrl,
-      recallBotId: raw.recallBotId || raw.botId,
+      recallBotId: raw.recallBotId ?? raw.botId,
       status: raw.status as MeetingStatus,
       transcript: raw.transcript,
       transcriptJson: raw.transcriptJson,
+      analysisJson: raw.analysisJson ?? null,
+      analyzedAt: raw.analyzedAt ?? null,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     };
@@ -95,6 +111,8 @@ export class InMemoryMeetingRepository implements MeetingRepository {
       status,
       transcript: null,
       transcriptJson: null,
+      analysisJson: null,
+      analyzedAt: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -142,7 +160,26 @@ export class InMemoryMeetingRepository implements MeetingRepository {
     return { ...updated };
   }
 
+  async updateMeetingAnalysis(
+    meetingId: string,
+    analysisJson: string
+  ): Promise<Meeting> {
+    const existing = this.meetings.get(meetingId);
+    if (!existing) throw new Error("Meeting not found");
+
+    const updated: Meeting = {
+      ...existing,
+      analysisJson,
+      analyzedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.meetings.set(meetingId, updated);
+    return { ...updated };
+  }
+
   clear() {
     this.meetings.clear();
   }
 }
+
+export const defaultMeetingRepository = new PrismaMeetingRepository();

@@ -25,8 +25,8 @@ describe("CommitCheck AI Scope Extraction & Pre-Publish Review Staging (VAR-10)"
     const tasks = await mockLLM.extractTasksFromTranscript(sampleTranscript);
 
     assert.ok(Array.isArray(tasks));
-    assert.strictEqual(tasks.length, 3);
-    assert.strictEqual(tasks[0].title, "Implement Stripe Elements UI");
+    assert.strictEqual(tasks.length, 7);
+    assert.strictEqual(tasks[0].title, "Implement Stripe Elements UI Component");
     assert.strictEqual(tasks[0].priority, 2);
     assert.strictEqual(tasks[0].estimate, 3);
   });
@@ -74,13 +74,13 @@ describe("CommitCheck AI Scope Extraction & Pre-Publish Review Staging (VAR-10)"
       llm
     );
 
-    assert.strictEqual(drafts.length, 3);
+    assert.strictEqual(drafts.length, 7);
     assert.strictEqual(drafts[0].status, "DRAFT");
     assert.strictEqual(drafts[0].projectId, project.id);
     assert.strictEqual(drafts[0].meetingId, meeting.id);
 
     const listed = await draftRepo.listDraftsForMeeting(meeting.id);
-    assert.strictEqual(listed.length, 3);
+    assert.strictEqual(listed.length, 7);
   });
 
   it("rejects scope extraction if the requesting user is not a FREELANCER", async () => {
@@ -267,4 +267,154 @@ describe("CommitCheck AI Scope Extraction & Pre-Publish Review Staging (VAR-10)"
     const afterDelete = await draftRepo.findDraftById(manualTask.id);
     assert.strictEqual(afterDelete, null);
   });
+
+  it("extracts and classifies deliverables into explicit, confirmed commitments, AI-inferred, and tentative items with caching", async () => {
+    const userRepo = new InMemoryUserRepository();
+    const meetingRepo = new InMemoryMeetingRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const llm = new MockExtractionService();
+
+    const dev = await userRepo.upsertOAuthUser(
+      { provider: "github", providerId: "gh_class", email: "dev@commitcheck.com" },
+      "FREELANCER"
+    );
+
+    const project = await projectRepo.createProject(dev.id, {
+      title: "Classified Scope Project",
+      clientEmail: "client@test.com",
+      githubRepoFullName: "dev/classified-scope",
+    });
+
+    const meeting = await meetingRepo.createMeeting(
+      project.id,
+      "https://meet.google.com/test-meet",
+      "bot_class",
+      "COMPLETED"
+    );
+    await meetingRepo.updateMeetingStatus(meeting.id, "COMPLETED", sampleTranscript);
+
+    // First call: extracts and caches analysis
+    const drafts = await triggerScopeExtraction(
+      meeting.id,
+      dev.id,
+      userRepo,
+      meetingRepo,
+      projectRepo,
+      draftRepo,
+      llm
+    );
+
+    assert.ok(drafts.length >= 4);
+
+    const explicit = drafts.filter((d) => d.classification === "EXPLICIT");
+    const commitments = drafts.filter((d) => d.classification === "CONFIRMED_COMMITMENT");
+    const inferred = drafts.filter((d) => d.classification === "AI_INFERRED");
+    const tentative = drafts.filter((d) => d.classification === "TENTATIVE");
+
+    assert.ok(explicit.length > 0);
+    assert.ok(commitments.length > 0);
+    assert.ok(inferred.length > 0);
+    assert.ok(tentative.length > 0);
+
+    // Verify client approval status requirements
+    assert.strictEqual(explicit[0].clientApprovalStatus, "NOT_REQUIRED");
+    assert.strictEqual(commitments[0].clientApprovalStatus, "NOT_REQUIRED");
+    assert.strictEqual(inferred[0].clientApprovalStatus, "PENDING_CLIENT_APPROVAL");
+    assert.strictEqual(tentative[0].clientApprovalStatus, "PENDING_CLIENT_APPROVAL");
+
+    // Verify caching: meeting now has analysisJson populated
+    const updatedMeeting = await meetingRepo.findMeetingById(meeting.id);
+    assert.ok(updatedMeeting?.analysisJson);
+    const parsedCache = JSON.parse(updatedMeeting.analysisJson);
+    assert.ok(parsedCache.explicitRequirements);
+  });
+
+  it("handles the client scope confirmation loop via email and status updates", async () => {
+    const { MockEmailService } = await import("../notifications/email");
+    const { requestClientScopeConfirmation, confirmClientScopeItems } = await import("./service");
+
+    const userRepo = new InMemoryUserRepository();
+    const meetingRepo = new InMemoryMeetingRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const emailService = new MockEmailService();
+
+    const dev = await userRepo.upsertOAuthUser(
+      { provider: "github", providerId: "gh_conf", email: "freelancer@test.com" },
+      "FREELANCER"
+    );
+
+    const client = await userRepo.upsertOAuthUser(
+      { provider: "google", providerId: "g_conf", email: "client@test.com" },
+      "CLIENT"
+    );
+
+    const project = await projectRepo.createProject(dev.id, {
+      title: "Confirmable Project",
+      clientEmail: "client@test.com",
+      githubRepoFullName: "dev/confirmable",
+    });
+
+    const tentativeDraft = await draftRepo.createTaskDraft({
+      meetingId: "m_1",
+      projectId: project.id,
+      title: "AI Voice Dictation",
+      description: "Proposed voice dictation feature",
+      priority: 4,
+      classification: "TENTATIVE",
+      clientApprovalStatus: "PENDING_CLIENT_APPROVAL",
+      status: "DRAFT",
+    });
+
+    const inferredDraft = await draftRepo.createTaskDraft({
+      meetingId: "m_1",
+      projectId: project.id,
+      title: "Rate Limiter Middleware",
+      description: "DDoS protection",
+      priority: 3,
+      classification: "AI_INFERRED",
+      clientApprovalStatus: "PENDING_CLIENT_APPROVAL",
+      status: "DRAFT",
+    });
+
+    // 1. Freelancer requests confirmation
+    const reqResult = await requestClientScopeConfirmation(
+      project.id,
+      dev.id,
+      userRepo,
+      projectRepo,
+      draftRepo,
+      emailService
+    );
+
+    assert.strictEqual(reqResult.emailSent, true);
+    assert.strictEqual(reqResult.requestedCount, 2);
+    assert.strictEqual(emailService.confirmationEmails.length, 1);
+    assert.strictEqual(emailService.confirmationEmails[0].to, "client@test.com");
+
+    // 2. Client confirms 1 item, rejects the other
+    const confirmResult = await confirmClientScopeItems(
+      project.id,
+      client.id,
+      [
+        { draftId: tentativeDraft.id, approved: true },
+        { draftId: inferredDraft.id, approved: false },
+      ],
+      userRepo,
+      projectRepo,
+      draftRepo
+    );
+
+    assert.strictEqual(confirmResult.updatedDrafts.length, 2);
+
+    const approvedItem = await draftRepo.findDraftById(tentativeDraft.id);
+    assert.strictEqual(approvedItem?.clientApprovalStatus, "CLIENT_APPROVED");
+    assert.strictEqual(approvedItem?.status, "APPROVED");
+
+    const rejectedItem = await draftRepo.findDraftById(inferredDraft.id);
+    assert.strictEqual(rejectedItem?.clientApprovalStatus, "CLIENT_REJECTED");
+    assert.strictEqual(rejectedItem?.status, "DISCARDED");
+  });
 });
+

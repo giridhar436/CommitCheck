@@ -1,6 +1,7 @@
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -10,6 +11,20 @@ generator client {
 enum Role {
   FREELANCER
   CLIENT
+}
+
+enum RequirementClassification {
+  EXPLICIT
+  AI_INFERRED
+  TENTATIVE
+  CONFIRMED_COMMITMENT
+}
+
+enum ClientApprovalStatus {
+  NOT_REQUIRED
+  PENDING_CLIENT_APPROVAL
+  CLIENT_APPROVED
+  CLIENT_REJECTED
 }
 
 model User {
@@ -64,6 +79,8 @@ model Meeting {
   status         String            @default("SCHEDULED")
   transcript     String?
   transcriptJson String?
+  analysisJson   String?
+  analyzedAt     DateTime?
   project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   taskDrafts     LinearTaskDraft[]
   createdAt      DateTime          @default(now())
@@ -71,20 +88,25 @@ model Meeting {
 }
 
 model LinearTaskDraft {
-  id             String   @id @default(cuid())
-  meetingId      String
-  projectId      String?
-  title          String
-  description    String
-  status         String   @default("DRAFT")
-  priority       Int      @default(0)
-  estimate       Int?
-  linearIssueId  String?
-  linearIssueKey String?
-  linearIssueUrl String?
-  meeting        Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
+  id                   String                    @id @default(cuid())
+  meetingId            String
+  projectId            String?
+  title                String
+  description          String
+  status               String                    @default("DRAFT")
+  classification       RequirementClassification @default(EXPLICIT)
+  clientApprovalStatus ClientApprovalStatus      @default(NOT_REQUIRED)
+  evidence             String?
+  confidence           Float?
+  suggestedMilestone   String?
+  priority             Int                       @default(0)
+  estimate             Int?
+  linearIssueId        String?
+  linearIssueKey       String?
+  linearIssueUrl       String?
+  meeting              Meeting                   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @default(now()) @updatedAt
 }
 
 model AuditReport {

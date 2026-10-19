@@ -350,6 +350,8 @@ export class MockLinearService implements LinearService {
     };
   }
 
+  public createdIssues: LinearCreatedIssue[] = [];
+
   async createIssue(
     accessToken: string,
     input: CreateLinearIssueInput
@@ -360,11 +362,13 @@ export class MockLinearService implements LinearService {
     const team = this.teams.find((t) => t.id === input.teamId) || this.teams[0] || { key: "DEV" };
     const num = Math.floor(100 + Math.random() * 900);
     const identifier = `${team.key}-${num}`;
-    return {
+    const issue: LinearCreatedIssue = {
       id: `lin_issue_${Math.random().toString(36).substring(2, 9)}`,
       identifier,
       title: input.title,
       url: `https://linear.app/${this.workspace.urlKey || "freelance-agency"}/issue/${identifier}`,
     };
+    this.createdIssues.push(issue);
+    return issue;
   }
 }

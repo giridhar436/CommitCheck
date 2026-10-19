@@ -20,24 +20,29 @@
 # production
 /build
 
-# misc
+# os & misc
 .DS_Store
+Thumbs.db
+ehthumbs.db
 *.pem
 
-# debug
+# debug & logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # env files
 .env
 .env*.local
 !.env.example
 
-# sqlite database
+# local sqlite databases
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 
 # vercel
 .vercel
@@ -45,3 +50,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ide & editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# build tools & cache
+.turbo/
+
+# learning & pedagogical materials
+/lessons/
+/learning-records/
+/reference/
+/assets/
+MISSION.md
+NOTES.md
+RESOURCES.md

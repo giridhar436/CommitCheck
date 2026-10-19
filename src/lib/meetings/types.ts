@@ -21,6 +21,8 @@ export interface Meeting {
   status: MeetingStatus;
   transcript: string | null;
   transcriptJson: string | null;
+  analysisJson?: string | null;
+  analyzedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,5 +48,9 @@ export interface MeetingRepository {
     status: MeetingStatus,
     transcript?: string | null,
     transcriptJson?: string | null
+  ): Promise<Meeting>;
+  updateMeetingAnalysis(
+    meetingId: string,
+    analysisJson: string
   ): Promise<Meeting>;
 }

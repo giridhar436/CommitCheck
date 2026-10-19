@@ -126,11 +126,19 @@ export async function publishProjectToLinear(
     throw new Error("Unauthorized: You do not own this project.");
   }
 
-  // 4. Fetch approved drafts
+  // 4. Fetch approved drafts strictly enforcing scope classification rules
   const allDrafts = await draftRepo.listDraftsForProject(input.projectId);
-  const approvedDrafts = allDrafts.filter(
-    (d) => d.status === "APPROVED" || d.status === "DRAFT"
-  );
+  const approvedDrafts = allDrafts.filter((d) => {
+    // Explicit requirements and Confirmed Commitments are eligible if not discarded/synced
+    if (d.classification === "EXPLICIT" || d.classification === "CONFIRMED_COMMITMENT") {
+      return d.status === "APPROVED" || d.status === "DRAFT";
+    }
+    // AI Inferred and Tentative MUST be approved by the Client first
+    return (
+      d.clientApprovalStatus === "CLIENT_APPROVED" &&
+      (d.status === "APPROVED" || d.status === "DRAFT")
+    );
+  });
   if (approvedDrafts.length === 0) {
     throw new Error(
       "No approved scope items to publish. Please review and approve deliverables before publishing."

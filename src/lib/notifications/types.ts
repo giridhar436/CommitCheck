@@ -13,6 +13,23 @@ export interface ScopeNotificationEmailInput {
   tasks: TaskEmailSummary[];
 }
 
+export interface PendingScopeItemEmailSummary {
+  title: string;
+  description: string;
+  classification: "AI_INFERRED" | "TENTATIVE" | string;
+  evidence?: string;
+  estimate?: number | null;
+}
+
+export interface ScopeConfirmationEmailInput {
+  to: string;
+  clientName?: string;
+  freelancerName?: string;
+  projectName: string;
+  confirmationUrl: string;
+  items: PendingScopeItemEmailSummary[];
+}
+
 export interface EmailNotificationResult {
   id: string;
   success: boolean;
@@ -20,4 +37,5 @@ export interface EmailNotificationResult {
 
 export interface EmailNotificationService {
   sendScopeApprovedEmail(input: ScopeNotificationEmailInput): Promise<EmailNotificationResult>;
+  sendScopeConfirmationEmail(input: ScopeConfirmationEmailInput): Promise<EmailNotificationResult>;
 }

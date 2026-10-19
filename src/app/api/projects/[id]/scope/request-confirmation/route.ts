@@ -1,0 +1,41 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
+import { defaultProjectRepository } from "@/lib/projects";
+import {
+  requestClientScopeConfirmation,
+  defaultTaskDraftRepository,
+} from "@/lib/scope";
+import { defaultEmailService } from "@/lib/notifications";
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getCurrentSession();
+  if (!session || session.role !== "FREELANCER") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: projectId } = await params;
+
+  try {
+    const origin =
+      request.nextUrl.origin ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "http://localhost:3000";
+
+    const result = await requestClientScopeConfirmation(
+      projectId,
+      session.userId,
+      defaultUserRepository,
+      defaultProjectRepository,
+      defaultTaskDraftRepository,
+      defaultEmailService,
+      origin
+    );
+
+    return NextResponse.json(result, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+}
