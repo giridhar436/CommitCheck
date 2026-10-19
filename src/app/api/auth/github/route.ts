@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultUserRepository, handleOAuthCallback, OAuthProfile, SESSION_COOKIE_NAME } from "@/lib/auth";
 
+const OAUTH_STATE_COOKIE = "oauth_state";
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   const isMock = searchParams.get("mock") === "true";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
@@ -42,10 +45,26 @@ export async function GET(request: NextRequest) {
   if (!code) {
     const clientId = process.env.GITHUB_CLIENT_ID!;
     const redirectUri = `${appUrl}/api/auth/github`;
+    const oauthState = crypto.randomUUID();
     const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}&scope=read:user,user:email,repo`;
-    return NextResponse.redirect(githubAuthUrl);
+    )}&scope=read:user,user:email,repo&state=${oauthState}`;
+    const authorizeResponse = NextResponse.redirect(githubAuthUrl);
+    authorizeResponse.cookies.set({
+      name: OAUTH_STATE_COOKIE,
+      value: oauthState,
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      maxAge: 10 * 60,
+    });
+    return authorizeResponse;
+  }
+
+  // CSRF protection: the state we issued must match the one the provider returned
+  const expectedState = request.cookies.get(OAUTH_STATE_COOKIE)?.value;
+  if (!state || state !== expectedState) {
+    return NextResponse.redirect(new URL("/?error=oauth_state_mismatch", request.url));
   }
 
   try {
@@ -109,6 +128,7 @@ export async function GET(request: NextRequest) {
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60,
     });
+    response.cookies.delete(OAUTH_STATE_COOKIE);
     return response;
   } catch (err: any) {
     return NextResponse.redirect(
