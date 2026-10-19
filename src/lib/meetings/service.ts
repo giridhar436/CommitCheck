@@ -102,7 +102,8 @@ export async function handleRecallWebhook(
     throw new Error("Invalid webhook signature from Recall.ai");
   }
 
-  const botId = payload?.data?.bot_id || payload?.bot_id || payload?.data?.id;
+  // Current Recall.ai payloads carry the bot id at data.bot.id; older/simulated formats use data.bot_id, bot_id, or data.id
+  const botId = payload?.data?.bot?.id || payload?.data?.bot_id || payload?.bot_id || payload?.data?.id;
   if (!botId) {
     throw new Error("Missing bot_id in webhook payload");
   }
@@ -119,29 +120,51 @@ export async function handleRecallWebhook(
   let transcriptText: string | null = null;
   let transcriptJson: string | null = null;
 
-  if (event === "bot.status_change") {
-    const code = payload?.data?.status?.code;
-    if (code === "in_call_not_recording" || code === "joining_call") {
+  if (typeof event === "string" && event.startsWith("bot.")) {
+    // Current Recall.ai events (bot.joining_call, bot.in_call_recording, ...) carry the code at data.data.code;
+    // the simulated format uses bot.status_change with the code at data.status.code
+    const code = payload?.data?.data?.code ?? payload?.data?.status?.code;
+    if (
+      code === "in_call_not_recording" ||
+      code === "joining_call" ||
+      code === "in_waiting_room" ||
+      code === "recording_permission_allowed" ||
+      code === "recording_permission_denied"
+    ) {
       newStatus = "JOINING";
     } else if (code === "in_call_recording") {
       newStatus = "RECORDING";
-    } else if (code === "done") {
+    } else if (code === "call_ended" || code === "done") {
       newStatus = "TRANSCRIBING";
     } else if (code === "fatal") {
       newStatus = "FAILED";
     }
+  } else if (event === "transcript.failed") {
+    newStatus = "FAILED";
   }
 
   if (event === "transcript.done" || payload?.data?.transcript || payload?.transcript) {
-    const rawSegments =
-      payload?.data?.transcript ||
-      payload?.transcript ||
-      payload?.data?.segments ||
-      [];
+    const transcriptField =
+      payload?.data?.transcript || payload?.transcript || payload?.data?.segments;
 
-    const segments: TranscriptSegment[] = Array.isArray(rawSegments)
-      ? normalizeTranscriptSegments(rawSegments)
-      : [];
+    let segments: TranscriptSegment[] = [];
+    if (Array.isArray(transcriptField)) {
+      // Inline transcript (simulation format)
+      segments = normalizeTranscriptSegments(transcriptField);
+    } else if (
+      transcriptField &&
+      typeof transcriptField === "object" &&
+      (transcriptField as { id?: string }).id
+    ) {
+      // Current Recall.ai transcript.done notifications only reference the artifact;
+      // the utterances must be fetched from the artifact's presigned download URL
+      const transcriptData = await botService.fetchTranscriptArtifact(
+        (transcriptField as { id: string }).id
+      );
+      if (Array.isArray(transcriptData)) {
+        segments = normalizeTranscriptSegments(transcriptData);
+      }
+    }
 
     if (segments.length > 0) {
       transcriptText = formatTranscriptSegments(segments);

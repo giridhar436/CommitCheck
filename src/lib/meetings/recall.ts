@@ -76,6 +76,33 @@ export class RecallAiBotService implements MeetingBotService {
     return { status };
   }
 
+  // Fetches the transcript artifact and returns its content (Recall's diarized utterances array).
+  // Two steps: artifact metadata (needs API auth), then the presigned download URL (no auth header).
+  async fetchTranscriptArtifact(transcriptId: string): Promise<unknown> {
+    const artifactRes = await fetch(`${this.baseUrl}/api/v1/transcript/${transcriptId}/`, {
+      headers: {
+        Authorization: `Token ${this.apiKey}`,
+      },
+    });
+
+    if (!artifactRes.ok) {
+      throw new Error(`Recall.ai transcript fetch error (${artifactRes.status})`);
+    }
+
+    const artifact = await artifactRes.json();
+    const downloadUrl = artifact?.data?.download_url;
+    if (!downloadUrl) {
+      return artifact;
+    }
+
+    const transcriptRes = await fetch(downloadUrl);
+    if (!transcriptRes.ok) {
+      throw new Error(`Recall.ai transcript download error (${transcriptRes.status})`);
+    }
+
+    return transcriptRes.json();
+  }
+
   // Recall.ai signs webhooks with Svix (whsec_... signing secret, svix-id/timestamp/signature headers)
   verifyWebhookSignature(rawBody: string, headers: Record<string, string> | null): boolean {
     const secret = process.env.RECALL_WEBHOOK_SECRET;
@@ -168,5 +195,9 @@ export class MockMeetingBotService implements MeetingBotService {
 
   verifyWebhookSignature(_rawBody: string, headers: Record<string, string> | null): boolean {
     return !!headers && headers["svix-signature"] !== "invalid";
+  }
+
+  async fetchTranscriptArtifact(_transcriptId: string): Promise<unknown> {
+    return this.customSegments;
   }
 }
