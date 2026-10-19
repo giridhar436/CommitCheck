@@ -1,11 +1,17 @@
 import { MeetingBotService, MeetingStatus, TranscriptSegment } from "./types";
-import crypto from "crypto";
+import { Webhook } from "svix";
 
 export class RecallAiBotService implements MeetingBotService {
   private apiKey: string;
+  private baseUrl: string;
 
-  constructor(apiKey = process.env.RECALL_AI_API_KEY || "") {
+  constructor(
+    apiKey = process.env.RECALL_AI_API_KEY || "",
+    // Regional workspaces (e.g. https://ap-northeast-1.recall.ai) require their own API host
+    baseUrl = process.env.RECALL_API_BASE_URL || "https://api.recall.ai"
+  ) {
     this.apiKey = apiKey;
+    this.baseUrl = baseUrl.replace(/\/+$/, "");
   }
 
   async dispatchBot(
@@ -17,17 +23,28 @@ export class RecallAiBotService implements MeetingBotService {
       return { botId: mockId, status: "JOINING" };
     }
 
-    const res = await fetch("https://api.recall.ai/api/v1/bot", {
+    const res = await fetch(`${this.baseUrl}/api/v1/bot`, {
       method: "POST",
       headers: {
         Authorization: `Token ${this.apiKey}`,
         "Content-Type": "application/json",
       },
+      // Current Create Bot schema: real-time Recall.ai transcription with diarization
       body: JSON.stringify({
         meeting_url: meetUrl,
         bot_name: botName,
-        transcription_options: {
-          provider: "default",
+        recording_config: {
+          transcript: {
+            provider: {
+              recallai_streaming: {
+                mode: "prioritize_accuracy",
+                language_code: "auto",
+              },
+            },
+            diarization: {
+              use_separate_streams_when_available: true,
+            },
+          },
         },
       }),
     });
@@ -51,7 +68,7 @@ export class RecallAiBotService implements MeetingBotService {
       return { status: "COMPLETED", segments: this.getDefaultMockSegments() };
     }
 
-    const res = await fetch(`https://api.recall.ai/api/v1/bot/${botId}`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/bot/${botId}`, {
       headers: {
         Authorization: `Token ${this.apiKey}`,
       },
@@ -70,16 +87,43 @@ export class RecallAiBotService implements MeetingBotService {
     return { status };
   }
 
-  verifyWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
+  // Fetches the transcript artifact and returns its content (Recall's diarized utterances array).
+  // Two steps: artifact metadata (needs API auth), then the presigned download URL (no auth header).
+  async fetchTranscriptArtifact(transcriptId: string): Promise<unknown> {
+    const artifactRes = await fetch(`${this.baseUrl}/api/v1/transcript/${transcriptId}/`, {
+      headers: {
+        Authorization: `Token ${this.apiKey}`,
+      },
+    });
+
+    if (!artifactRes.ok) {
+      throw new Error(`Recall.ai transcript fetch error (${artifactRes.status})`);
+    }
+
+    const artifact = await artifactRes.json();
+    const downloadUrl = artifact?.data?.download_url;
+    if (!downloadUrl) {
+      return artifact;
+    }
+
+    const transcriptRes = await fetch(downloadUrl);
+    if (!transcriptRes.ok) {
+      throw new Error(`Recall.ai transcript download error (${transcriptRes.status})`);
+    }
+
+    return transcriptRes.json();
+  }
+
+  // Recall.ai signs webhooks with Svix (whsec_... signing secret, svix-id/timestamp/signature headers)
+  verifyWebhookSignature(rawBody: string, headers: Record<string, string> | null): boolean {
     const secret = process.env.RECALL_WEBHOOK_SECRET;
     if (!secret) return true; // If no webhook secret configured in dev, accept
-    if (!signatureHeader) return false;
+    if (!headers) return false;
 
     try {
-      const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-      const sigBuf = Buffer.from(signatureHeader);
-      const expectedBuf = Buffer.from(expected);
-      return sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf);
+      const wh = new Webhook(secret);
+      wh.verify(rawBody, headers);
+      return true;
     } catch {
       return false;
     }
@@ -160,7 +204,11 @@ export class MockMeetingBotService implements MeetingBotService {
     };
   }
 
-  verifyWebhookSignature(_rawBody: string, signatureHeader: string | null): boolean {
-    return signatureHeader !== "invalid_signature";
+  verifyWebhookSignature(_rawBody: string, headers: Record<string, string> | null): boolean {
+    return !!headers && headers["svix-signature"] !== "invalid";
+  }
+
+  async fetchTranscriptArtifact(_transcriptId: string): Promise<unknown> {
+    return this.customSegments;
   }
 }

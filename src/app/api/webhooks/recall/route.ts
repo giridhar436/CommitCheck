@@ -8,12 +8,13 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
-    const signature = request.headers.get("recall-signature") || request.headers.get("x-recall-signature");
+    // Recall.ai signs via Svix (svix-id / svix-timestamp / svix-signature headers)
+    const headers = Object.fromEntries(request.headers) as Record<string, string>;
     const payload = JSON.parse(rawBody);
 
     const updated = await handleRecallWebhook(
       payload,
-      signature,
+      headers,
       rawBody,
       defaultMeetingRepository,
       defaultMeetingBotService
