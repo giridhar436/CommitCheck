@@ -3,9 +3,15 @@ import { Webhook } from "svix";
 
 export class RecallAiBotService implements MeetingBotService {
   private apiKey: string;
+  private baseUrl: string;
 
-  constructor(apiKey = process.env.RECALL_AI_API_KEY || "") {
+  constructor(
+    apiKey = process.env.RECALL_AI_API_KEY || "",
+    // Regional workspaces (e.g. https://ap-northeast-1.recall.ai) require their own API host
+    baseUrl = process.env.RECALL_API_BASE_URL || "https://api.recall.ai"
+  ) {
     this.apiKey = apiKey;
+    this.baseUrl = baseUrl.replace(/\/+$/, "");
   }
 
   async dispatchBot(
@@ -17,7 +23,7 @@ export class RecallAiBotService implements MeetingBotService {
       return { botId: mockId, status: "JOINING" };
     }
 
-    const res = await fetch("https://api.recall.ai/api/v1/bot", {
+    const res = await fetch(`${this.baseUrl}/api/v1/bot`, {
       method: "POST",
       headers: {
         Authorization: `Token ${this.apiKey}`,
@@ -51,7 +57,7 @@ export class RecallAiBotService implements MeetingBotService {
       return { status: "COMPLETED", segments: this.getDefaultMockSegments() };
     }
 
-    const res = await fetch(`https://api.recall.ai/api/v1/bot/${botId}`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/bot/${botId}`, {
       headers: {
         Authorization: `Token ${this.apiKey}`,
       },
