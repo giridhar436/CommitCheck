@@ -5,11 +5,18 @@ import { Webhook } from "svix";
 import { RecallAiBotService } from "./recall";
 
 let fetchedUrls: string[] = [];
+let fetchedRequests: { url: string; method?: string; headers?: Record<string, string>; body?: string }[] = [];
 
 function mockFetchSequence(responses: { ok: boolean; status?: number; body: unknown }[]) {
-  return mock.method(globalThis, "fetch", (async (input: string | URL | Request) => {
-    const response = responses[fetchedUrls.length];
+  return mock.method(globalThis, "fetch", (async (input: string | URL | Request, init?: RequestInit) => {
+    const response = responses[fetchedRequests.length];
     fetchedUrls.push(String(input));
+    fetchedRequests.push({
+      url: String(input),
+      method: init?.method,
+      headers: (init?.headers || undefined) as Record<string, string> | undefined,
+      body: typeof init?.body === "string" ? init.body : undefined,
+    });
     return {
       ok: response.ok,
       status: response.status ?? 200,
@@ -25,6 +32,7 @@ describe("RecallAiBotService regional base URL (VAR-16)", () => {
   afterEach(() => {
     mock.restoreAll();
     fetchedUrls = [];
+    fetchedRequests = [];
     if (envBackup === undefined) {
       delete process.env.RECALL_API_BASE_URL;
     } else {
@@ -83,10 +91,64 @@ describe("RecallAiBotService regional base URL (VAR-16)", () => {
   });
 });
 
+describe("RecallAiBotService bot creation request body (VAR-16)", () => {
+  afterEach(() => {
+    mock.restoreAll();
+    fetchedUrls = [];
+    fetchedRequests = [];
+  });
+
+  it("creates bots with the current recording_config.transcript schema", async () => {
+    const fetchMock = mockFetchSequence([{ ok: true, body: { id: "bot_body" } }]);
+    const service = new RecallAiBotService("test_api_key");
+
+    await service.dispatchBot("https://meet.google.com/abc-defg-hij");
+
+    assert.equal(fetchedRequests.length, 1);
+    const req = fetchedRequests[0];
+    assert.equal(req.method, "POST");
+    assert.deepEqual(JSON.parse(req.body!), {
+      meeting_url: "https://meet.google.com/abc-defg-hij",
+      bot_name: "CommitCheck Notetaker",
+      recording_config: {
+        transcript: {
+          provider: {
+            recallai_streaming: {
+              mode: "prioritize_accuracy",
+              language_code: "auto",
+            },
+          },
+          diarization: {
+            use_separate_streams_when_available: true,
+          },
+        },
+      },
+    });
+    // Auth header must be present; never print its value
+    assert.match(req.headers?.Authorization || "", /^Token .+/);
+    fetchMock.mock.restore();
+  });
+
+  it("does not send the legacy transcription_options field", async () => {
+    const fetchMock = mockFetchSequence([{ ok: true, body: { id: "bot_body2" } }]);
+    const service = new RecallAiBotService("test_api_key");
+
+    await service.dispatchBot("https://meet.google.com/abc-defg-hij", "Custom Bot Name");
+
+    const body = JSON.parse(fetchedRequests[0].body!);
+    assert.equal(body.transcription_options, undefined);
+    assert.equal(body.bot_name, "Custom Bot Name");
+    fetchMock.mock.restore();
+  });
+});
+
 describe("RecallAiBotService webhook signature verification (VAR-16)", () => {
   let secretBackup: string | undefined;
 
   afterEach(() => {
+    mock.restoreAll();
+    fetchedUrls = [];
+    fetchedRequests = [];
     if (secretBackup === undefined) {
       delete process.env.RECALL_WEBHOOK_SECRET;
     } else {
@@ -140,6 +202,7 @@ describe("RecallAiBotService transcript artifact fetching (VAR-16)", () => {
   afterEach(() => {
     mock.restoreAll();
     fetchedUrls = [];
+    fetchedRequests = [];
   });
 
   it("fetches the artifact metadata then its presigned download URL (no auth header)", async () => {

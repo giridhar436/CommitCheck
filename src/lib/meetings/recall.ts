@@ -29,11 +29,22 @@ export class RecallAiBotService implements MeetingBotService {
         Authorization: `Token ${this.apiKey}`,
         "Content-Type": "application/json",
       },
+      // Current Create Bot schema: real-time Recall.ai transcription with diarization
       body: JSON.stringify({
         meeting_url: meetUrl,
         bot_name: botName,
-        transcription_options: {
-          provider: "default",
+        recording_config: {
+          transcript: {
+            provider: {
+              recallai_streaming: {
+                mode: "prioritize_accuracy",
+                language_code: "auto",
+              },
+            },
+            diarization: {
+              use_separate_streams_when_available: true,
+            },
+          },
         },
       }),
     });
