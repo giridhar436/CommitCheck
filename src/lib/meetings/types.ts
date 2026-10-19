@@ -30,7 +30,7 @@ export interface Meeting {
 export interface MeetingBotService {
   dispatchBot(meetUrl: string, botName?: string): Promise<{ botId: string; status: MeetingStatus }>;
   getBotStatus(botId: string): Promise<{ status: MeetingStatus; segments?: TranscriptSegment[] }>;
-  verifyWebhookSignature(rawBody: string, signatureHeader: string | null): boolean;
+  verifyWebhookSignature(rawBody: string, headers: Record<string, string> | null): boolean;
 }
 
 export interface MeetingRepository {

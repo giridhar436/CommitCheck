@@ -134,7 +134,7 @@ describe("CommitCheck Google Meet Bot Dispatch & Webhook Ingestion (VAR-9)", () 
 
     const updated = await handleRecallWebhook(
       webhookPayload,
-      "valid_sig",
+      {},
       JSON.stringify(webhookPayload),
       meetingRepo,
       botService
@@ -178,7 +178,7 @@ describe("CommitCheck Google Meet Bot Dispatch & Webhook Ingestion (VAR-9)", () 
 
     const updated = await handleRecallWebhook(
       webhookPayload,
-      "valid_sig",
+      {},
       JSON.stringify(webhookPayload),
       meetingRepo,
       botService
@@ -195,6 +195,63 @@ describe("CommitCheck Google Meet Bot Dispatch & Webhook Ingestion (VAR-9)", () 
     assert.equal(parsedJson[0].speaker, "Alex (Freelancer)");
   });
 
+  it("parses Recall.ai's native diarized transcript format (participant + word list)", async () => {
+    const meeting = await dispatchMeetingBot(
+      projectId,
+      "https://meet.google.com/abc-defg-hij",
+      freelancerId,
+      userRepo,
+      projectRepo,
+      meetingRepo,
+      botService
+    );
+
+    const webhookPayload = {
+      event: "transcript.done",
+      data: {
+        bot_id: meeting.recallBotId,
+        transcript: [
+          {
+            participant: { name: "Alex (Freelancer)" },
+            words: [
+              { text: "We", start_timestamp: { relative: 1.0 }, end_timestamp: { relative: 1.3 } },
+              { text: "will", start_timestamp: { relative: 1.3 }, end_timestamp: { relative: 1.6 } },
+              { text: "build", start_timestamp: { relative: 1.6 }, end_timestamp: { relative: 2.1 } },
+            ],
+          },
+          {
+            participant: { name: "Elena (Client)" },
+            words: [
+              { text: "Sounds", start_timestamp: { relative: 3.0 }, end_timestamp: { relative: 3.4 } },
+              { text: "great.", start_timestamp: { relative: 3.4 }, end_timestamp: { relative: 3.8 } },
+            ],
+          },
+        ],
+      },
+    };
+
+    const updated = await handleRecallWebhook(
+      webhookPayload,
+      {},
+      JSON.stringify(webhookPayload),
+      meetingRepo,
+      botService
+    );
+
+    assert.ok(updated);
+    assert.equal(updated.status, "COMPLETED");
+    assert.ok(updated.transcript?.includes("build"));
+    assert.ok(updated.transcript?.includes("Alex (Freelancer)"));
+    assert.ok(updated.transcript?.includes("[00:01]"));
+
+    const parsedJson = JSON.parse(updated.transcriptJson!);
+    assert.equal(parsedJson.length, 2);
+    assert.equal(parsedJson[0].speaker, "Alex (Freelancer)");
+    assert.equal(parsedJson[0].words, "We will build");
+    assert.equal(parsedJson[0].startTime, 1.0);
+    assert.equal(parsedJson[1].endTime, 3.8);
+  });
+
   it("rejects webhook payloads with invalid signatures", async () => {
     const webhookPayload = {
       event: "bot.status_change",
@@ -205,7 +262,7 @@ describe("CommitCheck Google Meet Bot Dispatch & Webhook Ingestion (VAR-9)", () 
       async () => {
         await handleRecallWebhook(
           webhookPayload,
-          "invalid_signature",
+          { "svix-signature": "invalid" },
           JSON.stringify(webhookPayload),
           meetingRepo,
           botService

@@ -1,5 +1,5 @@
 import { MeetingBotService, MeetingStatus, TranscriptSegment } from "./types";
-import crypto from "crypto";
+import { Webhook } from "svix";
 
 export class RecallAiBotService implements MeetingBotService {
   private apiKey: string;
@@ -70,16 +70,16 @@ export class RecallAiBotService implements MeetingBotService {
     return { status };
   }
 
-  verifyWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
+  // Recall.ai signs webhooks with Svix (whsec_... signing secret, svix-id/timestamp/signature headers)
+  verifyWebhookSignature(rawBody: string, headers: Record<string, string> | null): boolean {
     const secret = process.env.RECALL_WEBHOOK_SECRET;
     if (!secret) return true; // If no webhook secret configured in dev, accept
-    if (!signatureHeader) return false;
+    if (!headers) return false;
 
     try {
-      const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-      const sigBuf = Buffer.from(signatureHeader);
-      const expectedBuf = Buffer.from(expected);
-      return sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf);
+      const wh = new Webhook(secret);
+      wh.verify(rawBody, headers);
+      return true;
     } catch {
       return false;
     }
@@ -160,7 +160,7 @@ export class MockMeetingBotService implements MeetingBotService {
     };
   }
 
-  verifyWebhookSignature(_rawBody: string, signatureHeader: string | null): boolean {
-    return signatureHeader !== "invalid_signature";
+  verifyWebhookSignature(_rawBody: string, headers: Record<string, string> | null): boolean {
+    return !!headers && headers["svix-signature"] !== "invalid";
   }
 }

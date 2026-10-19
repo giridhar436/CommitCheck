@@ -58,15 +58,46 @@ export function formatTranscriptSegments(segments: TranscriptSegment[]): string 
     .join("\n\n");
 }
 
+// Accepts both the simulation format ({speaker, words, start_time, end_time}) and
+// Recall.ai's native diarized format ({participant: {name}, words: [{text, start_timestamp: {relative}, ...}]}).
+function normalizeTranscriptSegments(rawSegments: any[]): TranscriptSegment[] {
+  return rawSegments
+    .map((seg: any) => {
+      // Recall.ai native: utterance with participant + word list
+      if (Array.isArray(seg?.words) && seg.words.length > 0 && typeof seg.words[0] === "object") {
+        const wordTexts = seg.words
+          .map((w: any) => w?.text || "")
+          .join(" ")
+          .trim();
+        const firstRel = seg.words[0]?.start_timestamp?.relative;
+        const lastRel = seg.words[seg.words.length - 1]?.end_timestamp?.relative;
+        return {
+          speaker: seg?.participant?.name || "Participant",
+          words: wordTexts,
+          startTime: Number(firstRel) || 0,
+          endTime: Number(lastRel) || 0,
+        };
+      }
+      // Simulation format
+      return {
+        speaker: seg.speaker || "Participant",
+        words: seg.words || seg.text || "",
+        startTime: seg.start_time ?? seg.startTime ?? 0,
+        endTime: seg.end_time ?? seg.endTime ?? 0,
+      };
+    })
+    .filter((s) => s.words);
+}
+
 export async function handleRecallWebhook(
   payload: any,
-  signatureHeader: string | null,
+  headers: Record<string, string> | null,
   rawBody: string,
   meetingRepo: MeetingRepository,
   botService: MeetingBotService
 ): Promise<Meeting | null> {
   // 1. Verify webhook signature
-  const isValid = botService.verifyWebhookSignature(rawBody, signatureHeader);
+  const isValid = botService.verifyWebhookSignature(rawBody, headers);
   if (!isValid) {
     throw new Error("Invalid webhook signature from Recall.ai");
   }
@@ -109,12 +140,7 @@ export async function handleRecallWebhook(
       [];
 
     const segments: TranscriptSegment[] = Array.isArray(rawSegments)
-      ? rawSegments.map((seg: any) => ({
-          speaker: seg.speaker || "Participant",
-          words: seg.words || seg.text || "",
-          startTime: seg.start_time ?? seg.startTime ?? 0,
-          endTime: seg.end_time ?? seg.endTime ?? 0,
-        }))
+      ? normalizeTranscriptSegments(rawSegments)
       : [];
 
     if (segments.length > 0) {
