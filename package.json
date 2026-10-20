@@ -10,6 +10,7 @@
     "test": "npx tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@google/genai": "^2.30.0",
     "@prisma/client": "^6.4.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.58.0",
