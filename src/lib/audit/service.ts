@@ -7,12 +7,14 @@ import {
   AuditorRole,
   CommitInfo,
   GitHubCommitFetcher,
+  LinearIssueFetcher,
   SemanticDiffAnalyzer,
   TaskToVerify,
 } from "./types";
 import {
   GeminiSemanticDiffAnalyzer,
   LiveGitHubCommitFetcher,
+  LiveLinearIssueFetcher,
   runDualTierVerification,
 } from "./engine";
 import { defaultAuditRepository } from "./adapter";
@@ -31,7 +33,8 @@ export async function runProjectAudit(
   draftRepo: TaskDraftRepository,
   commitFetcher: GitHubCommitFetcher = new LiveGitHubCommitFetcher(),
   analyzer: SemanticDiffAnalyzer = new GeminiSemanticDiffAnalyzer(),
-  auditRepo: AuditRepository = defaultAuditRepository
+  auditRepo: AuditRepository = defaultAuditRepository,
+  linearFetcher: LinearIssueFetcher = new LiveLinearIssueFetcher()
 ): Promise<{ report: AuditReportData; isCached: boolean }> {
   // 1. Verify user & permissions
   const user = await userRepo.findById(input.userId);
@@ -54,11 +57,14 @@ export async function runProjectAudit(
     throw new Error("Unauthorized: You do not have permission to audit this project.");
   }
 
-  // 2. Fetch recent commits from GitHub
+  // 2. Fetch recent commits and branches from GitHub
   const commits = await commitFetcher.fetchRecentCommits(
     user.githubAccessToken || "",
     project.githubRepo
   );
+  const repoBranches = commitFetcher.fetchRepoBranches
+    ? await commitFetcher.fetchRepoBranches(user.githubAccessToken || "", project.githubRepo)
+    : [];
   const latestCommitSha = commits[0]?.sha || null;
 
   // 3. 10-Minute SHA Cache Check
@@ -73,19 +79,55 @@ export async function runProjectAudit(
     }
   }
 
-  // 4. Gather tasks from Linear drafts / scope
-  const drafts = await draftRepo.listDraftsForProject(project.id);
-  const tasksToVerify: TaskToVerify[] = drafts.map((d, idx) => ({
-    id: d.id,
-    key: d.linearIssueKey || `TASK-${idx + 1}`,
-    title: d.title,
-    description: d.description,
-    status: d.status === "SYNCED" ? "Done" : d.status === "APPROVED" ? "In Progress" : "Draft",
-    priority: d.priority,
-    estimate: d.estimate,
-  }));
+  // 4. Gather tasks from Live Linear workspace and local scope drafts
+  let tasksToVerify: TaskToVerify[] = [];
 
-  // If no drafts exist in DB, provide standard verification benchmark tasks
+  // Check if project is linked to a Linear project
+  const freelancer = isFreelancer
+    ? user
+    : await userRepo.findById(project.freelancerId);
+  const linearToken = freelancer?.linearAccessToken || user.linearAccessToken;
+
+  if (linearToken && project.linearProjectId) {
+    try {
+      const liveTasks = await linearFetcher.fetchProjectTasks(
+        linearToken,
+        project.linearProjectId
+      );
+      if (liveTasks && liveTasks.length > 0) {
+        tasksToVerify = liveTasks;
+      }
+    } catch {
+      // Fallback to local drafts if Linear querying fails
+    }
+  }
+
+  // Fallback or merge with local scope drafts
+  const drafts = await draftRepo.listDraftsForProject(project.id);
+  if (tasksToVerify.length === 0) {
+    tasksToVerify = drafts.map((d, idx) => ({
+      id: d.id,
+      key: d.linearIssueKey || `TASK-${idx + 1}`,
+      title: d.title,
+      description: d.description,
+      status: d.status === "SYNCED" ? "Done" : d.status === "APPROVED" ? "In Progress" : "Draft",
+      statusType: d.status === "SYNCED" ? "completed" : undefined,
+      priority: d.priority,
+      estimate: d.estimate,
+    }));
+  } else {
+    // If live Linear tasks were fetched, enrich with any draft descriptions if missing
+    for (const task of tasksToVerify) {
+      const matchedDraft = drafts.find(
+        (d) => d.linearIssueKey === task.key || d.title.toLowerCase() === task.title.toLowerCase()
+      );
+      if (matchedDraft && !task.description) {
+        task.description = matchedDraft.description;
+      }
+    }
+  }
+
+  // If no tasks exist in DB or Linear, provide standard verification benchmark task
   if (tasksToVerify.length === 0) {
     tasksToVerify.push({
       id: "benchmark_1",
@@ -93,6 +135,7 @@ export async function runProjectAudit(
       title: "Core Repository Setup & Scaffolding",
       description: "Initialize project structure and dependencies",
       status: "Done",
+      statusType: "completed",
       priority: 2,
     });
   }
@@ -102,9 +145,10 @@ export async function runProjectAudit(
     tasks: tasksToVerify,
     commits,
     analyzer,
+    repoBranches,
   });
 
-  // 6. Persist Audit Report
+  // 6. Persist Immutable Audit Report Snapshot
   const savedReport = await auditRepo.createAuditReport({
     projectId: project.id,
     auditorRole: input.auditorRole,
