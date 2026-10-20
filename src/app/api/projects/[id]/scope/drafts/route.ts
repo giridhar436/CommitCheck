@@ -20,6 +20,20 @@ export async function GET(
 
   const { id: projectId } = await params;
   try {
+    const project = await defaultProjectRepository.findProjectById(projectId);
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    const isFreelancer = project.freelancerId === session.userId;
+    const isClient =
+      project.clientId === session.userId ||
+      (project.clientEmail && project.clientEmail.toLowerCase() === session.email.toLowerCase());
+
+    if (!isFreelancer && !isClient) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
     const drafts = await defaultTaskDraftRepository.listDraftsForProject(projectId);
     return NextResponse.json({ drafts });
   } catch (err: any) {

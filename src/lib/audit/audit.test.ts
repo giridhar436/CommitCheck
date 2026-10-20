@@ -4,6 +4,9 @@ import {
   runDualTierVerification,
   runProjectAudit,
   MockGitHubCommitFetcher,
+  LiveGitHubCommitFetcher,
+  LiveLinearIssueFetcher,
+  MockLinearIssueFetcher,
   GeminiSemanticDiffAnalyzer,
   InMemoryAuditRepository,
   TaskToVerify,
@@ -12,8 +15,9 @@ import {
 import { InMemoryUserRepository } from "../auth/adapter";
 import { InMemoryProjectRepository } from "../projects/adapter";
 import { InMemoryTaskDraftRepository } from "../scope/adapter";
+import { MockLinearService } from "../linear/linear";
 
-describe("CommitCheck Dual-Tier AI Verification & Audit Engine (VAR-12)", () => {
+describe("CommitCheck Dual-Tier AI Verification & Audit Engine (VAR-12 / VAR-20)", () => {
   it("correlates tasks via Tier 1 syntactic matching and Tier 2 semantic diff analysis", async () => {
     const tasks: TaskToVerify[] = [
       {
@@ -68,6 +72,94 @@ describe("CommitCheck Dual-Tier AI Verification & Audit Engine (VAR-12)", () => 
     // Score: 2 of 2 verified = 100%
     assert.strictEqual(result.verifiedPercentage, 100);
     assert.strictEqual(result.ghostCompletionsCount, 0);
+  });
+
+  it("verifies Tier 1 matching through branch names even when commit messages lack ticket keys", async () => {
+    const tasks: TaskToVerify[] = [
+      {
+        id: "t_branch_match",
+        key: "DEV-202",
+        title: "User Profile Settings Modal",
+        description: "Allow users to update name and notification preferences",
+        status: "Done",
+      },
+      {
+        id: "t_repo_branch",
+        key: "DEV-303",
+        title: "Apple Pay Integration",
+        description: "One-click mobile checkout with Apple Pay",
+        status: "Done",
+      },
+    ];
+
+    const commits: CommitInfo[] = [
+      {
+        sha: "sha_branch_1",
+        message: "style: cleanup form padding and modal transition animations",
+        author: "Dev",
+        date: new Date().toISOString(),
+        branchName: "feature/DEV-202-user-profile-modal",
+      },
+      {
+        sha: "sha_branch_2",
+        message: "initial payment sheet scaffolding",
+        author: "Dev",
+        date: new Date().toISOString(),
+        branchName: "main",
+      },
+    ];
+
+    const analyzer = new GeminiSemanticDiffAnalyzer();
+    const result = await runDualTierVerification({
+      tasks,
+      commits,
+      analyzer,
+      repoBranches: ["main", "feature/DEV-303-apple-pay"],
+    });
+
+    // 1. DEV-202 matched via commit.branchName
+    const t1 = result.verifiedTasks.find((t) => t.issueKey === "DEV-202");
+    assert.ok(t1);
+    assert.strictEqual(t1.isVerified, true);
+    assert.strictEqual(t1.tier, "SYNTACTIC");
+    assert.strictEqual(t1.confidence, 1.0);
+    assert.ok(t1.reasoning.includes("branch name"));
+
+    // 2. DEV-303 matched via repoBranches
+    const t2 = result.verifiedTasks.find((t) => t.issueKey === "DEV-303");
+    assert.ok(t2);
+    assert.strictEqual(t2.isVerified, true);
+    assert.strictEqual(t2.tier, "SYNTACTIC");
+    assert.strictEqual(t2.confidence, 1.0);
+    assert.ok(t2.reasoning.includes("feature/DEV-303-apple-pay"));
+  });
+
+  it("configures Gemini 1.5 Pro semantic analyzer and falls back cleanly when offline", async () => {
+    const analyzer = new GeminiSemanticDiffAnalyzer("mock_api_key", "gemini-1.5-pro");
+
+    const task: TaskToVerify = {
+      id: "t_gemini",
+      key: "VAR-404",
+      title: "Biometric FaceID Authentication Service",
+      description: "Support iOS FaceID and Android BiometricPrompt local secure login",
+      status: "In Progress",
+    };
+
+    const commits: CommitInfo[] = [
+      {
+        sha: "sha_bio_1",
+        message: "add native biometric authentication wrapper",
+        author: "Dev",
+        date: new Date().toISOString(),
+        diffSnippet: "+export async function authenticateWithBiometrics(faceId: boolean) { ... }",
+      },
+    ];
+
+    const alignment = await analyzer.analyzeTaskCommitAlignment(task, commits);
+    assert.strictEqual(alignment.isVerified, true);
+    assert.ok(alignment.confidence >= 0.7);
+    assert.ok(alignment.reasoning.includes("Biometric FaceID"));
+    assert.strictEqual(alignment.matchedCommits.length, 1);
   });
 
   it("detects and flags Ghost Completions when a task is marked Done without supporting commits", async () => {
@@ -138,6 +230,131 @@ describe("CommitCheck Dual-Tier AI Verification & Audit Engine (VAR-12)", () => 
     const untracked = result.discrepancies.find((d) => d.type === "UNTRACKED_WORK");
     assert.ok(untracked);
     assert.ok(untracked.description.includes("sha_unt"));
+  });
+
+  it("queries live Linear board status and detects Ghost Completions from live Linear issues", async () => {
+    const userRepo = new InMemoryUserRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const auditRepo = new InMemoryAuditRepository();
+
+    const dev = await userRepo.upsertOAuthUser(
+      {
+        provider: "github",
+        providerId: "gh_dev_linear_audit",
+        email: "dev@commitcheck.io",
+      },
+      "FREELANCER"
+    );
+
+    // Give dev Linear token
+    await userRepo.updateLinearCredentials(dev.id, {
+      linearAccessToken: "lin_test_token_123",
+      linearWorkspaceId: "ws_linear_1",
+      linearWorkspaceName: "Acme Software",
+    });
+
+    const project = await projectRepo.createProject(dev.id, {
+      title: "Live Linear Audit Project",
+      clientEmail: "client@clientcorp.com",
+      githubRepoFullName: "dev/live-linear-audit",
+    });
+
+    // Mark project linked to Linear project
+    await projectRepo.updateLinearProject(project.id, {
+      linearProjectId: "lin_proj_12345",
+      linearProjectUrl: "https://linear.app/acme/project/live-linear-audit",
+    });
+
+    // Linear task fetcher returns an issue that is marked "Done" on the board
+    const linearFetcher = new MockLinearIssueFetcher([
+      {
+        id: "issue_done_ghost",
+        key: "ACME-10",
+        title: "Implement Biometric FaceID Flow",
+        description: "Support local iOS FaceID authentication",
+        status: "Done",
+        statusType: "completed",
+      },
+      {
+        id: "issue_in_prog",
+        key: "ACME-11",
+        title: "Configure Stripe Customer Portal",
+        description: "Embed customer billing portal for subscription upgrades",
+        status: "In Progress",
+        statusType: "started",
+      },
+    ]);
+
+    // Commits in GitHub do NOT contain any ACME-10 work
+    const commitFetcher = new MockGitHubCommitFetcher([
+      {
+        sha: "sha_acme_11",
+        message: "feat(ACME-11): configure stripe customer portal integration",
+        author: "Dev",
+        date: new Date().toISOString(),
+      },
+    ]);
+
+    const auditResult = await runProjectAudit(
+      {
+        projectId: project.id,
+        userId: dev.id,
+        auditorRole: "FREELANCER_SELF_CHECK",
+      },
+      userRepo,
+      projectRepo,
+      draftRepo,
+      commitFetcher,
+      new GeminiSemanticDiffAnalyzer(),
+      auditRepo,
+      linearFetcher
+    );
+
+    assert.strictEqual(auditResult.isCached, false);
+    assert.strictEqual(auditResult.report.ghostCompletions, 1);
+    assert.strictEqual(auditResult.report.verifiedPercentage, 50);
+
+    const ghost = auditResult.report.discrepancies.find((d) => d.type === "GHOST_COMPLETION");
+    assert.ok(ghost);
+    assert.strictEqual(ghost.issueKey, "ACME-10");
+    assert.strictEqual(ghost.severity, "HIGH");
+  });
+
+  it("LiveGitHubCommitFetcher returns fallback commits and branches when credentials are mock or offline", async () => {
+    const fetcher = new LiveGitHubCommitFetcher();
+    const commits = await fetcher.fetchRecentCommits("gh_mock_test_token", "owner/repo");
+    assert.ok(Array.isArray(commits));
+    assert.ok(commits.length > 0);
+    assert.ok(commits[0].sha);
+    assert.ok(commits[0].message);
+
+    const branches = await fetcher.fetchRepoBranches("gh_mock_test_token", "owner/repo");
+    assert.ok(Array.isArray(branches));
+    assert.ok(branches.includes("main"));
+  });
+
+  it("LiveLinearIssueFetcher transforms GraphQL project issues into verified task models", async () => {
+    const mockLinearService = new MockLinearService();
+    mockLinearService.projectIssues = [
+      {
+        id: "iss_live_1",
+        identifier: "TEST-100",
+        title: "Live Issue 100",
+        description: "Live issue description",
+        status: "Done",
+        statusType: "completed",
+        priority: 1,
+        estimate: 3,
+      },
+    ];
+
+    const fetcher = new LiveLinearIssueFetcher(mockLinearService);
+    const tasks = await fetcher.fetchProjectTasks("lin_token_mock", "proj_123");
+    assert.strictEqual(tasks.length, 1);
+    assert.strictEqual(tasks[0].key, "TEST-100");
+    assert.strictEqual(tasks[0].status, "Done");
+    assert.strictEqual(tasks[0].statusType, "completed");
   });
 
   it("caches audit reports for 10 minutes when the latest commit SHA has not changed", async () => {

@@ -33,7 +33,7 @@ export class ResendEmailService implements EmailNotificationService {
         (t) => `
         <tr style="border-bottom: 1px solid #eeeeee;">
           <td style="padding: 10px 0; font-size: 14px; color: #222222; font-weight: 500;">
-            ${t.title}
+            ${t.url ? `<a href="${t.url}" style="color: #ff385c; text-decoration: none; font-weight: 600;">${t.identifier ? `[${t.identifier}] ` : ""}${t.title}</a>` : t.title}
           </td>
           <td style="padding: 10px 0; font-size: 12px; color: #717171; text-align: center;">
             P${t.priority}

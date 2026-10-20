@@ -2,6 +2,8 @@ export interface TaskEmailSummary {
   title: string;
   priority: number;
   estimate?: number | null;
+  identifier?: string;
+  url?: string;
 }
 
 export interface ScopeNotificationEmailInput {

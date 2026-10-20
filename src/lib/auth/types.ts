@@ -23,6 +23,7 @@ export interface AuthUser {
   githubAccessToken?: string | null;
   googleId: string | null;
   linearAccessToken: string | null;
+  linearRefreshToken?: string | null;
   linearWorkspaceId: string | null;
   linearWorkspaceName: string | null;
   createdAt: Date;

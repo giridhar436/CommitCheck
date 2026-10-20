@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
 import { defaultLinearService, connectLinearWorkspace } from "@/lib/linear";
+import { LINEAR_STATE_COOKIE } from "../route";
 
 export async function GET(request: NextRequest) {
   const session = await getCurrentSession();
@@ -33,7 +34,17 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Live Linear OAuth redirect
-  const authUrl = defaultLinearService.getAuthorizationUrl(redirectUri, session.userId);
-  return NextResponse.redirect(authUrl);
+  // Live Linear OAuth redirect with state CSRF protection
+  const oauthState = crypto.randomUUID();
+  const authUrl = defaultLinearService.getAuthorizationUrl(redirectUri, oauthState);
+  const response = NextResponse.redirect(authUrl);
+  response.cookies.set({
+    name: LINEAR_STATE_COOKIE,
+    value: oauthState,
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    maxAge: 10 * 60,
+  });
+  return response;
 }

@@ -239,7 +239,7 @@ export default function ClientScopeConfirmationPage() {
                   </p>
 
                   {draft.evidence && (
-                    <div className="bg-[#f7f7f7] border-l-3 border-[#ff385c] p-3 rounded-r-lg text-xs text-[#717171] italic">
+                    <div className="bg-[#f7f7f7] border-l-2 border-[#ff385c] p-3 rounded-r-lg text-xs text-[#717171] italic">
                       <strong className="text-[#222222] not-italic mr-1">Transcript Evidence:</strong>
                       &ldquo;{draft.evidence}&rdquo;
                     </div>

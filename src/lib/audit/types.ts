@@ -9,6 +9,8 @@ export interface CommitInfo {
   date: string;
   url?: string;
   diffSnippet?: string;
+  branchName?: string;
+  branches?: string[];
 }
 
 export interface TaskToVerify {
@@ -17,6 +19,7 @@ export interface TaskToVerify {
   title: string;
   description: string;
   status: string; // e.g. "Done" | "In Progress" | "Todo" | "Backlog"
+  statusType?: string; // "completed" | "started" | "unstarted" | "canceled"
   priority?: number;
   estimate?: number | null;
 }
@@ -91,10 +94,17 @@ export interface GitHubCommitFetcher {
     repoFullName: string,
     limit?: number
   ): Promise<CommitInfo[]>;
+  fetchRepoBranches?(
+    accessToken: string,
+    repoFullName: string
+  ): Promise<string[]>;
 }
 
 export interface LinearIssueFetcher {
-  fetchProjectTasks(projectId: string): Promise<TaskToVerify[]>;
+  fetchProjectTasks(
+    accessToken: string,
+    linearProjectId: string
+  ): Promise<TaskToVerify[]>;
 }
 
 export interface SemanticDiffAnalyzer {

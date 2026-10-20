@@ -129,15 +129,29 @@ export async function publishProjectToLinear(
   // 4. Fetch approved drafts strictly enforcing scope classification rules
   const allDrafts = await draftRepo.listDraftsForProject(input.projectId);
   const approvedDrafts = allDrafts.filter((d) => {
-    // Explicit requirements and Confirmed Commitments are eligible if not discarded/synced
-    if (d.classification === "EXPLICIT" || d.classification === "CONFIRMED_COMMITMENT") {
-      return d.status === "APPROVED" || d.status === "DRAFT";
+    // 1. Strictly exclude rejected, discarded, or already synced items
+    if (d.clientApprovalStatus === "CLIENT_REJECTED") {
+      return false;
     }
-    // AI Inferred and Tentative MUST be approved by the Client first
-    return (
-      d.clientApprovalStatus === "CLIENT_APPROVED" &&
-      (d.status === "APPROVED" || d.status === "DRAFT")
-    );
+    if (d.status === "DISCARDED" || d.status === "SYNCED") {
+      return false;
+    }
+    // Must be in active lifecycle (APPROVED or DRAFT)
+    if (d.status !== "APPROVED" && d.status !== "DRAFT") {
+      return false;
+    }
+
+    // 2. Explicit requirements and Confirmed Commitments are eligible (unless rejected)
+    if (d.classification === "EXPLICIT" || d.classification === "CONFIRMED_COMMITMENT") {
+      return true;
+    }
+
+    // 3. AI Inferred and Tentative MUST be explicitly approved by the Client first
+    if (d.classification === "AI_INFERRED" || d.classification === "TENTATIVE") {
+      return d.clientApprovalStatus === "CLIENT_APPROVED";
+    }
+
+    return false;
   });
   if (approvedDrafts.length === 0) {
     throw new Error(
@@ -155,12 +169,21 @@ export async function publishProjectToLinear(
     teamId = teams[0].id;
   }
 
-  // 6. Create Linear Project
-  const createdProj = await linearService.createProject(user.linearAccessToken, {
-    name: project.title,
-    teamIds: [teamId],
-    description: project.description || `CommitCheck verified scope for ${project.title}`,
-  });
+  // 6. Create Linear Project (or reuse if already created)
+  let createdProj: { id: string; name: string; url: string; slugId?: string };
+  if (project.linearProjectId && project.linearProjectUrl) {
+    createdProj = {
+      id: project.linearProjectId,
+      name: project.title,
+      url: project.linearProjectUrl,
+    };
+  } else {
+    createdProj = await linearService.createProject(user.linearAccessToken, {
+      name: project.title,
+      teamIds: [teamId],
+      description: project.description || `CommitCheck verified scope for ${project.title}`,
+    });
+  }
 
   // 7. Publish each approved deliverable as an issue
   const publishedIssues: Array<{ id: string; identifier: string; title: string; url: string }> = [];
@@ -207,11 +230,16 @@ export async function publishProjectToLinear(
         linearProjectUrl: createdProj.url,
         milestoneSummary: `${publishedIssues.length} deliverables committed and scheduled for delivery under Linear project "${createdProj.name}".`,
         portalUrl,
-        tasks: approvedDrafts.map((d) => ({
-          title: d.title,
-          priority: d.priority,
-          estimate: d.estimate,
-        })),
+        tasks: publishedIssues.map((issue) => {
+          const matchingDraft = approvedDrafts.find((d) => d.title === issue.title);
+          return {
+            title: issue.title,
+            identifier: issue.identifier,
+            url: issue.url,
+            priority: matchingDraft?.priority ?? 0,
+            estimate: matchingDraft?.estimate ?? null,
+          };
+        }),
       });
       emailSent = emailRes.success;
     } catch {

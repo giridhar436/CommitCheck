@@ -174,6 +174,14 @@ export async function confirmClientScopeItems(
     throw new Error("Project not found.");
   }
 
+  const isClient =
+    project.clientId === user.id ||
+    (project.clientEmail && project.clientEmail.toLowerCase() === user.email.toLowerCase());
+
+  if (!isClient) {
+    throw new Error("Unauthorized: You do not have permission to confirm scope for this project.");
+  }
+
   // 2. Determine if the project is already published to Linear
   const freelancer = await userRepo.findById(project.freelancerId);
   const canAutoSync =
@@ -200,7 +208,9 @@ export async function confirmClientScopeItems(
           const issue = await linearService.createIssue(freelancer.linearAccessToken, {
             teamId: project.linearTeamId || "default_team",
             title: draft.title,
-            description: draft.description,
+            description: draft.description
+              ? `${draft.description}\n\n*[Scope Addendum: Client Approved]*`
+              : "*[Scope Addendum: Client Approved]*",
             projectId: project.linearProjectId!,
             priority: draft.priority,
             estimate: draft.estimate ?? undefined,

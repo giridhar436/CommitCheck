@@ -3,13 +3,14 @@ import {
   CreateLinearProjectInput,
   LinearCreatedIssue,
   LinearCreatedProject,
+  LinearProjectIssue,
   LinearOAuthTokenResponse,
   LinearService,
   LinearTeam,
   LinearWorkspace,
 } from "./types";
 
-export class LiveLinearService implements GitHubLinearService {
+export class LiveLinearService implements LinearService {
   getAuthorizationUrl(redirectUri: string, state?: string): string {
     const clientId = process.env.LINEAR_CLIENT_ID || "";
     const params = new URLSearchParams({
@@ -94,6 +95,10 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error fetching workspace: ${msg}`);
+    }
     const org = json.data?.viewer?.organization;
     if (!org) {
       throw new Error("No organization found in Linear profile");
@@ -140,6 +145,10 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error listing teams: ${msg}`);
+    }
     return json.data?.teams?.nodes || [];
   }
 
@@ -192,8 +201,12 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error creating project: ${msg}`);
+    }
     const proj = json.data?.projectCreate?.project;
-    if (!proj) {
+    if (!proj || json.data?.projectCreate?.success === false) {
       throw new Error("Linear project creation failed: No project returned");
     }
 
@@ -269,18 +282,109 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error creating issue: ${msg}`);
+    }
     const issue = json.data?.issueCreate?.issue;
-    if (!issue) {
+    if (!issue || json.data?.issueCreate?.success === false) {
       throw new Error("Linear issue creation failed: No issue returned");
     }
 
     return issue;
+  }
+
+  async fetchProjectIssues(
+    accessToken: string,
+    projectId: string
+  ): Promise<LinearProjectIssue[]> {
+    if (!accessToken || accessToken.startsWith("lin_mock_")) {
+      return [
+        {
+          id: "issue_mock_1",
+          identifier: "DEV-101",
+          title: "Implement Biometric FaceID Flow",
+          description: "Support local iOS FaceID authentication",
+          status: "Done",
+          statusType: "completed",
+          priority: 1,
+          estimate: 5,
+        },
+        {
+          id: "issue_mock_2",
+          identifier: "DEV-102",
+          title: "Configure Stripe Customer Portal",
+          description: "Embed customer billing portal for subscription upgrades",
+          status: "In Progress",
+          statusType: "started",
+          priority: 2,
+          estimate: 3,
+        },
+      ];
+    }
+
+    const query = `
+      query ProjectIssues($projectId: String!) {
+        project(id: $projectId) {
+          issues {
+            nodes {
+              id
+              identifier
+              title
+              description
+              priority
+              estimate
+              state {
+                id
+                name
+                type
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const res = await fetch("https://api.linear.app/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables: { projectId },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch Linear project issues (${res.status})`);
+    }
+
+    const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error fetching project issues: ${msg}`);
+    }
+
+    const nodes = json.data?.project?.issues?.nodes || [];
+    return nodes.map((node: any) => ({
+      id: node.id,
+      identifier: node.identifier,
+      title: node.title,
+      description: node.description || "",
+      status: node.state?.name || "Todo",
+      statusType: node.state?.type || "unstarted",
+      priority: node.priority,
+      estimate: node.estimate,
+    }));
   }
 }
 
 interface GitHubLinearService extends LinearService {}
 
 export class MockLinearService implements LinearService {
+  public simulateGraphQLError: string | null = null;
   private workspace: LinearWorkspace;
   private teams: LinearTeam[];
 
@@ -321,6 +425,9 @@ export class MockLinearService implements LinearService {
   }
 
   async getViewerWorkspace(accessToken: string): Promise<LinearWorkspace> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
@@ -328,6 +435,9 @@ export class MockLinearService implements LinearService {
   }
 
   async listTeams(accessToken: string): Promise<LinearTeam[]> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
@@ -338,6 +448,9 @@ export class MockLinearService implements LinearService {
     accessToken: string,
     input: CreateLinearProjectInput
   ): Promise<LinearCreatedProject> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
@@ -356,6 +469,9 @@ export class MockLinearService implements LinearService {
     accessToken: string,
     input: CreateLinearIssueInput
   ): Promise<LinearCreatedIssue> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
@@ -370,5 +486,53 @@ export class MockLinearService implements LinearService {
     };
     this.createdIssues.push(issue);
     return issue;
+  }
+
+  public projectIssues: LinearProjectIssue[] = [];
+
+  async fetchProjectIssues(
+    accessToken: string,
+    _projectId: string
+  ): Promise<LinearProjectIssue[]> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
+    if (!accessToken || accessToken === "invalid_token") {
+      throw new Error("Authentication failed: invalid token");
+    }
+    if (this.projectIssues.length > 0) {
+      return [...this.projectIssues];
+    }
+    if (this.createdIssues.length > 0) {
+      return this.createdIssues.map((ci) => ({
+        id: ci.id,
+        identifier: ci.identifier,
+        title: ci.title,
+        status: "Done",
+        statusType: "completed",
+      }));
+    }
+    return [
+      {
+        id: "mock_iss_1",
+        identifier: "DEV-101",
+        title: "Implement Biometric FaceID Flow",
+        description: "Support local iOS FaceID authentication",
+        status: "Done",
+        statusType: "completed",
+        priority: 1,
+        estimate: 5,
+      },
+      {
+        id: "mock_iss_2",
+        identifier: "DEV-102",
+        title: "Configure Stripe Customer Portal",
+        description: "Embed customer billing portal for subscription upgrades",
+        status: "In Progress",
+        statusType: "started",
+        priority: 2,
+        estimate: 3,
+      },
+    ];
   }
 }

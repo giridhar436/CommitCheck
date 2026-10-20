@@ -47,6 +47,17 @@ export interface LinearCreatedIssue {
   url: string;
 }
 
+export interface LinearProjectIssue {
+  id: string;
+  identifier: string;
+  title: string;
+  description?: string;
+  status: string;
+  statusType?: string;
+  priority?: number;
+  estimate?: number | null;
+}
+
 export interface LinearService {
   getAuthorizationUrl(redirectUri: string, state?: string): string;
   exchangeCodeForToken(code: string, redirectUri: string): Promise<LinearOAuthTokenResponse>;
@@ -54,4 +65,5 @@ export interface LinearService {
   listTeams(accessToken: string): Promise<LinearTeam[]>;
   createProject(accessToken: string, input: CreateLinearProjectInput): Promise<LinearCreatedProject>;
   createIssue(accessToken: string, input: CreateLinearIssueInput): Promise<LinearCreatedIssue>;
+  fetchProjectIssues(accessToken: string, projectId: string): Promise<LinearProjectIssue[]>;
 }
