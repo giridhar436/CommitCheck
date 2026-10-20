@@ -27,6 +27,11 @@ export interface TaskDraftUI {
   priority: number;
   estimate: number | null;
   status: "DRAFT" | "APPROVED" | "DISCARDED" | "SYNCED";
+  classification?: "EXPLICIT" | "AI_INFERRED" | "TENTATIVE" | "CONFIRMED_COMMITMENT";
+  clientApprovalStatus?: "NOT_REQUIRED" | "PENDING_CLIENT_APPROVAL" | "CLIENT_APPROVED" | "CLIENT_REJECTED";
+  evidence?: string | null;
+  confidence?: number | null;
+  suggestedMilestone?: string | null;
   linearIssueId?: string | null;
   linearIssueKey?: string | null;
   linearIssueUrl?: string | null;
@@ -72,6 +77,33 @@ export function ScopeReviewSection({
   );
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [requestingConfirmation, setRequestingConfirmation] = useState(false);
+
+  async function handleRequestConfirmation() {
+    setRequestingConfirmation(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}/scope/request-confirmation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to request scope confirmation");
+      }
+
+      setSuccessMessage(
+        data.message || "Scope confirmation email dispatched via Resend to the client."
+      );
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setRequestingConfirmation(false);
+    }
+  }
 
   // Manual task creation form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -316,8 +348,71 @@ export function ScopeReviewSection({
     }
   }
 
+  function getClassificationBadge(classification?: string) {
+    switch (classification) {
+      case "EXPLICIT":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Explicit
+          </span>
+        );
+      case "CONFIRMED_COMMITMENT":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            Confirmed Commitment
+          </span>
+        );
+      case "AI_INFERRED":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+            AI Inferred
+          </span>
+        );
+      case "TENTATIVE":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            Tentative Idea
+          </span>
+        );
+      default:
+        return null;
+    }
+  }
+
+  function getClientApprovalBadge(status?: string) {
+    switch (status) {
+      case "PENDING_CLIENT_APPROVAL":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+            Awaiting Client Confirmation
+          </span>
+        );
+      case "CLIENT_APPROVED":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            ✓ Client Confirmed
+          </span>
+        );
+      case "CLIENT_REJECTED":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            ✕ Client Rejected
+          </span>
+        );
+      default:
+        return null;
+    }
+  }
+
   const allApproved = drafts.length > 0 && drafts.every((d) => d.status === "APPROVED");
   const approvedCount = drafts.filter((d) => d.status === "APPROVED").length;
+  const pendingConfirmationDrafts = drafts.filter(
+    (d) =>
+      d.clientApprovalStatus === "PENDING_CLIENT_APPROVAL" &&
+      d.status !== "DISCARDED" &&
+      d.status !== "SYNCED"
+  );
+  const pendingConfirmationCount = pendingConfirmationDrafts.length;
 
   return (
     <div id="scope-review" className="mt-8 space-y-6">
@@ -340,6 +435,27 @@ export function ScopeReviewSection({
           </div>
 
           <div className="flex items-center gap-3">
+            {pendingConfirmationCount > 0 && (
+              <button
+                onClick={handleRequestConfirmation}
+                disabled={requestingConfirmation}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#fff8e6] hover:bg-[#fef3c7] text-[#92400e] border border-[#fde68a] text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                title="Send confirmation email to client via Resend"
+              >
+                {requestingConfirmation ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Dispatching...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5 text-[#b45309]" />
+                    Request Confirmation ({pendingConfirmationCount})
+                  </>
+                )}
+              </button>
+            )}
+
             {drafts.length > 0 && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#f7f7f7] border border-[#dddddd] text-[#222222]">
                 <ListTodo className="w-3.5 h-3.5 mr-1.5 text-[#6a6a6a]" />
@@ -630,6 +746,8 @@ export function ScopeReviewSection({
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {getClassificationBadge(draft.classification)}
+                        {getClientApprovalBadge(draft.clientApprovalStatus)}
                         {getPriorityBadge(draft.priority)}
 
                         {draft.estimate && (
@@ -667,6 +785,13 @@ export function ScopeReviewSection({
                         <p className="text-xs text-[#6a6a6a] leading-relaxed whitespace-pre-wrap">
                           {draft.description}
                         </p>
+                      )}
+
+                      {draft.evidence && (
+                        <div className="bg-[#f7f7f7] border-l-2 border-[#ff385c] p-2.5 rounded-r-[6px] text-xs text-[#6a6a6a] italic mt-2">
+                          <span className="font-semibold text-[#222222] not-italic mr-1.5">Transcript Quote:</span>
+                          &ldquo;{draft.evidence}&rdquo;
+                        </div>
                       )}
                     </div>
 

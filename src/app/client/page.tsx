@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentSession } from "@/lib/auth";
 import { defaultProjectRepository } from "@/lib/projects";
 import { defaultAuditRepository } from "@/lib/audit";
+import { defaultTaskDraftRepository } from "@/lib/scope";
 import { ExecutiveAuditDashboard } from "./audit-dashboard";
 import { ShieldCheck, LogOut, CheckCircle2 } from "lucide-react";
 
@@ -22,6 +23,7 @@ export default async function ClientDashboardPage() {
 
   let initialReport = null;
   let history: any[] = [];
+  let pendingScopeCount = 0;
 
   if (activeProject) {
     const rawReport = await defaultAuditRepository.findLatestReportForProject(activeProject.id);
@@ -37,6 +39,14 @@ export default async function ClientDashboardPage() {
       ...h,
       createdAt: h.createdAt.toISOString(),
     }));
+
+    const drafts = await defaultTaskDraftRepository.listDraftsForProject(activeProject.id);
+    pendingScopeCount = drafts.filter(
+      (d) =>
+        d.clientApprovalStatus === "PENDING_CLIENT_APPROVAL" &&
+        d.status !== "DISCARDED" &&
+        d.status !== "SYNCED"
+    ).length;
   }
 
   return (
@@ -115,6 +125,31 @@ export default async function ClientDashboardPage() {
             </p>
           </div>
         </div>
+
+        {activeProject && pendingScopeCount > 0 && (
+          <div className="mb-8 p-6 rounded-[14px] bg-[#fff8e6] border border-[#fde68a] shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-[#fef3c7] text-[#b45309] font-bold text-lg flex items-center justify-center shrink-0">
+                ?
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-[#78350f]">
+                  Scope Confirmation Required ({pendingScopeCount} Pending {pendingScopeCount === 1 ? "Item" : "Items"})
+                </h3>
+                <p className="text-xs text-[#92400e] mt-1 leading-relaxed max-w-2xl">
+                  Your freelancer staged tentative or suggested deliverables from your recent call.
+                  Review and confirm them before they enter development and billing.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/client/projects/${activeProject.id}/scope-confirmation`}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#ff385c] hover:bg-[#e00b41] text-white text-xs font-semibold shrink-0 cursor-pointer shadow-sm transition-all"
+            >
+              Review & Confirm Scope
+            </Link>
+          </div>
+        )}
 
         {activeProject ? (
           <ExecutiveAuditDashboard
