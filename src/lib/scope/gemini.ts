@@ -1,3 +1,4 @@
+import { GoogleGenAI } from "@google/genai";
 import {
   ClassifiedScopeItem,
   ComprehensiveScopeAnalysis,
@@ -5,21 +6,7 @@ import {
   LLMExtractionService,
 } from "./types";
 
-export class GeminiExtractionService implements LLMExtractionService {
-  private apiKey: string;
-
-  constructor(apiKey = process.env.GEMINI_API_KEY || "") {
-    this.apiKey = apiKey;
-  }
-
-  async analyzeTranscript(transcript: string): Promise<ComprehensiveScopeAnalysis> {
-    if (!this.apiKey || this.apiKey.startsWith("mock_")) {
-      return this.fallbackAnalysis(transcript);
-    }
-
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${this.apiKey}`;
-      const systemInstruction = `
+export const SCOPE_CLASSIFICATION_SYSTEM_INSTRUCTION = `
 You are an expert technical product manager and scope auditor for CommitCheck.
 Analyze the following meeting transcript between a Freelancer and a Client.
 You must perform ONE single, comprehensive classification of all topics discussed into four strict categories:
@@ -48,35 +35,78 @@ Output ONLY a JSON object matching this schema:
 }
 `;
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: `${systemInstruction}\n\nTRANSCRIPT:\n${transcript}` }],
-            },
-          ],
-          generationConfig: {
-            response_mime_type: "application/json",
-            temperature: 0.1,
-          },
-        }),
+export class GeminiExtractionService implements LLMExtractionService {
+  private apiKey: string;
+  private model: string;
+
+  constructor(
+    apiKey = process.env.GEMINI_API_KEY || "",
+    model = process.env.GEMINI_MODEL || "gemini-1.5-pro"
+  ) {
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+
+  async analyzeTranscript(transcript: string): Promise<ComprehensiveScopeAnalysis> {
+    if (!this.apiKey || this.apiKey.startsWith("mock_")) {
+      return this.fallbackAnalysis(transcript);
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: this.apiKey });
+      const response = await ai.models.generateContent({
+        model: this.model,
+        contents: `Analyze the following meeting transcript between a Freelancer and a Client:\n\n${transcript}`,
+        config: {
+          systemInstruction: SCOPE_CLASSIFICATION_SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          temperature: 0.1,
+        },
       });
 
-      if (!res.ok) {
-        throw new Error(`Gemini API error (${res.status})`);
-      }
-
-      const data = await res.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const rawText = response.text;
       if (!rawText) return this.fallbackAnalysis(transcript);
 
       const parsed = JSON.parse(rawText);
       return this.normalizeAnalysis(parsed, transcript);
     } catch {
-      return this.fallbackAnalysis(transcript);
+      // Fallback to direct REST API if SDK call encounters client or network errors
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `${SCOPE_CLASSIFICATION_SYSTEM_INSTRUCTION}\n\nTRANSCRIPT:\n${transcript}`,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              response_mime_type: "application/json",
+              temperature: 0.1,
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          return this.fallbackAnalysis(transcript);
+        }
+
+        const data = await res.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) return this.fallbackAnalysis(transcript);
+
+        const parsed = JSON.parse(rawText);
+        return this.normalizeAnalysis(parsed, transcript);
+      } catch {
+        return this.fallbackAnalysis(transcript);
+      }
     }
   }
 
@@ -97,10 +127,10 @@ Output ONLY a JSON object matching this schema:
         title: String(i.title || "Untitled deliverable"),
         description: String(i.description || ""),
         classification,
-        priority: typeof i.priority === "number" ? i.priority : 3,
-        estimate: typeof i.estimate === "number" ? i.estimate : null,
+        priority: typeof i.priority === "number" && [0, 1, 2, 3, 4].includes(i.priority) ? i.priority : 3,
+        estimate: typeof i.estimate === "number" ? Math.max(0, Math.round(i.estimate)) : null,
         evidence: i.evidence ? String(i.evidence) : undefined,
-        confidence: typeof i.confidence === "number" ? i.confidence : 0.8,
+        confidence: typeof i.confidence === "number" ? Math.max(0, Math.min(1, Number(i.confidence.toFixed(2)))) : 0.8,
         suggestedMilestone: i.suggestedMilestone ? String(i.suggestedMilestone) : undefined,
         notes: i.notes ? String(i.notes) : undefined,
       }));

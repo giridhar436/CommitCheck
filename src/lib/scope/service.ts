@@ -57,7 +57,13 @@ export async function triggerScopeExtraction(
     await meetingRepo.updateMeetingAnalysis(meetingId, JSON.stringify(analysis));
   }
 
-  // 5. Combine classified items
+  // 5. If drafts have already been generated for this meeting, return them
+  const existingDrafts = await draftRepo.listDraftsForMeeting(meetingId);
+  if (existingDrafts.length > 0) {
+    return existingDrafts;
+  }
+
+  // 6. Combine classified items
   const allItems: ClassifiedScopeItem[] = [
     ...(analysis.explicitRequirements || []).map((i) => ({
       ...i,
