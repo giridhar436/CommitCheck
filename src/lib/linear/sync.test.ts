@@ -1,70 +1,71 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  publishProjectToLinear,
-  MockLinearService,
-} from "./index";
+import { publishProjectToLinear } from "./service";
+import { MockLinearService } from "./linear";
 import { InMemoryUserRepository } from "../auth/adapter";
 import { InMemoryProjectRepository } from "../projects/adapter";
 import { InMemoryTaskDraftRepository } from "../scope/adapter";
-import { MockEmailService } from "../notifications/email";
+import { MockEmailService } from "../notifications";
 
-describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR-11)", () => {
+describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR-11 / VAR-19)", () => {
   it("successfully publishes approved scope drafts to Linear, creates a Linear Project, syncs issues, and dispatches notification emails", async () => {
+    // 1. Setup in-memory adapters
     const userRepo = new InMemoryUserRepository();
     const projectRepo = new InMemoryProjectRepository();
     const draftRepo = new InMemoryTaskDraftRepository();
     const linearService = new MockLinearService();
     const emailService = new MockEmailService();
 
-    // 1. Seed connected freelancer
+    // 2. Setup freelancer user with Linear credentials
     const freelancer = await userRepo.upsertOAuthUser(
       {
         provider: "github",
-        providerId: "gh_101",
+        providerId: "gh_freelancer_123",
         email: "alex@developer.io",
-        name: "Alex Developer",
+        name: "Alex Rivera",
       },
       "FREELANCER"
     );
 
     await userRepo.updateLinearCredentials(freelancer.id, {
-      linearAccessToken: "lin_token_valid_123",
-      linearRefreshToken: "lin_refresh_valid_123",
+      linearAccessToken: "lin_token_alex_live",
+      linearRefreshToken: "lin_refresh_alex_live",
       linearWorkspaceId: "ws_acme",
-      linearWorkspaceName: "Acme Freelance Studio",
+      linearWorkspaceName: "Acme Freelance",
     });
 
-    // 2. Seed project
+    // 3. Setup Project
     const project = await projectRepo.createProject(freelancer.id, {
-      title: "E-Commerce Stripe Integration",
-      description: "Checkout workflow and automated tests",
+      title: "Fintech Mobile MVP",
+      description: "Mobile app with secure biometrics and Stripe payments",
       clientEmail: "elena@clientcorp.com",
-      githubRepoFullName: "alex-dev/ecommerce-stripe",
+      githubRepoFullName: "alex-rivera/fintech-mvp",
     });
 
-    // 3. Seed approved drafts
+    // 4. Setup staged TaskDrafts
     const draft1 = await draftRepo.createTaskDraft({
       meetingId: "meet_1",
       projectId: project.id,
-      title: "Implement Stripe Elements UI",
-      description: "Embed credit card form with inline validation",
-      priority: 2,
-      estimate: 3,
+      title: "Implement Biometric FaceID Flow",
+      description: "Support local iOS FaceID authentication using native Expo plugins",
+      priority: 1,
+      estimate: 5,
+      classification: "EXPLICIT",
       status: "APPROVED",
     });
 
     const draft2 = await draftRepo.createTaskDraft({
       meetingId: "meet_1",
       projectId: project.id,
-      title: "Build Receipt Webhook Endpoint",
-      description: "Handle payment_intent.succeeded and dispatch receipts",
+      title: "Configure Stripe Customer Portal",
+      description: "Embed customer billing portal for subscription upgrades",
       priority: 2,
-      estimate: 2,
+      estimate: 3,
+      classification: "CONFIRMED_COMMITMENT",
       status: "APPROVED",
     });
 
-    // 4. Trigger publish to Linear
+    // Action: Publish to Linear
     const result = await publishProjectToLinear(
       {
         projectId: project.id,
@@ -102,7 +103,7 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
     assert.strictEqual(syncedDraft2?.status, "SYNCED");
     assert.ok(syncedDraft2?.linearIssueKey?.startsWith("DEV-"));
 
-    // 8. Verify Resend email notification
+    // 8. Verify Resend email notification payload contains Linear project link and issue links
     assert.strictEqual(emailService.sentEmails.length, 1);
     const sent = emailService.sentEmails[0];
     assert.strictEqual(sent.projectName, project.title);
@@ -110,6 +111,8 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
     assert.ok(sent.to.includes("elena@clientcorp.com"));
     assert.ok(sent.to.includes("alex@developer.io"));
     assert.strictEqual(sent.tasks.length, 2);
+    assert.ok(sent.tasks[0].url?.includes("issue"));
+    assert.ok(sent.tasks[0].identifier?.startsWith("DEV-"));
   });
 
   it("rejects publish if user is not a FREELANCER", async () => {
@@ -144,6 +147,51 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
       },
       {
         message: "Only users with the FREELANCER role can publish projects to Linear.",
+      }
+    );
+  });
+
+  it("rejects publish if caller is not the project owner", async () => {
+    const userRepo = new InMemoryUserRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const linearService = new MockLinearService();
+    const emailService = new MockEmailService();
+
+    const owner = await userRepo.upsertOAuthUser(
+      { provider: "github", providerId: "gh_owner", email: "owner@dev.io" },
+      "FREELANCER"
+    );
+    const attacker = await userRepo.upsertOAuthUser(
+      { provider: "github", providerId: "gh_attacker", email: "attacker@dev.io" },
+      "FREELANCER"
+    );
+
+    await userRepo.updateLinearCredentials(attacker.id, {
+      linearAccessToken: "lin_token_attacker",
+      linearWorkspaceId: "ws_attacker",
+      linearWorkspaceName: "Attacker WS",
+    });
+
+    const project = await projectRepo.createProject(owner.id, {
+      title: "Owner Project",
+      clientEmail: "stakeholder@corp.com",
+      githubRepoFullName: "owner/repo",
+    });
+
+    await assert.rejects(
+      async () => {
+        await publishProjectToLinear(
+          { projectId: project.id, freelancerId: attacker.id },
+          userRepo,
+          projectRepo,
+          draftRepo,
+          linearService,
+          emailService
+        );
+      },
+      {
+        message: "Unauthorized: You do not own this project.",
       }
     );
   });
@@ -238,7 +286,7 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
     );
   });
 
-  it("strictly excludes tentative and unconfirmed AI-inferred items from being published to Linear", async () => {
+  it("strictly excludes tentative, unconfirmed AI-inferred, and CLIENT_REJECTED items from being published", async () => {
     const userRepo = new InMemoryUserRepository();
     const projectRepo = new InMemoryProjectRepository();
     const draftRepo = new InMemoryTaskDraftRepository();
@@ -273,7 +321,30 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
       status: "APPROVED",
     });
 
-    // 2. Tentative item NOT confirmed by client (MUST NOT be published)
+    // 2. Confirmed commitment item (should be published)
+    await draftRepo.createTaskDraft({
+      meetingId: "m1",
+      projectId: project.id,
+      title: "Implement Stripe Webhook",
+      description: "Handle checkout events",
+      priority: 2,
+      classification: "CONFIRMED_COMMITMENT",
+      status: "APPROVED",
+    });
+
+    // 3. AI-inferred item APPROVED by client (should be published)
+    await draftRepo.createTaskDraft({
+      meetingId: "m1",
+      projectId: project.id,
+      title: "Redis Rate Limiter",
+      description: "Client approved addition",
+      priority: 3,
+      classification: "AI_INFERRED",
+      clientApprovalStatus: "CLIENT_APPROVED",
+      status: "APPROVED",
+    });
+
+    // 4. Tentative item NOT confirmed by client (MUST NOT be published)
     await draftRepo.createTaskDraft({
       meetingId: "m1",
       projectId: project.id,
@@ -285,15 +356,27 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
       status: "DRAFT",
     });
 
-    // 3. AI-inferred item NOT confirmed by client (MUST NOT be published)
+    // 5. AI-inferred item NOT confirmed by client (MUST NOT be published)
     await draftRepo.createTaskDraft({
       meetingId: "m1",
       projectId: project.id,
-      title: "Redis Caching Layer",
+      title: "GraphQL Subscriptions",
       description: "AI-suggested baseline",
       priority: 3,
       classification: "AI_INFERRED",
       clientApprovalStatus: "PENDING_CLIENT_APPROVAL",
+      status: "DRAFT",
+    });
+
+    // 6. Explicit item that was CLIENT_REJECTED (MUST NOT be published)
+    await draftRepo.createTaskDraft({
+      meetingId: "m1",
+      projectId: project.id,
+      title: "Legacy SMS Auth",
+      description: "Explicitly rejected by client during scope review",
+      priority: 1,
+      classification: "EXPLICIT",
+      clientApprovalStatus: "CLIENT_REJECTED",
       status: "DRAFT",
     });
 
@@ -306,13 +389,81 @@ describe("CommitCheck Linear Project Sync & Resend Stakeholder Notification (VAR
       emailService
     );
 
-    // Only the 1 explicit item should have been published
-    assert.strictEqual(result.publishedIssuesCount, 1);
-    assert.strictEqual(result.publishedIssues[0].title, "Core Database Schema");
+    // Exactly 3 items should have been published: Core DB, Stripe Webhook, Redis Rate Limiter
+    assert.strictEqual(result.publishedIssuesCount, 3);
+    const titles = result.publishedIssues.map((i) => i.title);
+    assert.ok(titles.includes("Core Database Schema"));
+    assert.ok(titles.includes("Implement Stripe Webhook"));
+    assert.ok(titles.includes("Redis Rate Limiter"));
 
-    // Check Linear mock service has only 1 issue created
-    assert.strictEqual(linearService.createdIssues.length, 1);
-    assert.strictEqual(linearService.createdIssues[0].title, "Core Database Schema");
+    // Ensure rejected and unapproved items are never published
+    assert.ok(!titles.includes("Voice Notes Transcription"));
+    assert.ok(!titles.includes("GraphQL Subscriptions"));
+    assert.ok(!titles.includes("Legacy SMS Auth"));
+
+    // Verify draft status in repo
+    const rejectedDraft = (await draftRepo.listDraftsForProject(project.id)).find(
+      (d) => d.title === "Legacy SMS Auth"
+    );
+    assert.strictEqual(rejectedDraft?.status, "DRAFT");
+    assert.strictEqual(rejectedDraft?.linearIssueId, null);
+  });
+
+  it("surfaces Linear GraphQL errors during publishing without completing sync", async () => {
+    const userRepo = new InMemoryUserRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const linearService = new MockLinearService();
+    const emailService = new MockEmailService();
+
+    const freelancer = await userRepo.upsertOAuthUser(
+      { provider: "github", providerId: "gh_gql_err", email: "gql@dev.io" },
+      "FREELANCER"
+    );
+
+    await userRepo.updateLinearCredentials(freelancer.id, {
+      linearAccessToken: "lin_token_err",
+      linearWorkspaceId: "ws_err",
+      linearWorkspaceName: "Err Workspace",
+    });
+
+    const project = await projectRepo.createProject(freelancer.id, {
+      title: "GraphQL Error Project",
+      clientEmail: "client@err.io",
+      githubRepoFullName: "org/err",
+    });
+
+    await draftRepo.createTaskDraft({
+      meetingId: "m_err",
+      projectId: project.id,
+      title: "Valid Task",
+      description: "Valid description",
+      priority: 1,
+      classification: "EXPLICIT",
+      status: "APPROVED",
+    });
+
+    // Simulate GraphQL failure in Linear service
+    linearService.simulateGraphQLError = "Rate limit exceeded on Linear API";
+
+    await assert.rejects(
+      async () => {
+        await publishProjectToLinear(
+          { projectId: project.id, freelancerId: freelancer.id },
+          userRepo,
+          projectRepo,
+          draftRepo,
+          linearService,
+          emailService
+        );
+      },
+      {
+        message: /Linear GraphQL error: Rate limit exceeded on Linear API/,
+      }
+    );
+
+    // Verify project linearProjectId was not set
+    const freshProject = await projectRepo.findProjectById(project.id);
+    assert.strictEqual(freshProject?.linearProjectId, null);
   });
 });
-

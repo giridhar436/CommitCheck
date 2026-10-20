@@ -117,6 +117,7 @@ export class PrismaUserRepository implements UserRepository {
       githubAccessToken: raw.githubAccessToken,
       googleId: raw.googleId,
       linearAccessToken: raw.linearAccessToken,
+      linearRefreshToken: raw.linearRefreshToken ?? null,
       linearWorkspaceId: raw.linearWorkspaceId,
       linearWorkspaceName: raw.linearWorkspaceName,
       createdAt: raw.createdAt,
@@ -193,6 +194,7 @@ export class InMemoryUserRepository implements UserRepository {
       githubAccessToken: profile.provider === "github" ? (profile.accessToken ?? null) : null,
       googleId: profile.provider === "google" ? profile.providerId : null,
       linearAccessToken: null,
+      linearRefreshToken: null,
       linearWorkspaceId: null,
       linearWorkspaceName: null,
       createdAt: now,
@@ -216,6 +218,7 @@ export class InMemoryUserRepository implements UserRepository {
     const updated: AuthUser = {
       ...existing,
       linearAccessToken: data.linearAccessToken,
+      linearRefreshToken: data.linearRefreshToken ?? null,
       linearWorkspaceId: data.linearWorkspaceId,
       linearWorkspaceName: data.linearWorkspaceName,
       updatedAt: new Date(),

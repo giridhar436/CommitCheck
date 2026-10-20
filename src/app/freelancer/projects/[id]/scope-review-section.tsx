@@ -290,7 +290,7 @@ export function ScopeReviewSection({
     setSuccessMessage(null);
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/linear/sync`, {
+      const res = await fetch(`/api/projects/${projectId}/linear/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teamId: selectedTeamId || undefined }),
@@ -306,7 +306,28 @@ export function ScopeReviewSection({
         `Successfully published ${data.result.publishedIssuesCount} issues to Linear! Stakeholder notification email dispatched.`
       );
 
-      // Refresh drafts
+      // Optimistically update local drafts with Linear keys and URLs
+      if (Array.isArray(data.result?.publishedIssues)) {
+        setDrafts((prev) =>
+          prev.map((d) => {
+            const pub = data.result.publishedIssues.find(
+              (p: any) => p.title === d.title
+            );
+            if (pub) {
+              return {
+                ...d,
+                status: "SYNCED",
+                linearIssueId: pub.id,
+                linearIssueKey: pub.identifier,
+                linearIssueUrl: pub.url,
+              };
+            }
+            return d;
+          })
+        );
+      }
+
+      // Refresh drafts from server
       const draftsRes = await fetch(`/api/projects/${projectId}/scope/drafts`);
       if (draftsRes.ok) {
         const draftsData = await draftsRes.json();

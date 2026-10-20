@@ -94,6 +94,10 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error fetching workspace: ${msg}`);
+    }
     const org = json.data?.viewer?.organization;
     if (!org) {
       throw new Error("No organization found in Linear profile");
@@ -140,6 +144,10 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error listing teams: ${msg}`);
+    }
     return json.data?.teams?.nodes || [];
   }
 
@@ -192,8 +200,12 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error creating project: ${msg}`);
+    }
     const proj = json.data?.projectCreate?.project;
-    if (!proj) {
+    if (!proj || json.data?.projectCreate?.success === false) {
       throw new Error("Linear project creation failed: No project returned");
     }
 
@@ -269,8 +281,12 @@ export class LiveLinearService implements GitHubLinearService {
     }
 
     const json = await res.json();
+    if (json.errors && json.errors.length > 0) {
+      const msg = json.errors.map((e: any) => e.message).join(", ");
+      throw new Error(`Linear GraphQL error creating issue: ${msg}`);
+    }
     const issue = json.data?.issueCreate?.issue;
-    if (!issue) {
+    if (!issue || json.data?.issueCreate?.success === false) {
       throw new Error("Linear issue creation failed: No issue returned");
     }
 
@@ -281,6 +297,7 @@ export class LiveLinearService implements GitHubLinearService {
 interface GitHubLinearService extends LinearService {}
 
 export class MockLinearService implements LinearService {
+  public simulateGraphQLError: string | null = null;
   private workspace: LinearWorkspace;
   private teams: LinearTeam[];
 
@@ -321,6 +338,9 @@ export class MockLinearService implements LinearService {
   }
 
   async getViewerWorkspace(accessToken: string): Promise<LinearWorkspace> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
@@ -328,6 +348,9 @@ export class MockLinearService implements LinearService {
   }
 
   async listTeams(accessToken: string): Promise<LinearTeam[]> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
@@ -338,6 +361,9 @@ export class MockLinearService implements LinearService {
     accessToken: string,
     input: CreateLinearProjectInput
   ): Promise<LinearCreatedProject> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
@@ -356,6 +382,9 @@ export class MockLinearService implements LinearService {
     accessToken: string,
     input: CreateLinearIssueInput
   ): Promise<LinearCreatedIssue> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Linear GraphQL error: ${this.simulateGraphQLError}`);
+    }
     if (!accessToken || accessToken === "invalid_token") {
       throw new Error("Authentication failed: invalid token");
     }
