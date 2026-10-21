@@ -13,13 +13,54 @@ import {
   UserCheck,
 } from "lucide-react";
 
-interface Meeting {
+export interface Meeting {
   id: string;
   meetUrl: string;
   status: "SCHEDULED" | "JOINING" | "RECORDING" | "TRANSCRIBING" | "COMPLETED" | "FAILED";
   transcript: string | null;
   transcriptJson: string | null;
   createdAt: string;
+}
+
+export const GOOGLE_MEET_REGEX = /^https:\/\/meet\.google\.com\/[a-z0-9\-]+$/i;
+
+export function isValidGoogleMeetUrl(url: string): boolean {
+  if (!url) return false;
+  return GOOGLE_MEET_REGEX.test(url.trim());
+}
+
+export async function validateAndDispatchMeeting({
+  meetUrl,
+  projectId,
+  fetchFn = fetch,
+}: {
+  meetUrl: string;
+  projectId: string;
+  fetchFn?: typeof fetch;
+}): Promise<{ success: boolean; meeting?: Meeting; error?: string }> {
+  const trimmedUrl = meetUrl.trim();
+  if (!trimmedUrl) {
+    return { success: false, error: "Please enter a Google Meet room link." };
+  }
+  if (!isValidGoogleMeetUrl(trimmedUrl)) {
+    return {
+      success: false,
+      error: "Invalid Google Meet URL. Must match format 'https://meet.google.com/xxx-yyyy-zzz'.",
+    };
+  }
+
+  const res = await fetchFn(`/api/projects/${projectId}/meetings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ meetUrl: trimmedUrl, autoSimulate: true }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    return { success: false, error: data.error || "Failed to dispatch meeting bot" };
+  }
+
+  return { success: true, meeting: data.meeting };
 }
 
 export function MeetingSection({
@@ -30,11 +71,18 @@ export function MeetingSection({
   initialMeetings: Meeting[];
 }) {
   const [meetings, setMeetings] = useState<Meeting[]>(initialMeetings);
-  const [meetUrl, setMeetUrl] = useState("https://meet.google.com/abc-defg-hij");
+  const [meetUrl, setMeetUrl] = useState(initialMeetings[0]?.meetUrl || "");
   const [dispatching, setDispatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const activeMeeting = meetings[0];
+  const isUrlValid = isValidGoogleMeetUrl(meetUrl);
+  const isMeetingInProgress =
+    activeMeeting?.status === "JOINING" ||
+    activeMeeting?.status === "RECORDING" ||
+    activeMeeting?.status === "TRANSCRIBING";
+
+  const isDispatchDisabled = dispatching || !isUrlValid || isMeetingInProgress;
 
   // Poll status when active meeting is in progress
   useEffect(() => {
@@ -63,18 +111,19 @@ export function MeetingSection({
     setDispatching(true);
 
     try {
-      const res = await fetch(`/api/projects/${projectId}/meetings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meetUrl, autoSimulate: true }),
+      const result = await validateAndDispatchMeeting({
+        meetUrl,
+        projectId,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to dispatch meeting bot");
+      if (!result.success) {
+        setError(result.error || "Failed to dispatch meeting bot");
+        return;
       }
 
-      setMeetings([data.meeting, ...meetings]);
+      if (result.meeting) {
+        setMeetings((prev) => [result.meeting!, ...prev]);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -147,7 +196,18 @@ export function MeetingSection({
             </p>
           </div>
 
-          {activeMeeting && renderStatusBadge(activeMeeting.status)}
+          {activeMeeting ? (
+            renderStatusBadge(activeMeeting.status)
+          ) : dispatching ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Dispatching Bot...
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#f7f7f7] text-[#6a6a6a] border border-[#dddddd]">
+              No meeting dispatched
+            </span>
+          )}
         </div>
 
         {error && (
@@ -165,17 +225,21 @@ export function MeetingSection({
             <input
               type="url"
               required
-              placeholder="https://meet.google.com/xxx-yyyy-zzz"
+              placeholder="Paste your Google Meet room link"
               value={meetUrl}
-              onChange={(e) => setMeetUrl(e.target.value)}
-              className="w-full h-12 pl-10 pr-3.5 rounded-[8px] border border-[#dddddd] bg-white text-sm text-[#222222] placeholder:text-[#929292] focus:outline-none focus:border-[#222222] transition-colors"
+              onChange={(e) => {
+                setMeetUrl(e.target.value);
+                if (error) setError(null);
+              }}
+              disabled={dispatching || isMeetingInProgress}
+              className="w-full h-12 pl-10 pr-3.5 rounded-[8px] border border-[#dddddd] bg-white text-sm text-[#222222] placeholder:text-[#929292] focus:outline-none focus:border-[#222222] transition-colors disabled:bg-[#f7f7f7] disabled:text-[#6a6a6a]"
             />
           </div>
 
           <button
             type="submit"
-            disabled={dispatching || (activeMeeting && activeMeeting.status === "JOINING")}
-            className="inline-flex items-center justify-center gap-2 px-6 h-12 rounded-[8px] bg-[#ff385c] hover:bg-[#e00b41] text-white text-sm font-medium transition-all shadow-sm disabled:opacity-50 cursor-pointer shrink-0"
+            disabled={isDispatchDisabled}
+            className="inline-flex items-center justify-center gap-2 px-6 h-12 rounded-[8px] bg-[#ff385c] hover:bg-[#e00b41] text-white text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
           >
             {dispatching ? (
               <>
@@ -191,9 +255,17 @@ export function MeetingSection({
           </button>
         </form>
 
-        <p className="text-xs text-[#6a6a6a] mt-3">
-          Instant bot admission into your call. Webhook ingestion updates transcript segments in real-time.
-        </p>
+        <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#6a6a6a]">
+          <p>
+            Instant bot admission into your call. Webhook ingestion updates transcript segments in real-time.
+          </p>
+          {activeMeeting && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span>{isMeetingInProgress ? "Active room:" : "Meeting room:"}</span>
+              <span className="font-mono text-[#222222] font-medium">{activeMeeting.meetUrl}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Transcript Viewer Card */}
@@ -278,7 +350,7 @@ export function MeetingSection({
                 Transcript Ingested & Diarized
               </div>
               <p className="text-xs text-[#6a6a6a] mt-0.5">
-                Atomic deliverables and requirements are ready for Gemini 1.5 Pro scope extraction in the section below.
+                Atomic deliverables and requirements are ready for Gemini scope extraction in the section below.
               </p>
             </div>
 

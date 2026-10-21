@@ -2,7 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
 import { defaultProjectRepository } from "@/lib/projects";
-import { defaultMeetingRepository } from "@/lib/meetings";
+import {
+  defaultMeetingRepository,
+  defaultMeetingBotService,
+  reconcileProjectMeetings,
+} from "@/lib/meetings";
 import { defaultTaskDraftRepository } from "@/lib/scope";
 import { defaultLinearService } from "@/lib/linear";
 import { defaultAuditRepository } from "@/lib/audit";
@@ -52,7 +56,11 @@ export default async function ProjectDetailPage({
     }
   }
 
-  const rawMeetings = await defaultMeetingRepository.listMeetingsForProject(id);
+  const rawMeetings = await reconcileProjectMeetings(
+    id,
+    defaultMeetingRepository,
+    defaultMeetingBotService
+  );
   const meetings = rawMeetings.map((m) => ({
     id: m.id,
     meetUrl: m.meetUrl,

@@ -92,7 +92,8 @@ export interface GitHubCommitFetcher {
   fetchRecentCommits(
     accessToken: string,
     repoFullName: string,
-    limit?: number
+    limit?: number,
+    since?: string
   ): Promise<CommitInfo[]>;
   fetchRepoBranches?(
     accessToken: string,

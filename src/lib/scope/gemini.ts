@@ -35,16 +35,22 @@ Output ONLY a JSON object matching this schema:
 }
 `;
 
+export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+
 export class GeminiExtractionService implements LLMExtractionService {
   private apiKey: string;
   private model: string;
 
   constructor(
     apiKey = process.env.GEMINI_API_KEY || "",
-    model = process.env.GEMINI_MODEL || "gemini-1.5-pro"
+    model = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL
   ) {
     this.apiKey = apiKey;
     this.model = model;
+  }
+
+  protected getAiClient(): any {
+    return new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   async analyzeTranscript(transcript: string): Promise<ComprehensiveScopeAnalysis> {
@@ -53,14 +59,13 @@ export class GeminiExtractionService implements LLMExtractionService {
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: this.apiKey });
+      const ai = this.getAiClient();
       const response = await ai.models.generateContent({
         model: this.model,
         contents: `Analyze the following meeting transcript between a Freelancer and a Client:\n\n${transcript}`,
         config: {
           systemInstruction: SCOPE_CLASSIFICATION_SYSTEM_INSTRUCTION,
           responseMimeType: "application/json",
-          temperature: 0.1,
         },
       });
 
@@ -89,7 +94,6 @@ export class GeminiExtractionService implements LLMExtractionService {
             ],
             generationConfig: {
               response_mime_type: "application/json",
-              temperature: 0.1,
             },
           }),
         });

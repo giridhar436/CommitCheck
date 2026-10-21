@@ -21,7 +21,7 @@ describe("CommitCheck Environment Validation & Diagnostics (VAR-21)", () => {
       RECALL_REGION: "ap-northeast-1",
       RECALL_API_BASE_URL: "https://ap-northeast-1.recall.ai",
       GEMINI_API_KEY: "AIzaSyLiveGeminiKey123456789",
-      GEMINI_MODEL: "gemini-1.5-pro",
+      GEMINI_MODEL: "gemini-3.8-flash",
       RESEND_API_KEY: "re_LiveResendKey123456789",
       RESEND_FROM_EMAIL: "notifications@commitcheck.dev",
     };

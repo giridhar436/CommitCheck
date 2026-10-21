@@ -27,9 +27,18 @@ export interface Meeting {
   updatedAt: Date;
 }
 
+export interface BotStatusResult {
+  status: MeetingStatus;
+  statusCode?: string;
+  transcriptId?: string;
+  transcriptStatus?: string;
+  segments?: TranscriptSegment[];
+  rawBot?: unknown;
+}
+
 export interface MeetingBotService {
   dispatchBot(meetUrl: string, botName?: string): Promise<{ botId: string; status: MeetingStatus }>;
-  getBotStatus(botId: string): Promise<{ status: MeetingStatus; segments?: TranscriptSegment[] }>;
+  getBotStatus(botId: string): Promise<BotStatusResult>;
   verifyWebhookSignature(rawBody: string, headers: Record<string, string> | null): boolean;
   // transcript.done notifications only reference the transcript artifact; the content must be fetched
   fetchTranscriptArtifact(transcriptId: string): Promise<unknown>;

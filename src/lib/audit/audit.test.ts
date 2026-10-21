@@ -134,8 +134,8 @@ describe("CommitCheck Dual-Tier AI Verification & Audit Engine (VAR-12 / VAR-20)
     assert.ok(t2.reasoning.includes("feature/DEV-303-apple-pay"));
   });
 
-  it("configures Gemini 1.5 Pro semantic analyzer and falls back cleanly when offline", async () => {
-    const analyzer = new GeminiSemanticDiffAnalyzer("mock_api_key", "gemini-1.5-pro");
+  it("configures Gemini semantic analyzer with gemini-3.8-flash and falls back cleanly when offline", async () => {
+    const analyzer = new GeminiSemanticDiffAnalyzer("mock_api_key", "gemini-3.8-flash");
 
     const task: TaskToVerify = {
       id: "t_gemini",
@@ -160,6 +160,57 @@ describe("CommitCheck Dual-Tier AI Verification & Audit Engine (VAR-12 / VAR-20)
     assert.ok(alignment.confidence >= 0.7);
     assert.ok(alignment.reasoning.includes("Biometric FaceID"));
     assert.strictEqual(alignment.matchedCommits.length, 1);
+  });
+
+  it("passes gemini-3.8-flash model without deprecated parameters to GoogleGenAI SDK in audit analyzer", async () => {
+    let capturedParams: any;
+
+    const fakeAi = {
+      models: {
+        async generateContent(params: any) {
+          capturedParams = params;
+          return {
+            text: JSON.stringify({
+              isVerified: true,
+              confidence: 0.95,
+              reasoning: "Verified via semantic code audit.",
+              matchedShas: ["sha_live_1"],
+            }),
+          };
+        },
+      },
+    };
+
+    class TestAuditAnalyzer extends GeminiSemanticDiffAnalyzer {
+      protected getAiClient(): any {
+        return fakeAi;
+      }
+    }
+
+    const analyzer = new TestAuditAnalyzer("live_key_for_test", "gemini-3.8-flash");
+    const task: TaskToVerify = {
+      id: "t_live_1",
+      key: "VAR-500",
+      title: "Apple Pay Integration",
+      description: "One click payment",
+      status: "Done",
+    };
+    const commits: CommitInfo[] = [
+      {
+        sha: "sha_live_1",
+        message: "feat: apple pay payment sheet implementation",
+        author: "Dev",
+        date: new Date().toISOString(),
+      },
+    ];
+
+    const result = await analyzer.analyzeTaskCommitAlignment(task, commits);
+    assert.ok(capturedParams);
+    assert.strictEqual(capturedParams.model, "gemini-3.8-flash");
+    assert.strictEqual(capturedParams.config.responseMimeType, "application/json");
+    assert.strictEqual(capturedParams.config.temperature, undefined);
+    assert.strictEqual(result.isVerified, true);
+    assert.strictEqual(result.matchedCommits.length, 1);
   });
 
   it("detects and flags Ghost Completions when a task is marked Done without supporting commits", async () => {
@@ -575,5 +626,216 @@ describe("CommitCheck Dual-Tier AI Verification & Audit Engine (VAR-12 / VAR-20)
         message: "Unauthorized: You do not have permission to audit this project.",
       }
     );
+  });
+
+  it("does not count GitHub activity that existed before the project started (audit baseline boundary in runDualTierVerification)", async () => {
+    const baselineDate = new Date("2026-10-21T10:00:00Z");
+
+    const tasks: TaskToVerify[] = [
+      {
+        id: "t1",
+        key: "VAR-101",
+        title: "Implement Stripe Elements UI",
+        description: "Embedded payment form with card validation",
+        status: "Done",
+        statusType: "completed",
+      },
+      {
+        id: "t2",
+        key: "VAR-102",
+        title: "Build Receipt Webhook Endpoint",
+        description: "Handle payment_intent.succeeded and dispatch receipts",
+        status: "Backlog",
+      },
+    ];
+
+    const commits: CommitInfo[] = [
+      // Commit 1: Syntactically matches VAR-101, but existed BEFORE the project started
+      {
+        sha: "sha_pre_project_1",
+        message: "feat(VAR-101): legacy stripe elements checkout form",
+        author: "Old Dev",
+        date: "2026-10-20T12:00:00Z", // 22 hours before baseline
+      },
+      // Commit 2: Semantically matches VAR-102, but existed BEFORE the project started
+      {
+        sha: "sha_pre_project_2",
+        message: "setup webhook endpoint for payment receipt processing",
+        author: "Old Dev",
+        date: "2026-10-20T14:00:00Z", // 20 hours before baseline
+        diffSnippet: "+ app.post('/webhook', handleReceipt)",
+      },
+      // Commit 3: Unrelated commit that existed BEFORE the project started
+      {
+        sha: "sha_pre_project_3",
+        message: "refactor: old database setup from previous project",
+        author: "Old Dev",
+        date: "2026-10-20T16:00:00Z", // 18 hours before baseline
+      },
+      // Commit 4: Legit commit made AFTER the project started
+      {
+        sha: "sha_post_project_4",
+        message: "feat(VAR-101): live project stripe elements implementation",
+        author: "Current Dev",
+        date: "2026-10-21T11:00:00Z", // 1 hour after baseline
+      },
+    ];
+
+    const analyzer = new GeminiSemanticDiffAnalyzer();
+
+    // 1. Run verification with baseline boundary
+    const result = await runDualTierVerification({
+      tasks,
+      commits,
+      analyzer,
+      baselineDate,
+    });
+
+    // VAR-101 is verified ONLY by the commit made after baseline (sha_post_project_4)
+    const t1 = result.verifiedTasks.find((t) => t.issueKey === "VAR-101");
+    assert.ok(t1);
+    assert.strictEqual(t1.isVerified, true);
+    assert.strictEqual(t1.tier, "SYNTACTIC");
+    assert.strictEqual(t1.matchedCommits.length, 1);
+    assert.strictEqual(t1.matchedCommits[0].sha, "sha_post_project_4");
+
+    // VAR-102 is NOT verified because sha_pre_project_2 occurred before project started
+    const t2 = result.verifiedTasks.find((t) => t.issueKey === "VAR-102");
+    assert.ok(t2);
+    assert.strictEqual(t2.isVerified, false);
+    assert.strictEqual(t2.tier, "NONE");
+
+    // Untracked work must NOT count sha_pre_project_3 because it existed before project started
+    assert.strictEqual(result.untrackedCommitsCount, 0);
+    const untrackedDiscrepancies = result.discrepancies.filter((d) => d.type === "UNTRACKED_WORK");
+    assert.strictEqual(untrackedDiscrepancies.length, 0);
+
+    // 2. When ONLY pre-project commits exist, zero tasks are verified and no pre-project commits are flagged as untracked
+    const preProjectOnlyCommits = commits.filter((c) => c.sha.startsWith("sha_pre_project"));
+    const emptyProgressResult = await runDualTierVerification({
+      tasks,
+      commits: preProjectOnlyCommits,
+      analyzer,
+      baselineDate,
+    });
+
+    assert.strictEqual(emptyProgressResult.verifiedPercentage, 0);
+    assert.strictEqual(emptyProgressResult.untrackedCommitsCount, 0);
+    // Task 1 marked "Done" is flagged as Ghost Completion since no code was delivered since project started
+    assert.strictEqual(emptyProgressResult.ghostCompletionsCount, 1);
+    const ghost = emptyProgressResult.discrepancies.find((d) => d.type === "GHOST_COMPLETION");
+    assert.ok(ghost);
+    assert.strictEqual(ghost.issueKey, "VAR-101");
+  });
+
+  it("enforces project creation baseline in runProjectAudit and excludes pre-project GitHub activity", async () => {
+    const userRepo = new InMemoryUserRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const auditRepo = new InMemoryAuditRepository();
+
+    const dev = await userRepo.upsertOAuthUser(
+      {
+        provider: "github",
+        providerId: "gh_baseline_test_dev",
+        email: "dev@baseline.io",
+      },
+      "FREELANCER"
+    );
+
+    const client = await userRepo.upsertOAuthUser(
+      {
+        provider: "google",
+        providerId: "g_baseline_client",
+        email: "client@baseline.io",
+      },
+      "CLIENT"
+    );
+
+    const project = await projectRepo.createProject(
+      dev.id,
+      {
+        title: "Baseline Boundary Verification Project",
+        clientEmail: "client@baseline.io",
+        githubRepoFullName: "dev/baseline-repo",
+      },
+      client.id
+    );
+
+    // Override project.createdAt to simulate an established start time
+    const projectStartTime = new Date("2026-10-21T09:00:00.000Z");
+    (project as any).createdAt = projectStartTime;
+    // Update repository record
+    (projectRepo as any).projects.set(project.id, { ...project, createdAt: projectStartTime });
+
+    // Tasks: 1 In Progress, 1 Done
+    await draftRepo.createTaskDraft({
+      meetingId: "m_base_1",
+      projectId: project.id,
+      title: "Biometric Authentication Service",
+      description: "Support iOS FaceID login",
+      status: "APPROVED", // "In Progress"
+    });
+
+    await draftRepo.createTaskDraft({
+      meetingId: "m_base_1",
+      projectId: project.id,
+      title: "User Profile Management",
+      description: "Settings screen",
+      status: "SYNCED", // "Done"
+    });
+
+    // Commits from GitHub: 2 from before project started, 1 from after
+    const commitFetcher = new MockGitHubCommitFetcher([
+      {
+        sha: "old_sha_1",
+        message: "feat: add biometric authentication service for face id login",
+        author: "Dev",
+        date: "2026-10-20T15:00:00.000Z", // Pre-project!
+        diffSnippet: "+export async function authenticateWithBiometrics() { ... }",
+      },
+      {
+        sha: "old_sha_2",
+        message: "chore: random commit before project was created",
+        author: "Dev",
+        date: "2026-10-20T18:00:00.000Z", // Pre-project!
+      },
+      {
+        sha: "new_sha_1",
+        message: "feat: add biometric authentication service for face id login",
+        author: "Dev",
+        date: "2026-10-21T12:00:00.000Z", // After project start!
+        diffSnippet: "+export async function authenticateWithBiometrics() { ... }",
+      },
+    ]);
+
+    const auditResult = await runProjectAudit(
+      {
+        projectId: project.id,
+        userId: client.id,
+        auditorRole: "CLIENT",
+      },
+      userRepo,
+      projectRepo,
+      draftRepo,
+      commitFetcher,
+      new GeminiSemanticDiffAnalyzer(),
+      auditRepo
+    );
+
+    const report = auditResult.report;
+    assert.ok(report);
+
+    // Only new_sha_1 was considered
+    assert.strictEqual(report.latestCommitSha, "new_sha_1");
+
+    // old_sha_2 is NOT counted as untracked work
+    assert.strictEqual(report.untrackedCommits, 0);
+
+    // "User Profile Management" is marked Done but has no commits since project started -> Ghost completion
+    assert.strictEqual(report.ghostCompletions, 1);
+    const ghost = report.discrepancies.find((d) => d.type === "GHOST_COMPLETION");
+    assert.ok(ghost);
+    assert.ok(ghost.title.includes("User Profile Management"));
   });
 });

@@ -11,7 +11,7 @@ import { InMemoryUserRepository } from "../auth/adapter";
 import { InMemoryProjectRepository } from "../projects/adapter";
 import { ComprehensiveScopeAnalysis, LLMExtractionService } from "./types";
 
-describe("Live Gemini 1.5 Pro Scope Classification & Caching Engine (VAR-17)", () => {
+describe("Live Gemini Scope Classification & Caching Engine (VAR-17)", () => {
   const sampleTranscript = `
 [00:01] Sarah (Client): Hi Alex, glad we connected. We need an automated invoice generation system with PDF downloads.
 [00:15] Alex (Freelancer): Absolutely. We will build the PDF invoice generator and email dispatch on payment confirmation.
@@ -19,12 +19,77 @@ describe("Live Gemini 1.5 Pro Scope Classification & Caching Engine (VAR-17)", (
 [00:45] Alex (Freelancer): I commit to having the PDF generator demo ready by Thursday 3 PM for our milestone review.
 `;
 
-  it("configures model to gemini-1.5-pro by default and supports custom model overrides", () => {
-    const defaultService = new GeminiExtractionService("test-key");
-    assert.strictEqual((defaultService as any).model, "gemini-1.5-pro");
+  it("configures model to gemini-3.8-flash by default and supports custom model overrides", () => {
+    const prevEnv = process.env.GEMINI_MODEL;
+    delete process.env.GEMINI_MODEL;
 
-    const customService = new GeminiExtractionService("test-key", "gemini-1.5-flash");
-    assert.strictEqual((customService as any).model, "gemini-1.5-flash");
+    try {
+      const defaultService = new GeminiExtractionService("test-key");
+      assert.strictEqual((defaultService as any).model, "gemini-3.8-flash");
+
+      const customService = new GeminiExtractionService("test-key", "gemini-custom-flash");
+      assert.strictEqual((customService as any).model, "gemini-custom-flash");
+
+      process.env.GEMINI_MODEL = "gemini-3.8-flash";
+      const envService = new GeminiExtractionService("test-key");
+      assert.strictEqual((envService as any).model, "gemini-3.8-flash");
+    } finally {
+      if (prevEnv !== undefined) {
+        process.env.GEMINI_MODEL = prevEnv;
+      } else {
+        delete process.env.GEMINI_MODEL;
+      }
+    }
+  });
+
+  it("passes the configured model (gemini-3.8-flash) and valid JSON config without deprecated parameters to GoogleGenAI SDK", async () => {
+    let capturedParams: any;
+
+    const fakeAi = {
+      models: {
+        async generateContent(params: any) {
+          capturedParams = params;
+          return {
+            text: JSON.stringify({
+              summary: "SDK Verified Meeting",
+              explicitRequirements: [
+                {
+                  title: "Test Task",
+                  description: "Test description",
+                  priority: 2,
+                  estimate: 3,
+                  evidence: "Test evidence",
+                  confidence: 0.95,
+                  suggestedMilestone: "M1",
+                },
+              ],
+              aiInferredRequirements: [],
+              tentativeRequirements: [],
+              confirmedCommitments: [],
+            }),
+          };
+        },
+      },
+    };
+
+    class TestGeminiService extends GeminiExtractionService {
+      protected getAiClient(): any {
+        return fakeAi;
+      }
+    }
+
+    const service = new TestGeminiService("live_test_key_for_spy", "gemini-3.8-flash");
+    const result = await service.analyzeTranscript(sampleTranscript);
+
+    assert.ok(capturedParams);
+    assert.strictEqual(capturedParams.model, "gemini-3.8-flash");
+    assert.strictEqual(capturedParams.config.responseMimeType, "application/json");
+    // Ensure deprecated generation parameters like temperature are not present
+    assert.strictEqual(capturedParams.config.temperature, undefined);
+    assert.strictEqual(capturedParams.config.topP, undefined);
+    assert.strictEqual(capturedParams.config.topK, undefined);
+    assert.strictEqual(result.explicitRequirements.length, 1);
+    assert.strictEqual(result.explicitRequirements[0].title, "Test Task");
   });
 
   it("defines the single-call 4-tier classification system instruction", () => {

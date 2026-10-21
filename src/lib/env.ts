@@ -279,11 +279,11 @@ export function validateEnvironment(
 
   // 7. Google Gemini AI Engine
   const geminiApiKey = env.GEMINI_API_KEY;
-  const geminiModel = env.GEMINI_MODEL || "gemini-1.5-pro";
+  const geminiModel = env.GEMINI_MODEL || "gemini-3.8-flash";
   if (!geminiApiKey) {
     services.gemini = {
       service: "gemini",
-      displayName: "Google Gemini 1.5 Pro AI Engine",
+      displayName: "Google Gemini AI Engine",
       required: false,
       mode: "mock",
       status: "ok",
@@ -294,7 +294,7 @@ export function validateEnvironment(
   } else if (geminiApiKey.startsWith("mock_")) {
     services.gemini = {
       service: "gemini",
-      displayName: "Google Gemini 1.5 Pro AI Engine",
+      displayName: "Google Gemini AI Engine",
       required: false,
       mode: "mock",
       status: "ok",
@@ -305,7 +305,7 @@ export function validateEnvironment(
   } else {
     services.gemini = {
       service: "gemini",
-      displayName: "Google Gemini 1.5 Pro AI Engine",
+      displayName: "Google Gemini AI Engine",
       required: false,
       mode: "live",
       status: "ok",

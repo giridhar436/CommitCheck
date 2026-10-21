@@ -6,6 +6,7 @@ import {
   defaultMeetingRepository,
   defaultMeetingBotService,
   handleRecallWebhook,
+  reconcileProjectMeetings,
 } from "@/lib/meetings";
 
 export async function GET(
@@ -19,7 +20,11 @@ export async function GET(
 
   const { id } = await params;
   try {
-    const meetings = await defaultMeetingRepository.listMeetingsForProject(id);
+    const meetings = await reconcileProjectMeetings(
+      id,
+      defaultMeetingRepository,
+      defaultMeetingBotService
+    );
     return NextResponse.json({ meetings });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

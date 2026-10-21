@@ -16,7 +16,8 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
   async fetchRecentCommits(
     accessToken: string,
     repoFullName: string,
-    limit = 30
+    limit = 30,
+    since?: string
   ): Promise<CommitInfo[]> {
     if (!accessToken || accessToken.startsWith("mock_") || accessToken.startsWith("gh_mock")) {
       return this.fallbackCommits(repoFullName);
@@ -24,8 +25,9 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
 
     try {
       // 1. Fetch commits
+      const sinceQuery = since ? `&since=${encodeURIComponent(since)}` : "";
       const commitsRes = await fetch(
-        `https://api.github.com/repos/${repoFullName}/commits?per_page=${limit}`,
+        `https://api.github.com/repos/${repoFullName}/commits?per_page=${limit}${sinceQuery}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -193,7 +195,8 @@ export class MockGitHubCommitFetcher implements GitHubCommitFetcher {
   async fetchRecentCommits(
     _accessToken: string,
     _repoFullName: string,
-    _limit?: number
+    _limit?: number,
+    _since?: string
   ): Promise<CommitInfo[]> {
     return [...this.commits];
   }
@@ -284,10 +287,14 @@ export class GeminiSemanticDiffAnalyzer implements SemanticDiffAnalyzer {
 
   constructor(
     apiKey = process.env.GEMINI_API_KEY || "",
-    model = process.env.GEMINI_MODEL || "gemini-1.5-pro"
+    model = process.env.GEMINI_MODEL || "gemini-3.8-flash"
   ) {
     this.apiKey = apiKey;
     this.model = model;
+  }
+
+  protected getAiClient(): any {
+    return new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   async analyzeTaskCommitAlignment(
@@ -316,7 +323,7 @@ export class GeminiSemanticDiffAnalyzer implements SemanticDiffAnalyzer {
       this.apiKey !== "test_key"
     ) {
       try {
-        const ai = new GoogleGenAI({ apiKey: this.apiKey });
+        const ai = this.getAiClient();
         const commitSummaries = commits
           .map(
             (c) =>
@@ -352,7 +359,6 @@ Respond ONLY with valid JSON in this schema:
             systemInstruction:
               "You are an expert code auditor verifying git commit history and diffs against contracted software deliverables.",
             responseMimeType: "application/json",
-            temperature: 0.1,
           },
         });
 
@@ -369,7 +375,7 @@ Respond ONLY with valid JSON in this schema:
             reasoning:
               parsed.reasoning ||
               (isVerified
-                ? `Gemini 1.5 Pro semantic analysis confirmed ${matchedCommits.length} commit(s) backing "${task.title}".`
+                ? `Gemini semantic analysis confirmed ${matchedCommits.length} commit(s) backing "${task.title}".`
                 : `No semantic diff alignment found for "${task.title}".`),
             matchedCommits,
           };
@@ -427,6 +433,7 @@ export interface VerificationEngineInput {
   commits: CommitInfo[];
   analyzer: SemanticDiffAnalyzer;
   repoBranches?: string[];
+  baselineDate?: Date | string;
 }
 
 export interface VerificationEngineOutput {
@@ -441,17 +448,28 @@ export interface VerificationEngineOutput {
 export async function runDualTierVerification(
   input: VerificationEngineInput
 ): Promise<VerificationEngineOutput> {
-  const { tasks, commits, analyzer, repoBranches = [] } = input;
+  const { tasks, commits, analyzer, repoBranches = [], baselineDate } = input;
   const verifiedTasks: VerifiedTaskItem[] = [];
   const discrepancies: Discrepancy[] = [];
   const allMatchedShaSet = new Set<string>();
+
+  // Baseline boundary: Do not count GitHub activity that existed before the project started
+  const baselineTime = baselineDate ? new Date(baselineDate).getTime() : null;
+  const eligibleCommits =
+    baselineTime !== null && !isNaN(baselineTime)
+      ? commits.filter((c) => {
+          if (!c.date) return false;
+          const commitTime = new Date(c.date).getTime();
+          return !isNaN(commitTime) && commitTime >= (baselineTime - 1000);
+        })
+      : commits;
 
   for (const task of tasks) {
     // 1. Tier 1: Syntactic Matcher (Explicit ticket key in commit message OR branch names)
     // Matches ticket keys like VAR-101, DEV-202, etc. with word boundary
     const keyPattern = new RegExp(`\\b${task.key}\\b`, "i");
 
-    const syntacticMatches = commits.filter((c) => {
+    const syntacticMatches = eligibleCommits.filter((c) => {
       if (keyPattern.test(c.message)) return true;
       if (c.branchName && keyPattern.test(c.branchName)) return true;
       if (c.branches && c.branches.some((b) => keyPattern.test(b))) return true;
@@ -478,12 +496,12 @@ export async function runDualTierVerification(
         matchedCommits: syntacticMatches,
       });
       continue;
-    } else if (matchingRepoBranch && commits.length > 0) {
+    } else if (matchingRepoBranch && eligibleCommits.length > 0) {
       // Branch exists in repository referencing task
-      const branchCommits = commits.filter(
+      const branchCommits = eligibleCommits.filter(
         (c) => c.branchName === matchingRepoBranch || (c.branches && c.branches.includes(matchingRepoBranch))
       );
-      const targetCommits = branchCommits.length > 0 ? branchCommits : [commits[0]];
+      const targetCommits = branchCommits.length > 0 ? branchCommits : [eligibleCommits[0]];
       targetCommits.forEach((c) => allMatchedShaSet.add(c.sha));
       verifiedTasks.push({
         taskId: task.id,
@@ -500,7 +518,7 @@ export async function runDualTierVerification(
     }
 
     // 2. Tier 2: Semantic Diff Analysis
-    const semanticResult = await analyzer.analyzeTaskCommitAlignment(task, commits);
+    const semanticResult = await analyzer.analyzeTaskCommitAlignment(task, eligibleCommits);
     if (semanticResult.isVerified) {
       semanticResult.matchedCommits.forEach((c) => allMatchedShaSet.add(c.sha));
       verifiedTasks.push({
@@ -551,7 +569,7 @@ export async function runDualTierVerification(
   }
 
   // 5. Untracked Work Detection
-  const untrackedCommitsList = commits.filter((c) => !allMatchedShaSet.has(c.sha));
+  const untrackedCommitsList = eligibleCommits.filter((c) => !allMatchedShaSet.has(c.sha));
   for (const un of untrackedCommitsList) {
     // Only flag non-merge non-trivial commits
     if (

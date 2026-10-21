@@ -177,6 +177,10 @@ export class InMemoryMeetingRepository implements MeetingRepository {
     return { ...updated };
   }
 
+  setMeeting(meeting: Meeting) {
+    this.meetings.set(meeting.id, { ...meeting });
+  }
+
   clear() {
     this.meetings.clear();
   }

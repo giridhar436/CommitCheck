@@ -24,6 +24,7 @@ export interface RunProjectAuditInput {
   userId: string;
   auditorRole: AuditorRole;
   forceRefresh?: boolean;
+  baselineDate?: Date | string;
 }
 
 export async function runProjectAudit(
@@ -57,11 +58,35 @@ export async function runProjectAudit(
     throw new Error("Unauthorized: You do not have permission to audit this project.");
   }
 
-  // 2. Fetch recent commits and branches from GitHub
-  const commits = await commitFetcher.fetchRecentCommits(
+  // Determine audit baseline boundary (project start date)
+  const baselineDate = input.baselineDate
+    ? new Date(input.baselineDate)
+    : project.createdAt
+    ? new Date(project.createdAt)
+    : undefined;
+
+  const sinceIso = baselineDate
+    ? new Date(baselineDate.getTime() - 1000).toISOString().replace(/\.\d{3}Z$/, "Z")
+    : undefined;
+
+  // 2. Fetch recent commits and branches from GitHub (bounded by project start baseline)
+  const rawCommits = await commitFetcher.fetchRecentCommits(
     user.githubAccessToken || "",
-    project.githubRepo
+    project.githubRepo,
+    30,
+    sinceIso
   );
+
+  const baselineTime = baselineDate ? baselineDate.getTime() : null;
+  const commits =
+    baselineTime !== null && !isNaN(baselineTime)
+      ? rawCommits.filter((c) => {
+          if (!c.date) return false;
+          const commitTime = new Date(c.date).getTime();
+          return !isNaN(commitTime) && commitTime >= (baselineTime - 1000);
+        })
+      : rawCommits;
+
   const repoBranches = commitFetcher.fetchRepoBranches
     ? await commitFetcher.fetchRepoBranches(user.githubAccessToken || "", project.githubRepo)
     : [];
@@ -146,6 +171,7 @@ export async function runProjectAudit(
     commits,
     analyzer,
     repoBranches,
+    baselineDate,
   });
 
   // 6. Persist Immutable Audit Report Snapshot

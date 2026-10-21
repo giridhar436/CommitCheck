@@ -1,4 +1,4 @@
-import { MeetingBotService, MeetingStatus, TranscriptSegment } from "./types";
+import { BotStatusResult, MeetingBotService, MeetingStatus, TranscriptSegment } from "./types";
 import { Webhook } from "svix";
 
 export class RecallAiBotService implements MeetingBotService {
@@ -63,9 +63,15 @@ export class RecallAiBotService implements MeetingBotService {
 
   async getBotStatus(
     botId: string
-  ): Promise<{ status: MeetingStatus; segments?: TranscriptSegment[] }> {
+  ): Promise<BotStatusResult> {
     if (!this.apiKey || this.apiKey.startsWith("mock_")) {
-      return { status: "COMPLETED", segments: this.getDefaultMockSegments() };
+      return {
+        status: "COMPLETED",
+        statusCode: "done",
+        transcriptId: "mock_tr_123",
+        transcriptStatus: "done",
+        segments: this.getDefaultMockSegments(),
+      };
     }
 
     const res = await fetch(`${this.baseUrl}/api/v1/bot/${botId}`, {
@@ -79,12 +85,47 @@ export class RecallAiBotService implements MeetingBotService {
     }
 
     const data = await res.json();
-    const statusCode = data.status_changes?.[data.status_changes.length - 1]?.code || "in_call_recording";
+    const lastChange = data.status_changes?.[data.status_changes.length - 1];
+    const statusCode = lastChange?.code || "in_call_recording";
     let status: MeetingStatus = "RECORDING";
-    if (statusCode === "done") status = "COMPLETED";
-    if (statusCode === "fatal") status = "FAILED";
+    if (
+      statusCode === "joining_call" ||
+      statusCode === "in_waiting_room" ||
+      statusCode === "in_call_not_recording" ||
+      statusCode === "recording_permission_allowed"
+    ) {
+      status = "JOINING";
+    } else if (statusCode === "in_call_recording") {
+      status = "RECORDING";
+    } else if (statusCode === "call_ended" || statusCode === "recording_done") {
+      status = "TRANSCRIBING";
+    } else if (statusCode === "done") {
+      status = "COMPLETED";
+    } else if (
+      statusCode === "fatal" ||
+      statusCode === "recording_permission_denied" ||
+      statusCode === "analysis_failed"
+    ) {
+      status = "FAILED";
+    }
 
-    return { status };
+    const transcriptShortcut = data.recordings?.[0]?.media_shortcuts?.transcript;
+    const transcriptId = transcriptShortcut?.id;
+    const transcriptStatus = transcriptShortcut?.status?.code;
+
+    if (transcriptStatus === "failed") {
+      if (status === "TRANSCRIBING" || status === "COMPLETED") {
+        status = "FAILED";
+      }
+    }
+
+    return {
+      status,
+      statusCode,
+      transcriptId,
+      transcriptStatus,
+      rawBot: data,
+    };
   }
 
   // Fetches the transcript artifact and returns its content (Recall's diarized utterances array).
@@ -161,8 +202,14 @@ export class RecallAiBotService implements MeetingBotService {
 
 export class MockMeetingBotService implements MeetingBotService {
   private customSegments: TranscriptSegment[];
+  private customStatus: MeetingStatus;
+  private customStatusCode?: string;
+  private customTranscriptStatus?: string;
 
-  constructor(customSegments?: TranscriptSegment[]) {
+  constructor(
+    customSegments?: TranscriptSegment[],
+    customStatus: MeetingStatus = "COMPLETED"
+  ) {
     this.customSegments = customSegments || [
       {
         speaker: "Freelancer (Alex)",
@@ -183,6 +230,17 @@ export class MockMeetingBotService implements MeetingBotService {
         endTime: 19.5,
       },
     ];
+    this.customStatus = customStatus;
+  }
+
+  setStatus(
+    status: MeetingStatus,
+    statusCode?: string,
+    transcriptStatus?: string
+  ) {
+    this.customStatus = status;
+    if (statusCode !== undefined) this.customStatusCode = statusCode;
+    if (transcriptStatus !== undefined) this.customTranscriptStatus = transcriptStatus;
   }
 
   async dispatchBot(
@@ -197,9 +255,19 @@ export class MockMeetingBotService implements MeetingBotService {
 
   async getBotStatus(
     _botId: string
-  ): Promise<{ status: MeetingStatus; segments?: TranscriptSegment[] }> {
+  ): Promise<BotStatusResult> {
     return {
-      status: "COMPLETED",
+      status: this.customStatus,
+      statusCode:
+        this.customStatusCode ||
+        (this.customStatus === "COMPLETED"
+          ? "done"
+          : this.customStatus === "FAILED"
+          ? "fatal"
+          : "in_call_recording"),
+      transcriptId: "mock_tr_default",
+      transcriptStatus:
+        this.customTranscriptStatus || (this.customStatus === "COMPLETED" ? "done" : undefined),
       segments: this.customSegments,
     };
   }

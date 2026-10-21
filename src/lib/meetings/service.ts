@@ -1,12 +1,40 @@
 import { UserRepository } from "../auth/types";
 import { ProjectRepository } from "../projects/types";
 import {
+  BotStatusResult,
   Meeting,
   MeetingBotService,
   MeetingRepository,
   MeetingStatus,
   TranscriptSegment,
 } from "./types";
+
+export const DEFAULT_STALE_MEETING_THRESHOLD_MS = 60_000;
+
+export function isMeetingActive(status: MeetingStatus): boolean {
+  return (
+    status === "SCHEDULED" ||
+    status === "JOINING" ||
+    status === "RECORDING" ||
+    status === "TRANSCRIBING"
+  );
+}
+
+export function isMeetingStale(
+  meeting: Meeting,
+  staleThresholdMs: number = DEFAULT_STALE_MEETING_THRESHOLD_MS,
+  now: Date = new Date()
+): boolean {
+  if (!isMeetingActive(meeting.status) || !meeting.recallBotId) {
+    return false;
+  }
+  const referenceTime = meeting.updatedAt || meeting.createdAt;
+  if (!referenceTime) {
+    return true;
+  }
+  const ageMs = now.getTime() - new Date(referenceTime).getTime();
+  return ageMs >= staleThresholdMs;
+}
 
 const GOOGLE_MEET_REGEX = /^https:\/\/meet\.google\.com\/[a-z0-9\-]+$/i;
 
@@ -60,7 +88,7 @@ export function formatTranscriptSegments(segments: TranscriptSegment[]): string 
 
 // Accepts both the simulation format ({speaker, words, start_time, end_time}) and
 // Recall.ai's native diarized format ({participant: {name}, words: [{text, start_timestamp: {relative}, ...}]}).
-function normalizeTranscriptSegments(rawSegments: any[]): TranscriptSegment[] {
+export function normalizeTranscriptSegments(rawSegments: any[]): TranscriptSegment[] {
   return rawSegments
     .map((seg: any) => {
       // Recall.ai native: utterance with participant + word list
@@ -179,4 +207,121 @@ export async function handleRecallWebhook(
     transcriptText,
     transcriptJson
   );
+}
+
+export async function reconcileMeeting(
+  meeting: Meeting,
+  meetingRepo: MeetingRepository,
+  botService: MeetingBotService
+): Promise<Meeting> {
+  // 1. Only reconcile potentially active meetings with a recallBotId
+  if (!isMeetingActive(meeting.status) || !meeting.recallBotId) {
+    return meeting;
+  }
+
+  // 2. Fetch actual Recall.ai bot status
+  let botResult: BotStatusResult;
+  try {
+    botResult = await botService.getBotStatus(meeting.recallBotId);
+  } catch (err: any) {
+    console.warn(
+      `[reconcileMeeting] Failed to fetch bot status for meeting ${meeting.id} (bot ${meeting.recallBotId}):`,
+      err?.message || err
+    );
+    // Graceful degradation: preserve existing DB state on network/API failure
+    return meeting;
+  }
+
+  const botStatus = botResult.status;
+
+  // Case A: Bot completed or transcript is ready
+  if (botStatus === "COMPLETED" || botResult.transcriptStatus === "done") {
+    let segments: TranscriptSegment[] = [];
+
+    if (botResult.segments && botResult.segments.length > 0) {
+      segments = botResult.segments;
+    } else if (botResult.transcriptId) {
+      try {
+        const artifactData = await botService.fetchTranscriptArtifact(botResult.transcriptId);
+        if (Array.isArray(artifactData)) {
+          segments = normalizeTranscriptSegments(artifactData);
+        }
+      } catch (err: any) {
+        console.warn(
+          `[reconcileMeeting] Failed to fetch transcript artifact ${botResult.transcriptId} for meeting ${meeting.id}:`,
+          err?.message || err
+        );
+      }
+    }
+
+    if (segments.length > 0) {
+      const transcriptText = formatTranscriptSegments(segments);
+      const transcriptJson = JSON.stringify(segments);
+      return meetingRepo.updateMeetingStatus(
+        meeting.id,
+        "COMPLETED",
+        transcriptText,
+        transcriptJson
+      );
+    }
+
+    // Bot finished but transcript failed or is unavailable
+    if (botResult.transcriptStatus === "failed") {
+      return meetingRepo.updateMeetingStatus(meeting.id, "FAILED");
+    }
+
+    if (botResult.statusCode === "done" && !botResult.transcriptId) {
+      return meetingRepo.updateMeetingStatus(meeting.id, "FAILED");
+    }
+
+    // If call ended/done but transcript is still processing, mark as TRANSCRIBING
+    return meetingRepo.updateMeetingStatus(meeting.id, "TRANSCRIBING");
+  }
+
+  // Case B: Bot failed
+  if (botStatus === "FAILED" || botResult.statusCode === "fatal") {
+    return meetingRepo.updateMeetingStatus(meeting.id, "FAILED");
+  }
+
+  // Case C: Bot is still active (JOINING, RECORDING, or TRANSCRIBING)
+  // Update DB status to keep consistent and touch updatedAt
+  return meetingRepo.updateMeetingStatus(meeting.id, botStatus);
+}
+
+export async function reconcileProjectMeetings(
+  projectId: string,
+  meetingRepo: MeetingRepository,
+  botService: MeetingBotService,
+  options?: {
+    staleThresholdMs?: number;
+    now?: Date;
+  }
+): Promise<Meeting[]> {
+  const meetings = await meetingRepo.listMeetingsForProject(projectId);
+  if (meetings.length === 0) {
+    return meetings;
+  }
+
+  const staleThresholdMs = options?.staleThresholdMs ?? DEFAULT_STALE_MEETING_THRESHOLD_MS;
+  const now = options?.now ?? new Date();
+
+  const reconciledMeetings: Meeting[] = [];
+  for (const meeting of meetings) {
+    if (isMeetingStale(meeting, staleThresholdMs, now)) {
+      try {
+        const reconciled = await reconcileMeeting(meeting, meetingRepo, botService);
+        reconciledMeetings.push(reconciled);
+      } catch (err: any) {
+        console.warn(
+          `[reconcileProjectMeetings] Error reconciling meeting ${meeting.id}:`,
+          err?.message || err
+        );
+        reconciledMeetings.push(meeting);
+      }
+    } else {
+      reconciledMeetings.push(meeting);
+    }
+  }
+
+  return reconciledMeetings;
 }
