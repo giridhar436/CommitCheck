@@ -116,7 +116,7 @@ export default async function HomePage({
             From discovery call promises to shipped commits. Completely verified.
           </h1>
           <p className="text-lg text-[#3f3f3f] leading-relaxed">
-            CommitCheck bridges Google Meet discovery calls, Linear task tracking, and GitHub codebase activity. 
+            CommitCheck bridges Google Meet discovery calls, Linear task tracking, and GitHub codebase activity.
             Clients get verified progress transparency; Freelancers get automated scope-freeze protection.
           </p>
         </div>
@@ -258,7 +258,7 @@ export default async function HomePage({
         <div className="max-w-[1280px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-xs text-[#6a6a6a] gap-4">
           <div className="flex items-center gap-2">
             <span className="font-medium text-[#222222]">CommitCheck</span>
-            <span>&copy; {new Date().getFullYear()} CommitCheck, Inc. Built with Airbnb design principles.</span>
+            <span>&copy; {new Date().getFullYear()} CommitCheck, Inc.</span>
           </div>
           <div className="flex items-center gap-6">
             <span className="hover:text-[#222222] cursor-pointer">Privacy</span>
