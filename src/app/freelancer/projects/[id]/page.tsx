@@ -21,6 +21,8 @@ import {
   Calendar,
   Layers,
   ExternalLink,
+  Activity,
+  FolderGit2,
 } from "lucide-react";
 
 export default async function ProjectDetailPage({
@@ -109,23 +111,29 @@ export default async function ProjectDetailPage({
   }));
 
   return (
-    <div className="min-h-screen bg-white text-[#222222] font-sans flex flex-col">
+    <div className="min-h-screen bg-[#fafafa] text-[#18181b] font-sans flex flex-col selection:bg-[#ff385c] selection:text-white">
       {/* Top Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-[#dddddd]">
-        <div className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
-          <Link
-            href="/freelancer"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#222222] hover:text-[#6a6a6a] transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#e4e4e7]">
+        <div className="max-w-[1280px] mx-auto px-6 h-18 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/freelancer"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#71717a] hover:text-[#18181b] transition-colors bg-[#f4f4f5] hover:bg-[#e4e4e7] px-3 py-1.5 rounded-full border border-[#e4e4e7]"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              All Projects
+            </Link>
+            <span className="text-[#d4d4d8]">/</span>
+            <span className="text-sm font-bold text-[#18181b] truncate max-w-xs sm:max-w-md">
+              {project.title}
+            </span>
+          </div>
 
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#ff385c] flex items-center justify-center text-white">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-full bg-[#ff385c] flex items-center justify-center text-white shadow-xs">
+              <ShieldCheck className="w-4 h-4" />
             </div>
-            <span className="font-semibold text-sm">CommitCheck</span>
+            <span className="font-bold text-sm tracking-tight hidden sm:inline">CommitCheck</span>
           </div>
         </div>
       </header>
@@ -133,26 +141,35 @@ export default async function ProjectDetailPage({
       {/* Main Content */}
       <main className="flex-1 max-w-[1280px] mx-auto px-6 py-10 w-full space-y-12">
         {/* Project Header */}
-        <div className="pb-8 border-b border-[#dddddd] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="pb-8 border-b border-[#e4e4e7] flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 {project.status}
               </span>
-              <span className="text-xs text-[#6a6a6a] flex items-center gap-1">
+              <span className="text-xs text-[#71717a] flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
-                Created {new Date(project.createdAt).toLocaleDateString()}
+                Created {new Date(project.createdAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               </span>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#222222]">{project.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#18181b]">
+              {project.title}
+            </h1>
             {project.description && (
-              <p className="text-sm text-[#6a6a6a] mt-1">{project.description}</p>
+              <p className="text-sm text-[#71717a] mt-1 max-w-2xl leading-relaxed">
+                {project.description}
+              </p>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#f7f7f7] border border-[#dddddd] text-xs font-mono text-[#222222]">
-              <GitBranch className="w-3.5 h-3.5 text-[#6a6a6a]" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-white border border-[#e4e4e7] text-xs font-mono text-[#18181b] shadow-xs">
+              <GitBranch className="w-3.5 h-3.5 text-[#71717a]" />
               {project.githubRepo}
             </div>
           </div>
@@ -160,49 +177,61 @@ export default async function ProjectDetailPage({
 
         {/* Project Metadata Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Bound Repository</span>
-            <div className="flex items-center gap-2 my-2 font-mono text-sm text-[#222222]">
-              <GitBranch className="w-4 h-4 text-[#222222]" />
-              {project.githubRepo}
+          <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-hover flex flex-col justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#71717a] flex items-center gap-1.5">
+                <GitBranch className="w-3.5 h-3.5 text-[#18181b]" />
+                Bound Repository
+              </span>
+              <div className="flex items-center gap-2 my-2 font-mono text-sm font-semibold text-[#18181b]">
+                {project.githubRepo}
+              </div>
             </div>
-            <p className="text-xs text-[#6a6a6a]">
-              Read access verified via your GitHub OAuth account.
+            <p className="text-xs text-[#71717a] mt-2 pt-2 border-t border-[#f4f4f5]">
+              Read access verified via GitHub OAuth integration.
             </p>
           </div>
 
-          <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Client Stakeholder</span>
-            <div className="flex items-center gap-2 my-2 text-sm text-[#222222]">
-              <Mail className="w-4 h-4 text-[#6a6a6a]" />
-              {project.clientEmail || "Not assigned"}
+          <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-hover flex flex-col justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#71717a] flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[#18181b]" />
+                Client Stakeholder
+              </span>
+              <div className="flex items-center gap-2 my-2 text-sm font-semibold text-[#18181b]">
+                {project.clientEmail || "Not assigned"}
+              </div>
             </div>
-            <p className="text-xs text-[#6a6a6a]">
-              Client has view permissions for audit reports and milestones.
+            <p className="text-xs text-[#71717a] mt-2 pt-2 border-t border-[#f4f4f5]">
+              Client has view permissions for audit reports and scope confirmation.
             </p>
           </div>
 
-          <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Linear Project</span>
-            <div className="flex items-center gap-2 my-2 text-sm text-[#222222]">
-              <Layers className="w-4 h-4 text-[#ff385c]" />
-              {project.linearProjectUrl ? (
-                <a
-                  href={project.linearProjectUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-[#ff385c] hover:underline flex items-center gap-1"
-                >
-                  {project.title} <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              ) : (
-                <span className="text-[#6a6a6a]">Not Synced Yet</span>
-              )}
+          <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-hover flex flex-col justify-between">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#71717a] flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-[#18181b]" />
+                Linear Project
+              </span>
+              <div className="flex items-center gap-2 my-2 text-sm font-semibold text-[#18181b]">
+                {project.linearProjectUrl ? (
+                  <a
+                    href={project.linearProjectUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-[#ff385c] hover:underline flex items-center gap-1.5"
+                  >
+                    {project.title} <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <span className="text-[#a1a1aa] font-medium">Pending Scope Sync</span>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-[#6a6a6a]">
+            <p className="text-xs text-[#71717a] mt-2 pt-2 border-t border-[#f4f4f5]">
               {project.linearProjectUrl
                 ? "Published and tracked in your Linear workspace."
-                : "Tasks will be published upon scope review approval."}
+                : "Tasks publish to Linear once scope review is approved."}
             </p>
           </div>
         </div>
@@ -223,21 +252,21 @@ export default async function ProjectDetailPage({
         />
 
         {/* Audit & Self-Check Section */}
-        <div className="pt-8 border-t border-[#dddddd]">
+        <div className="pt-8 border-t border-[#e4e4e7]">
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1.5">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c]">
                 Verification Self-Check
               </span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#f7f7f7] text-[#6a6a6a] border border-[#dddddd]">
-                Freelancer Preview
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#f4f4f5] text-[#71717a] border border-[#e4e4e7]">
+                Freelancer Sandbox Preview
               </span>
             </div>
-            <h2 className="text-xl font-semibold text-[#222222]">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181b]">
               Code Audit & Deliverable Verification
             </h2>
-            <p className="text-sm text-[#6a6a6a] mt-1">
-              Test how your current GitHub commits align with Linear tasks, detect any ghost completions early, and run verification audits before client review.
+            <p className="text-sm text-[#71717a] mt-1 max-w-2xl leading-relaxed">
+              Test how your current GitHub commits align with Linear tasks, detect ghost completions early, and verify deliverables before client review.
             </p>
           </div>
 

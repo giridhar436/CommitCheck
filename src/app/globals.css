@@ -50,10 +50,73 @@ body {
 }
 
 .airbnb-shadow-hover {
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
 }
 
 .airbnb-shadow-hover:hover {
-  box-shadow: rgba(0, 0, 0, 0.04) 0 0 0 1px, rgba(0, 0, 0, 0.08) 0 4px 12px 0, rgba(0, 0, 0, 0.12) 0 8px 16px 0;
-  transform: translateY(-1px);
+  box-shadow: rgba(0, 0, 0, 0.04) 0 0 0 1px, rgba(0, 0, 0, 0.08) 0 6px 16px 0, rgba(0, 0, 0, 0.06) 0 12px 24px 0;
+  transform: translateY(-2px);
 }
+
+/* Linear & Stripe inspired SaaS utilities */
+.saas-dot-grid {
+  background-image: radial-gradient(#e4e4e7 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.saas-hero-glow {
+  background: radial-gradient(ellipse 70% 50% at 75% 20%, rgba(255, 56, 92, 0.07) 0%, rgba(255, 255, 255, 0) 70%),
+              radial-gradient(ellipse 50% 40% at 20% 0%, rgba(244, 244, 245, 0.8) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.saas-card-shadow {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+}
+
+.saas-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.saas-card-hover:hover {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 8px 20px rgba(0, 0, 0, 0.04), 0 20px 36px -8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.saas-rausch-glow {
+  box-shadow: 0 0 0 1px #ff385c, 0 4px 16px -2px rgba(255, 56, 92, 0.35);
+}
+
+.floating-layer {
+  animation: floatSubtle 6s ease-in-out infinite;
+}
+
+.floating-layer-delayed {
+  animation: floatSubtle 7s ease-in-out 1.5s infinite;
+}
+
+@keyframes floatSubtle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.hairline-b {
+  border-bottom: 1px solid #ebebeb;
+}
+
+.hairline-t {
+  border-top: 1px solid #ebebeb;
+}
+
+.hairline-r {
+  border-right: 1px solid #ebebeb;
+}
+
+.hairline-l {
+  border-left: 1px solid #ebebeb;
+}
+
+
