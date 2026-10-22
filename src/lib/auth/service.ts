@@ -66,7 +66,7 @@ export function checkRouteAccess(
     if (!userRole) {
       return {
         allowed: false,
-        redirectUrl: `/?auth=required&role=FREELANCER&redirect=${encodeURIComponent(pathname)}`,
+        redirectUrl: `/login?auth=required&role=FREELANCER&redirect=${encodeURIComponent(pathname)}`,
       };
     }
     if (userRole !== "FREELANCER") {
@@ -83,7 +83,7 @@ export function checkRouteAccess(
     if (!userRole) {
       return {
         allowed: false,
-        redirectUrl: `/?auth=required&role=CLIENT&redirect=${encodeURIComponent(pathname)}`,
+        redirectUrl: `/login?auth=required&role=CLIENT&redirect=${encodeURIComponent(pathname)}`,
       };
     }
     if (userRole !== "CLIENT") {

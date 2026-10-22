@@ -5,7 +5,9 @@ import { defaultProjectRepository } from "@/lib/projects";
 import { defaultAuditRepository } from "@/lib/audit";
 import { defaultTaskDraftRepository } from "@/lib/scope";
 import { ExecutiveAuditDashboard } from "./audit-dashboard";
-import { ShieldCheck, LogOut, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, LogOut, CheckCircle2, Settings } from "lucide-react";
+import { PublicFooter } from "@/components/layout/public-footer";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function ClientDashboardPage() {
   const session = await getCurrentSession();
@@ -92,6 +94,14 @@ export default async function ClientDashboardPage() {
               CLIENT
             </span>
 
+            <Link
+              href="/client/settings"
+              className="p-2 text-[#6a6a6a] hover:text-[#222222] transition-colors rounded-full hover:bg-[#f7f7f7]"
+              title="Workspace Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
+
             <a
               href="/api/auth/logout"
               className="p-2 text-[#6a6a6a] hover:text-[#222222] transition-colors rounded-full hover:bg-[#f7f7f7]"
@@ -169,25 +179,17 @@ export default async function ClientDashboardPage() {
           />
         ) : (
           /* Empty / Initial State */
-          <div className="rounded-[14px] border border-dashed border-[#dddddd] bg-[#f7f7f7] p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-12 h-12 rounded-full bg-white border border-[#dddddd] flex items-center justify-center mx-auto mb-4 text-[#ff385c]">
-                <ShieldCheck className="w-6 h-6 text-[#ff385c]" />
-              </div>
-              <h3 className="text-lg font-semibold text-[#222222] mb-1">
-                No Active Projects Assigned Yet
-              </h3>
-              <p className="text-sm text-[#6a6a6a] mb-6">
-                When your freelancer binds this email ({session.email}) to a project, the real-time code verification dashboard and discrepancy alerts will appear here.
-              </p>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#dddddd] text-xs font-medium text-[#222222]">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                Client Portal Ready
-              </div>
-            </div>
-          </div>
+          <EmptyState
+            icon={ShieldCheck}
+            title="No Active Projects Assigned Yet"
+            description={`When your freelancer binds this email (${session.email}) to a project, the real-time code verification dashboard and discrepancy alerts will appear here.`}
+            secondaryActionText="Read Client Verification Guide"
+            secondaryActionHref="/onboarding"
+          />
         )}
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

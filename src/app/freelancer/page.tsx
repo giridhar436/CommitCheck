@@ -15,6 +15,8 @@ import {
   ArrowRight,
   Settings,
 } from "lucide-react";
+import { PublicFooter } from "@/components/layout/public-footer";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function FreelancerDashboardPage() {
   const session = await getCurrentSession();
@@ -259,26 +261,19 @@ export default async function FreelancerDashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-[14px] border border-dashed border-[#dddddd] bg-[#f7f7f7] p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-12 h-12 rounded-full bg-white border border-[#dddddd] flex items-center justify-center mx-auto mb-4 text-[#222222]">
-                <GitBranch className="w-6 h-6 text-[#222222]" />
-              </div>
-              <h3 className="text-lg font-semibold text-[#222222] mb-1">No Projects Bound Yet</h3>
-              <p className="text-sm text-[#6a6a6a] mb-6">
-                Create your first project to bind an authorized GitHub repository and invite your client.
-              </p>
-              <Link
-                href="/freelancer/projects/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#ff385c] hover:bg-[#e00b41] text-white font-medium text-sm transition-all shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Initialize First Project
-              </Link>
-            </div>
-          </div>
+          <EmptyState
+            icon={GitBranch}
+            title="No Projects Bound Yet"
+            description="Create your first project to bind an authorized GitHub repository and invite your client to verified audits."
+            actionText="Initialize First Project"
+            actionHref="/freelancer/projects/new"
+            secondaryActionText="Read Onboarding Walkthrough"
+            secondaryActionHref="/onboarding"
+          />
         )}
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

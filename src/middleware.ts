@@ -5,6 +5,17 @@ import { checkRouteAccess } from "./lib/auth/service";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Maintenance mode gating (bypasses /maintenance and /api/health)
+  if (
+    process.env.MAINTENANCE_MODE === "true" &&
+    !pathname.startsWith("/maintenance") &&
+    !pathname.startsWith("/api/health") &&
+    !pathname.startsWith("/_next") &&
+    !pathname.startsWith("/favicon.ico")
+  ) {
+    return NextResponse.redirect(new URL("/maintenance", request.url));
+  }
+
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = await verifySessionToken(sessionCookie);
   const userRole = session?.role ?? null;

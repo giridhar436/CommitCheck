@@ -46,7 +46,7 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
       }
 
       // 2. Fetch branches for branch association
-      let branchMap = new Map<string, string>(); // sha -> branchName
+      const branchMap = new Map<string, string>(); // sha -> branchName
       try {
         const branches = await this.fetchRepoBranches(accessToken, repoFullName);
         // Note: fetchRepoBranches returns names; we can also query branch heads

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/auth";
 import { CheckCircle2, ShieldCheck, GitBranch, ArrowRight, Video, Sparkles, AlertTriangle } from "lucide-react";
+import { PublicFooter } from "@/components/layout/public-footer";
 
 export default async function HomePage({
   searchParams,
@@ -27,7 +28,20 @@ export default async function HomePage({
             </div>
           </div>
 
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-3 sm:gap-4">
+            <Link
+              href="/docs"
+              className="hidden md:inline-block text-sm font-medium text-[#6a6a6a] hover:text-[#222222] transition-colors"
+            >
+              Docs
+            </Link>
+            <Link
+              href="/support"
+              className="hidden md:inline-block text-sm font-medium text-[#6a6a6a] hover:text-[#222222] transition-colors"
+            >
+              Support
+            </Link>
+
             {session ? (
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-[#222222]">
@@ -38,7 +52,7 @@ export default async function HomePage({
                 </span>
                 <Link
                   href={session.role === "FREELANCER" ? "/freelancer" : "/client"}
-                  className="px-4 py-2 text-sm font-medium text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-colors shadow-sm"
                 >
                   Dashboard
                 </Link>
@@ -51,19 +65,25 @@ export default async function HomePage({
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-[#222222] bg-[#f7f7f7] hover:bg-[#ebebeb] rounded-[8px] border border-[#dddddd] transition-all"
+                >
+                  Sign In
+                </Link>
                 <a
                   href="/api/auth/github"
-                  className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-[#222222] bg-[#f7f7f7] hover:bg-[#ebebeb] rounded-[8px] border border-[#dddddd] transition-all"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#222222] bg-white hover:bg-[#f7f7f7] rounded-[8px] border border-[#dddddd] transition-all shadow-sm"
                 >
-                  <GitBranch className="w-4 h-4 text-[#222222]" />
-                  Freelancer Login
+                  <GitBranch className="w-3.5 h-3.5 text-[#222222]" />
+                  Freelancer
                 </a>
                 <a
                   href="/api/auth/google"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-all shadow-sm"
                 >
                   Client Portal
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </a>
               </div>
             )}
@@ -254,19 +274,7 @@ export default async function HomePage({
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#dddddd] bg-white py-8">
-        <div className="max-w-[1280px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-xs text-[#6a6a6a] gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-[#222222]">CommitCheck</span>
-            <span>&copy; {new Date().getFullYear()} CommitCheck, Inc.</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <span className="hover:text-[#222222] cursor-pointer">Privacy</span>
-            <span className="hover:text-[#222222] cursor-pointer">Terms</span>
-            <span className="hover:text-[#222222] cursor-pointer">Documentation</span>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

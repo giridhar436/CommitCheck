@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
+import { OfflineIndicator } from "@/components/ui/offline-indicator";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -22,6 +24,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-white text-[#222222] font-sans">
         {children}
+        <OfflineIndicator />
       </body>
     </html>
   );
