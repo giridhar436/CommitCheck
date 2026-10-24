@@ -415,4 +415,116 @@ describe("CommitCheck Resend Client Scope Confirmation Loop & Approval Portal (V
     assert.strictEqual(result.success, true);
     assert.ok(result.id.startsWith("mock_email_"));
   });
+
+  it("surfaces Resend 403 error and does not swallow it", async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () =>
+        new Response(
+          JSON.stringify({
+            statusCode: 403,
+            message: "You can only send testing emails to your own email address (varunnu25f37@gmail.com).",
+            name: "validation_error",
+          }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+
+      const resend = new ResendEmailService("re_live_real_key_simulated", "onboarding@resend.dev");
+      const result = await resend.sendScopeConfirmationEmail({
+        to: "giridhar6520@gmail.com",
+        projectName: "LMS",
+        confirmationUrl: "https://commitcheck.dev/client/projects/p1/scope-confirmation",
+        items: [{ title: "Feature", description: "Desc", classification: "TENTATIVE" }],
+      });
+
+      assert.strictEqual(result.success, false);
+      assert.strictEqual(result.id, "");
+      assert.ok(result.error?.includes("403"));
+      assert.ok(result.error?.includes("testing emails"));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns structured error when RESEND_FROM_EMAIL is missing", async () => {
+    const resend = new ResendEmailService("re_live_key", "");
+    const result = await resend.sendScopeConfirmationEmail({
+      to: "client@test.com",
+      projectName: "Test Project",
+      confirmationUrl: "https://commitcheck.dev/client/projects/p1/scope-confirmation",
+      items: [{ title: "Feature", description: "Desc", classification: "TENTATIVE" }],
+    });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.id, "");
+    assert.ok(result.error?.includes("Missing RESEND_FROM_EMAIL"));
+  });
+
+  it("surfaces email failure in requestClientScopeConfirmation when Resend rejects delivery", async () => {
+    const userRepo = new InMemoryUserRepository();
+    const projectRepo = new InMemoryProjectRepository();
+    const draftRepo = new InMemoryTaskDraftRepository();
+    const emailService = new MockEmailService();
+    emailService.shouldFail = true;
+    emailService.failureError = "Resend API error (403): Sender domain not verified";
+
+    const dev = await userRepo.upsertOAuthUser(
+      { provider: "github", providerId: "gh_dev_fail", email: "dev@fail.io" },
+      "FREELANCER"
+    );
+
+    const project = await projectRepo.createProject(dev.id, {
+      title: "LMS",
+      clientEmail: "giridhar6520@gmail.com",
+      githubRepoFullName: "dev/lms",
+    });
+
+    await draftRepo.createTaskDraft({
+      meetingId: "m_fail",
+      projectId: project.id,
+      title: "Tentative Module",
+      description: "Needs confirmation",
+      classification: "TENTATIVE",
+      clientApprovalStatus: "PENDING_CLIENT_APPROVAL",
+    });
+
+    const result = await requestClientScopeConfirmation(
+      project.id,
+      dev.id,
+      userRepo,
+      projectRepo,
+      draftRepo,
+      emailService
+    );
+
+    assert.strictEqual(result.emailSent, false);
+    assert.strictEqual(result.requestedCount, 1);
+    assert.ok(result.message.includes("Failed to deliver scope confirmation email"));
+    assert.ok(result.message.includes("403"));
+  });
+
+  it("records email ID and reports success on 200 response from Resend API", async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () =>
+        new Response(
+          JSON.stringify({ id: "re_real_generated_id_abc123" }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+
+      const resend = new ResendEmailService("re_live_key", "notifications@commitcheck.dev");
+      const result = await resend.sendScopeConfirmationEmail({
+        to: "giridhar6520@gmail.com",
+        projectName: "test2",
+        confirmationUrl: "https://commitcheck.dev/client/projects/cmvi6b76b0001zascg4cr7ts4/scope-confirmation",
+        items: [{ title: "Module A", description: "Desc", classification: "TENTATIVE" }],
+      });
+
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.id, "re_real_generated_id_abc123");
+      assert.strictEqual(result.error, undefined);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

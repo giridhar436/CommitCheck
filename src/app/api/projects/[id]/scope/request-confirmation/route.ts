@@ -34,6 +34,16 @@ export async function POST(
       origin
     );
 
+    if (!result.emailSent) {
+      return NextResponse.json(
+        {
+          error: result.message,
+          ...result,
+        },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });

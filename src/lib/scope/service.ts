@@ -134,7 +134,7 @@ export async function requestClientScopeConfirmation(
 
   // 3. Dispatch confirmation email via Resend
   const confirmationUrl = `${appBaseUrl}/client/projects/${projectId}/scope-confirmation`;
-  await emailService.sendScopeConfirmationEmail({
+  const emailResult = await emailService.sendScopeConfirmationEmail({
     to: project.clientEmail,
     projectName: project.title || project.name,
     confirmationUrl,
@@ -146,6 +146,14 @@ export async function requestClientScopeConfirmation(
       estimate: item.estimate,
     })),
   });
+
+  if (!emailResult.success) {
+    return {
+      requestedCount: pendingItems.length,
+      emailSent: false,
+      message: `Failed to deliver scope confirmation email to ${project.clientEmail}: ${emailResult.error || "Email delivery failed"}.`,
+    };
+  }
 
   return {
     requestedCount: pendingItems.length,

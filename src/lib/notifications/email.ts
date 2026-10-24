@@ -12,7 +12,7 @@ export class ResendEmailService implements EmailNotificationService {
 
   constructor(
     apiKey = process.env.RESEND_API_KEY || "",
-    fromEmail = process.env.RESEND_FROM_EMAIL || "notifications@commitcheck.dev"
+    fromEmail = process.env.RESEND_FROM_EMAIL || ""
   ) {
     this.apiKey = apiKey;
     this.fromEmail = fromEmail;
@@ -21,7 +21,19 @@ export class ResendEmailService implements EmailNotificationService {
   async sendScopeApprovedEmail(
     input: ScopeNotificationEmailInput
   ): Promise<EmailNotificationResult> {
-    if (!this.apiKey || this.apiKey.startsWith("mock_") || this.apiKey.startsWith("re_mock")) {
+    if (!this.fromEmail) {
+      const errorMsg = "Missing RESEND_FROM_EMAIL configuration. Cannot send email without a configured sender address.";
+      console.error(`[ResendEmailService] ${errorMsg}`);
+      return { id: "", success: false, error: errorMsg };
+    }
+
+    if (!this.apiKey) {
+      const errorMsg = "Missing RESEND_API_KEY configuration.";
+      console.error(`[ResendEmailService] ${errorMsg}`);
+      return { id: "", success: false, error: errorMsg };
+    }
+
+    if (this.apiKey.startsWith("mock_") || this.apiKey.startsWith("re_mock")) {
       return {
         id: `mock_email_${Math.random().toString(36).substring(2, 9)}`,
         success: true,
@@ -122,7 +134,21 @@ export class ResendEmailService implements EmailNotificationService {
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`Resend email error (${res.status}): ${errText}`);
+        let errMsg = `Resend email error (${res.status}): ${errText}`;
+        try {
+          const errJson = JSON.parse(errText);
+          if (errJson?.message) {
+            errMsg = `Resend API error (${res.status}): ${errJson.message}`;
+          }
+        } catch {
+          // ignore json parse error
+        }
+        console.error(`[ResendEmailService] Failed to send scope approved email to ${JSON.stringify(input.to)}: ${errMsg}`);
+        return {
+          id: "",
+          success: false,
+          error: errMsg,
+        };
       }
 
       const json = await res.json();
@@ -130,10 +156,13 @@ export class ResendEmailService implements EmailNotificationService {
         id: json.id || `resend_${Date.now()}`,
         success: true,
       };
-    } catch {
+    } catch (err: any) {
+      const errMsg = err?.message || "Failed to dispatch scope approved email via Resend.";
+      console.error(`[ResendEmailService] Exception dispatching email: ${errMsg}`);
       return {
-        id: `fallback_${Date.now()}`,
-        success: true,
+        id: "",
+        success: false,
+        error: errMsg,
       };
     }
   }
@@ -141,7 +170,19 @@ export class ResendEmailService implements EmailNotificationService {
   async sendScopeConfirmationEmail(
     input: ScopeConfirmationEmailInput
   ): Promise<EmailNotificationResult> {
-    if (!this.apiKey || this.apiKey.startsWith("mock_") || this.apiKey.startsWith("re_mock")) {
+    if (!this.fromEmail) {
+      const errorMsg = "Missing RESEND_FROM_EMAIL configuration. Cannot send email without a configured sender address.";
+      console.error(`[ResendEmailService] ${errorMsg}`);
+      return { id: "", success: false, error: errorMsg };
+    }
+
+    if (!this.apiKey) {
+      const errorMsg = "Missing RESEND_API_KEY configuration.";
+      console.error(`[ResendEmailService] ${errorMsg}`);
+      return { id: "", success: false, error: errorMsg };
+    }
+
+    if (this.apiKey.startsWith("mock_") || this.apiKey.startsWith("re_mock")) {
       return {
         id: `mock_email_${Math.random().toString(36).substring(2, 9)}`,
         success: true,
@@ -231,7 +272,21 @@ export class ResendEmailService implements EmailNotificationService {
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`Resend email error (${res.status}): ${errText}`);
+        let errMsg = `Resend email error (${res.status}): ${errText}`;
+        try {
+          const errJson = JSON.parse(errText);
+          if (errJson?.message) {
+            errMsg = `Resend API error (${res.status}): ${errJson.message}`;
+          }
+        } catch {
+          // ignore json parse error
+        }
+        console.error(`[ResendEmailService] Failed to send scope confirmation email to ${input.to}: ${errMsg}`);
+        return {
+          id: "",
+          success: false,
+          error: errMsg,
+        };
       }
 
       const json = await res.json();
@@ -239,10 +294,13 @@ export class ResendEmailService implements EmailNotificationService {
         id: json.id || `resend_${Date.now()}`,
         success: true,
       };
-    } catch {
+    } catch (err: any) {
+      const errMsg = err?.message || "Failed to dispatch scope confirmation email via Resend.";
+      console.error(`[ResendEmailService] Exception dispatching email: ${errMsg}`);
       return {
-        id: `fallback_${Date.now()}`,
-        success: true,
+        id: "",
+        success: false,
+        error: errMsg,
       };
     }
   }
@@ -251,10 +309,19 @@ export class ResendEmailService implements EmailNotificationService {
 export class MockEmailService implements EmailNotificationService {
   public sentEmails: ScopeNotificationEmailInput[] = [];
   public confirmationEmails: ScopeConfirmationEmailInput[] = [];
+  public shouldFail = false;
+  public failureError?: string;
 
   async sendScopeApprovedEmail(
     input: ScopeNotificationEmailInput
   ): Promise<EmailNotificationResult> {
+    if (this.shouldFail) {
+      return {
+        id: "",
+        success: false,
+        error: this.failureError || "Simulated Resend API error (403): Sender not verified",
+      };
+    }
     this.sentEmails.push({ ...input });
     return {
       id: `mock_email_${this.sentEmails.length}`,
@@ -265,6 +332,13 @@ export class MockEmailService implements EmailNotificationService {
   async sendScopeConfirmationEmail(
     input: ScopeConfirmationEmailInput
   ): Promise<EmailNotificationResult> {
+    if (this.shouldFail) {
+      return {
+        id: "",
+        success: false,
+        error: this.failureError || "Simulated Resend API error (403): Sender not verified",
+      };
+    }
     this.confirmationEmails.push({ ...input });
     return {
       id: `mock_conf_email_${this.confirmationEmails.length}`,
@@ -275,6 +349,8 @@ export class MockEmailService implements EmailNotificationService {
   clear() {
     this.sentEmails = [];
     this.confirmationEmails = [];
+    this.shouldFail = false;
+    this.failureError = undefined;
   }
 }
 

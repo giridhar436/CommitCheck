@@ -93,6 +93,89 @@ describe("CommitCheck Project Creation & GitHub Binding (VAR-7)", () => {
     assert.equal(clientProjects[0].id, project.id);
   });
 
+  it("returns all active projects belonging to a client (e.g. LMS + test2) without returning another client's projects", async () => {
+    const clientEmail = "giridhar6520@gmail.com";
+    const otherClientEmail = "otherclient@enterprise.com";
+
+    gitHubService.addRepository({
+      id: 101,
+      name: "lms-core",
+      fullName: "dev/lms-core",
+      owner: "dev",
+      isPrivate: false,
+      defaultBranch: "main",
+      htmlUrl: "https://github.com/dev/lms-core",
+    });
+    gitHubService.addRepository({
+      id: 102,
+      name: "test2-repo",
+      fullName: "dev/test2-repo",
+      owner: "dev",
+      isPrivate: false,
+      defaultBranch: "main",
+      htmlUrl: "https://github.com/dev/test2-repo",
+    });
+    gitHubService.addRepository({
+      id: 103,
+      name: "enterprise-app",
+      fullName: "dev/enterprise-app",
+      owner: "dev",
+      isPrivate: false,
+      defaultBranch: "main",
+      htmlUrl: "https://github.com/dev/enterprise-app",
+    });
+
+    const p1 = await createProjectService(
+      freelancerId,
+      {
+        title: "LMS",
+        description: "Learning Management System",
+        clientEmail,
+        githubRepoFullName: "dev/lms-core",
+      },
+      userRepo,
+      projectRepo,
+      gitHubService
+    );
+
+    const p2 = await createProjectService(
+      freelancerId,
+      {
+        title: "test2",
+        description: "Secondary client project",
+        clientEmail,
+        githubRepoFullName: "dev/test2-repo",
+      },
+      userRepo,
+      projectRepo,
+      gitHubService
+    );
+
+    const otherProject = await createProjectService(
+      freelancerId,
+      {
+        title: "Unrelated Enterprise Project",
+        description: "Belongs to another client",
+        clientEmail: otherClientEmail,
+        githubRepoFullName: "dev/enterprise-app",
+      },
+      userRepo,
+      projectRepo,
+      gitHubService
+    );
+
+    const clientProjects = await projectRepo.listProjectsForClient(clientEmail);
+    assert.equal(clientProjects.length, 2);
+    const titles = clientProjects.map((p) => p.title);
+    assert.ok(titles.includes("LMS"), "Expected LMS to be returned");
+    assert.ok(titles.includes("test2"), "Expected test2 to be returned");
+    assert.ok(!titles.includes(otherProject.title), "Did not expect other client's project");
+
+    // Case-insensitivity check
+    const upperCaseCheck = await projectRepo.listProjectsForClient("GIRIDHAR6520@GMAIL.COM");
+    assert.equal(upperCaseCheck.length, 2);
+  });
+
   it("rejects project creation if user is not a FREELANCER", async () => {
     const client = await userRepo.upsertOAuthUser(
       {

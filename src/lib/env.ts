@@ -317,7 +317,7 @@ export function validateEnvironment(
 
   // 8. Resend Transactional Email
   const resendApiKey = env.RESEND_API_KEY;
-  const resendFromEmail = env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+  const resendFromEmail = env.RESEND_FROM_EMAIL || "";
   if (!resendApiKey) {
     services.resend = {
       service: "resend",
@@ -326,7 +326,7 @@ export function validateEnvironment(
       mode: "mock",
       status: "ok",
       configured: false,
-      maskedSummary: `(mock fallback enabled / from: ${resendFromEmail})`,
+      maskedSummary: `(mock fallback enabled${resendFromEmail ? ` / from: ${resendFromEmail}` : ""})`,
       details: "RESEND_API_KEY not set. Operates in mock delivery mode with in-memory sent tracking.",
     };
   } else if (resendApiKey.startsWith("mock_")) {
@@ -337,19 +337,25 @@ export function validateEnvironment(
       mode: "mock",
       status: "ok",
       configured: true,
-      maskedSummary: `mock_resend_key (${resendFromEmail})`,
+      maskedSummary: `mock_resend_key${resendFromEmail ? ` (${resendFromEmail})` : ""}`,
       details: "Configured with mock Resend API key.",
     };
   } else {
+    const isSandboxSender = resendFromEmail.includes("resend.dev");
+    const hasSender = Boolean(resendFromEmail);
     services.resend = {
       service: "resend",
       displayName: "Resend Stakeholder Email Service",
       required: false,
       mode: "live",
-      status: "ok",
+      status: hasSender && !isSandboxSender ? "ok" : "warning",
       configured: true,
-      maskedSummary: `${maskSecret(resendApiKey, 4, 4)} (${resendFromEmail})`,
-      details: `Configured with live Resend API key dispatching from ${resendFromEmail}.`,
+      maskedSummary: `${maskSecret(resendApiKey, 4, 4)}${resendFromEmail ? ` (${resendFromEmail})` : " (no from email)"}`,
+      details: !hasSender
+        ? "RESEND_API_KEY set, but RESEND_FROM_EMAIL is missing. Configure a verified sender domain in RESEND_FROM_EMAIL."
+        : isSandboxSender
+        ? `Configured with live Resend API key, but using sandbox sender (${resendFromEmail}). External client deliveries will fail (403). Set a verified domain address in RESEND_FROM_EMAIL.`
+        : `Configured with live Resend API key dispatching from ${resendFromEmail}.`,
     };
   }
 

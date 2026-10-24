@@ -91,8 +91,8 @@ export function ScopeReviewSection({
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to request scope confirmation");
+      if (!res.ok || data.emailSent === false) {
+        throw new Error(data.error || data.message || "Failed to request scope confirmation");
       }
 
       setSuccessMessage(

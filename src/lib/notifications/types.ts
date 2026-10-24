@@ -35,6 +35,7 @@ export interface ScopeConfirmationEmailInput {
 export interface EmailNotificationResult {
   id: string;
   success: boolean;
+  error?: string;
 }
 
 export interface EmailNotificationService {
