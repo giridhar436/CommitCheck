@@ -29,16 +29,16 @@ export function EmptyState({
     <div
       role="region"
       aria-label={title}
-      className={`rounded-[14px] border border-dashed border-[#dddddd] bg-[#f7f7f7] p-10 md:p-14 text-center ${className}`}
+      className={`rounded-[14px] border border-dashed border-border bg-surface p-10 md:p-14 text-center ${className}`}
     >
       <div className="max-w-md mx-auto flex flex-col items-center">
-        <div className="w-14 h-14 rounded-full bg-white border border-[#dddddd] flex items-center justify-center mb-4 text-[#ff385c] airbnb-shadow">
+        <div className="w-14 h-14 rounded-full bg-surface-raised border border-border flex items-center justify-center mb-4 text-[#ff385c] airbnb-shadow">
           <Icon className="w-7 h-7" aria-hidden="true" />
         </div>
-        <h3 className="text-lg font-semibold tracking-tight text-[#222222] mb-1.5">
+        <h3 className="text-lg font-semibold tracking-tight text-ink mb-1.5">
           {title}
         </h3>
-        <p className="text-sm text-[#6a6a6a] leading-relaxed mb-6">
+        <p className="text-sm text-ink-muted leading-relaxed mb-6">
           {description}
         </p>
 
@@ -65,7 +65,7 @@ export function EmptyState({
           {secondaryActionText && secondaryActionHref && (
             <Link
               href={secondaryActionHref}
-              className="inline-flex items-center justify-center h-10 px-4 rounded-[8px] bg-white border border-[#dddddd] hover:bg-[#f7f7f7] text-[#222222] font-medium text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#222222] focus:ring-offset-2"
+              className="inline-flex items-center justify-center h-10 px-4 rounded-[8px] bg-surface-raised border border-border hover:bg-surface-inset text-ink font-medium text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#ff385c] focus:ring-offset-2"
             >
               {secondaryActionText}
             </Link>

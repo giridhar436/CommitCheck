@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
 import { defaultProjectRepository } from "@/lib/projects";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   ShieldCheck,
   Plus,
@@ -14,6 +15,7 @@ import {
   Mail,
   ArrowRight,
   Settings,
+  Activity,
 } from "lucide-react";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -33,51 +35,62 @@ export default async function FreelancerDashboardPage() {
   const projects = await defaultProjectRepository.listProjectsForFreelancer(session.userId);
 
   return (
-    <div className="min-h-screen bg-white text-[#222222] flex flex-col font-sans">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans selection:bg-[#ff385c] selection:text-white">
       {/* Top Bar */}
-      <header className="sticky top-0 z-50 bg-white border-b border-[#dddddd]">
-        <div className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-canvas/90 backdrop-blur-md border-b border-border">
+        <div className="max-w-[1280px] mx-auto px-6 h-18 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#ff385c] flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                <ShieldCheck className="w-6 h-6" />
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-9 h-9 rounded-full bg-[#ff385c] flex items-center justify-center text-white font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold text-lg tracking-tight text-[#222222]">CommitCheck</span>
-                <span className="text-[11px] font-medium text-[#6a6a6a] tracking-wider uppercase -mt-1">
-                  Freelancer Workspace
+                <span className="font-semibold text-lg tracking-tight text-ink flex items-center gap-2">
+                  CommitCheck
+                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-surface-inset text-ink-muted border border-border">
+                    Workspace
+                  </span>
+                </span>
+                <span className="text-[11px] font-medium text-ink-muted tracking-wider uppercase -mt-0.5">
+                  Freelancer Hub
                 </span>
               </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+
+            <div className="flex items-center gap-3 bg-surface-raised px-3 py-1.5 rounded-full border border-border shadow-xs">
               {session.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={session.avatarUrl}
                   alt={session.name || "Freelancer Avatar"}
-                  className="w-9 h-9 rounded-full object-cover border border-[#dddddd]"
+                  className="w-7 h-7 rounded-full object-cover border border-border"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-[#f7f7f7] border border-[#dddddd] flex items-center justify-center text-xs font-bold text-[#222222]">
+                <div className="w-7 h-7 rounded-full bg-surface-inset border border-border flex items-center justify-center text-xs font-bold text-ink">
                   {(session.name || session.email).substring(0, 2).toUpperCase()}
                 </div>
               )}
-              <div className="hidden sm:flex flex-col">
-                <span className="text-sm font-semibold text-[#222222]">{session.name || session.email}</span>
-                <span className="text-xs text-[#6a6a6a]">@{user?.githubUsername || "developer"}</span>
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-xs font-semibold text-ink leading-tight">
+                  {session.name || session.email}
+                </span>
+                <span className="text-[10px] text-ink-muted">
+                  @{user?.githubUsername || "developer"}
+                </span>
               </div>
             </div>
 
-            <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-[#f7f7f7] text-[#222222] border border-[#dddddd]">
+            <span className="hidden md:inline-flex px-2.5 py-1 text-[11px] font-semibold rounded-full bg-surface-inset text-ink border border-border">
               FREELANCER
             </span>
 
             <Link
               href="/freelancer/settings"
-              className="p-2 text-[#6a6a6a] hover:text-[#222222] transition-colors rounded-full hover:bg-[#f7f7f7]"
+              className="p-2 text-ink-muted hover:text-ink transition-colors rounded-full hover:bg-surface-inset border border-transparent hover:border-border"
               title="Workspace Settings"
             >
               <Settings className="w-4 h-4" />
@@ -85,7 +98,7 @@ export default async function FreelancerDashboardPage() {
 
             <a
               href="/api/auth/logout"
-              className="p-2 text-[#6a6a6a] hover:text-[#222222] transition-colors rounded-full hover:bg-[#f7f7f7]"
+              className="p-2 text-ink-muted hover:text-ink transition-colors rounded-full hover:bg-surface-inset border border-transparent hover:border-border"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" />
@@ -97,20 +110,26 @@ export default async function FreelancerDashboardPage() {
       {/* Main Content */}
       <main className="flex-1 max-w-[1280px] mx-auto px-6 py-10 w-full">
         {/* Welcome Banner */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between pb-8 mb-8 border-b border-[#dddddd] gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-8 mb-8 border-b border-border gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#222222]">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Developer Command Center
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">
               Welcome back, {session.name?.split(" ")[0] || "Developer"}
             </h1>
-            <p className="text-sm text-[#6a6a6a] mt-1">
-              Manage your client projects, dispatch meeting bots, and sync approved scope to Linear.
+            <p className="text-sm text-ink-muted mt-1 max-w-xl">
+              Manage client engagements, dispatch autonomous meeting bots, and sync AI-curated deliverables into Linear.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/freelancer/projects/new"
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#ff385c] hover:bg-[#e00b41] rounded-[8px] transition-all shadow-sm hover:shadow cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               New Project
@@ -119,88 +138,133 @@ export default async function FreelancerDashboardPage() {
         </div>
 
         {/* Integration Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">GitHub Integration</span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                <CheckCircle2 className="w-3 h-3" />
-                Connected
-              </span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {/* GitHub Status */}
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                  <GitBranch className="w-3.5 h-3.5 text-ink" />
+                  GitHub Integration
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success-text bg-success-bg px-2 py-0.5 rounded-full border border-success-border">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success-dot"></span>
+                  Connected
+                </span>
+              </div>
+              <div className="flex items-center gap-3 my-2">
+                <div className="w-9 h-9 rounded-lg bg-surface-inset border border-border flex items-center justify-center">
+                  <GitBranch className="w-4 h-4 text-ink" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-ink block">
+                    {user?.githubUsername ? `@${user.githubUsername}` : "GitHub Connected"}
+                  </span>
+                  <span className="text-xs text-ink-muted">OAuth App Access Active</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 my-2">
-              <GitBranch className="w-5 h-5 text-[#222222]" />
-              <span className="text-base font-semibold text-[#222222]">
-                {user?.githubUsername ? `@${user.githubUsername}` : "GitHub Account"}
-              </span>
-            </div>
-            <p className="text-xs text-[#6a6a6a] mt-2">
-              Repository binding & commit analysis active.
+            <p className="text-xs text-ink-muted mt-3 pt-3 border-t border-border-soft">
+              Repository commit AST diff analysis enabled.
             </p>
           </div>
 
-          <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Linear Workspace</span>
-              {user?.linearAccessToken ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <CheckCircle2 className="w-3 h-3" />
-                  Connected
+          {/* Linear Status */}
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-ink" />
+                  Linear Workspace
                 </span>
-              ) : (
-                <Link
-                  href="/freelancer/settings"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#ff385c] hover:underline"
-                >
-                  Connect
-                </Link>
-              )}
+                {user?.linearAccessToken ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success-text bg-success-bg px-2 py-0.5 rounded-full border border-success-border">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success-dot"></span>
+                    Connected
+                  </span>
+                ) : (
+                  <Link
+                    href="/freelancer/settings"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-rausch-text bg-rausch-bg px-2 py-0.5 rounded-full border border-rausch-border hover:opacity-80 transition-opacity"
+                  >
+                    Connect Linear →
+                  </Link>
+                )}
+              </div>
+              <div className="flex items-center gap-3 my-2">
+                <div className="w-9 h-9 rounded-lg bg-surface-inset border border-border flex items-center justify-center">
+                  <Layers className="w-4 h-4 text-ink" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-ink block">
+                    {user?.linearWorkspaceName || "Not Connected"}
+                  </span>
+                  <span className="text-xs text-ink-muted">
+                    {user?.linearAccessToken ? "Ready to sync scoped tasks" : "Requires API Key"}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 my-2">
-              <Layers className="w-5 h-5 text-[#222222]" />
-              <span className="text-base font-semibold text-[#222222]">
-                {user?.linearWorkspaceName || "Not Connected"}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-soft">
+              <span className="text-xs text-ink-muted">
+                {user?.linearAccessToken ? "Auto-issue staging enabled" : "Configure in settings"}
               </span>
-            </div>
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#f7f7f7]">
-              <p className="text-xs text-[#6a6a6a]">
-                {user?.linearAccessToken ? "Ready to sync scoped tickets" : "Connect your workspace"}
-              </p>
               <Link
                 href="/freelancer/settings"
-                className="text-xs font-medium text-[#222222] hover:text-[#ff385c] underline"
+                className="text-xs font-semibold text-ink hover:text-[#ff385c] transition-colors"
               >
-                Settings
+                Settings →
               </Link>
             </div>
           </div>
 
-          <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">Recall.ai Bot</span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6a6a6a] bg-[#f7f7f7] px-2 py-0.5 rounded-full border border-[#dddddd]">
-                Ready for VAR-9
-              </span>
+          {/* Meeting Bot Infrastructure */}
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted flex items-center gap-1.5">
+                  <Video className="w-3.5 h-3.5 text-ink" />
+                  Meeting Bot
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink bg-surface-inset px-2 py-0.5 rounded-full border border-border">
+                  Recall.ai Pipeline
+                </span>
+              </div>
+              <div className="flex items-center gap-3 my-2">
+                <div className="w-9 h-9 rounded-lg bg-surface-inset border border-border flex items-center justify-center">
+                  <Activity className="w-4 h-4 text-[#ff385c]" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-ink block">
+                    Autonomous Dispatcher
+                  </span>
+                  <span className="text-xs text-ink-muted">Google Meet Audio & Diarization</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 my-2">
-              <Video className="w-5 h-5 text-[#222222]" />
-              <span className="text-base font-semibold text-[#222222]">Meeting Infrastructure</span>
-            </div>
-            <p className="text-xs text-[#6a6a6a] mt-2">
-              Autonomous recording and live transcription pipeline.
+            <p className="text-xs text-ink-muted mt-3 pt-3 border-t border-border-soft">
+              Live transcription & Gemini scope extraction ready.
             </p>
           </div>
         </div>
 
         {/* Projects Section */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#222222]">Active Projects ({projects.length})</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold tracking-tight text-ink">
+              Active Engagements
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full bg-surface-inset text-ink text-xs font-semibold border border-border">
+              {projects.length}
+            </span>
+          </div>
+
           {projects.length > 0 && (
             <Link
               href="/freelancer/projects/new"
-              className="text-xs font-medium text-[#ff385c] hover:underline"
+              className="text-xs font-semibold text-[#ff385c] hover:text-[#e00b41] transition-colors flex items-center gap-1"
             >
-              + Add another project
+              + Create new project
             </Link>
           )}
         </div>
@@ -210,50 +274,63 @@ export default async function FreelancerDashboardPage() {
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover flex flex-col justify-between"
+                className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <div className="flex items-center justify-between mb-3.5">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text border border-success-border">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success-dot"></span>
                       {project.status}
                     </span>
-                    <span className="text-xs text-[#6a6a6a] flex items-center gap-1">
+                    <span className="text-xs text-ink-muted flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
-                      {new Date(project.createdAt).toLocaleDateString()}
+                      {new Date(project.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-semibold text-[#222222] mb-1">{project.title}</h3>
+                  <h3 className="text-lg font-bold text-ink mb-1.5 hover:text-[#ff385c] transition-colors">
+                    <Link href={`/freelancer/projects/${project.id}`}>
+                      {project.title}
+                    </Link>
+                  </h3>
+
                   {project.description && (
-                    <p className="text-xs text-[#6a6a6a] mb-4 line-clamp-2">{project.description}</p>
+                    <p className="text-xs text-ink-muted mb-4 line-clamp-2 leading-relaxed">
+                      {project.description}
+                    </p>
                   )}
 
-                  <div className="space-y-2 my-4 pt-3 border-t border-[#f7f7f7] text-xs">
-                    <div className="flex items-center gap-2 text-[#222222]">
-                      <GitBranch className="w-4 h-4 text-[#6a6a6a]" />
-                      <span className="font-mono bg-[#f7f7f7] px-2 py-0.5 rounded border border-[#dddddd]">
+                  <div className="space-y-2.5 my-4 pt-3.5 border-t border-border-soft text-xs">
+                    <div className="flex items-center gap-2 text-ink">
+                      <GitBranch className="w-4 h-4 text-ink-muted" />
+                      <span className="font-mono bg-surface-inset px-2.5 py-0.5 rounded border border-border text-[11px]">
                         {project.githubRepo}
                       </span>
                     </div>
 
                     {project.clientEmail && (
-                      <div className="flex items-center gap-2 text-[#6a6a6a]">
-                        <Mail className="w-4 h-4 text-[#6a6a6a]" />
-                        <span>Client: {project.clientEmail}</span>
+                      <div className="flex items-center gap-2 text-ink-muted">
+                        <Mail className="w-4 h-4 text-ink-muted" />
+                        <span>Client: <strong className="text-ink font-medium">{project.clientEmail}</strong></span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#dddddd] flex items-center justify-between mt-2">
-                  <div className="text-[11px] text-[#6a6a6a]">
-                    Repository Bound & Verified
+                <div className="pt-4 border-t border-border flex items-center justify-between mt-2">
+                  <div className="text-[11px] text-ink-muted flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-success-text" />
+                    Repository Bound
                   </div>
                   <Link
                     href={`/freelancer/projects/${project.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#ff385c] hover:text-[#e00b41]"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-canvas bg-ink hover:opacity-90 px-3.5 py-1.5 rounded-[6px] transition-opacity"
                   >
-                    View Project
+                    Open Workspace
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

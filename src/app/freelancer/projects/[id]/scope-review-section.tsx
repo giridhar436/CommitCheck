@@ -344,25 +344,25 @@ export function ScopeReviewSection({
     switch (priority) {
       case 1:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-error-bg text-error-text border border-error-border">
             P1 Urgent
           </span>
         );
       case 2:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-warning-bg text-warning-text border border-warning-border">
             P2 High
           </span>
         );
       case 3:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-info-bg text-info-text border border-info-border">
             P3 Medium
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#f7f7f7] text-[#6a6a6a] border border-[#dddddd]">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-inset text-ink-muted border border-border">
             P4 Low
           </span>
         );
@@ -373,25 +373,25 @@ export function ScopeReviewSection({
     switch (classification) {
       case "EXPLICIT":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text border border-success-border">
             Explicit
           </span>
         );
       case "CONFIRMED_COMMITMENT":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-info-bg text-info-text border border-info-border">
             Confirmed Commitment
           </span>
         );
       case "AI_INFERRED":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-info-bg text-info-text border border-info-border">
             AI Inferred
           </span>
         );
       case "TENTATIVE":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-warning-bg text-warning-text border border-warning-border">
             Tentative Idea
           </span>
         );
@@ -404,19 +404,19 @@ export function ScopeReviewSection({
     switch (status) {
       case "PENDING_CLIENT_APPROVAL":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-warning-bg text-warning-text border border-warning-border">
             Awaiting Client Confirmation
           </span>
         );
       case "CLIENT_APPROVED":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text border border-success-border">
             ✓ Client Confirmed
           </span>
         );
       case "CLIENT_REJECTED":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-error-bg text-error-text border border-error-border">
             ✕ Client Rejected
           </span>
         );
@@ -437,9 +437,9 @@ export function ScopeReviewSection({
 
   return (
     <div id="scope-review" className="mt-8 space-y-6">
-      <div className="p-6 md:p-8 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
+      <div className="p-6 md:p-8 rounded-[14px] border border-border bg-surface-raised airbnb-shadow-hover">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b border-[#dddddd] gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-6 border-b border-border-soft gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c] flex items-center gap-1.5">
@@ -447,10 +447,10 @@ export function ScopeReviewSection({
                 Gemini 1.5 Pro AI Pipeline
               </span>
             </div>
-            <h3 className="text-xl font-semibold text-[#222222]">
+            <h3 className="text-xl font-semibold text-ink">
               Interactive Scope Review & Deliverable Staging
             </h3>
-            <p className="text-xs text-[#6a6a6a] mt-0.5">
+            <p className="text-xs text-ink-muted mt-0.5">
               Review and adjust AI-extracted commitments before publishing to Linear.
             </p>
           </div>
@@ -460,7 +460,7 @@ export function ScopeReviewSection({
               <button
                 onClick={handleRequestConfirmation}
                 disabled={requestingConfirmation}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#fff8e6] hover:bg-[#fef3c7] text-[#92400e] border border-[#fde68a] text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-warning-bg hover:opacity-80 text-warning-text border border-warning-border text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shrink-0"
                 title="Send confirmation email to client via Resend"
               >
                 {requestingConfirmation ? (
@@ -470,7 +470,7 @@ export function ScopeReviewSection({
                   </>
                 ) : (
                   <>
-                    <Send className="w-3.5 h-3.5 text-[#b45309]" />
+                    <Send className="w-3.5 h-3.5 text-warning-text" />
                     Request Confirmation ({pendingConfirmationCount})
                   </>
                 )}
@@ -478,8 +478,8 @@ export function ScopeReviewSection({
             )}
 
             {drafts.length > 0 && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#f7f7f7] border border-[#dddddd] text-[#222222]">
-                <ListTodo className="w-3.5 h-3.5 mr-1.5 text-[#6a6a6a]" />
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-surface-inset border border-border text-ink">
+                <ListTodo className="w-3.5 h-3.5 mr-1.5 text-ink-muted" />
                 {approvedCount} of {drafts.length} Approved
               </span>
             )}
@@ -487,7 +487,7 @@ export function ScopeReviewSection({
             <button
               onClick={handleExtractScope}
               disabled={extracting || !hasTranscript}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-[#222222] hover:bg-black text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shrink-0"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-ink hover:opacity-90 text-canvas text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shrink-0"
               title={
                 !hasTranscript
                   ? "Record a meeting first to generate transcript"
@@ -511,25 +511,25 @@ export function ScopeReviewSection({
 
         {/* Alerts */}
         {error && (
-          <div className="mb-6 p-4 rounded-[8px] bg-[#fff8f6] border border-[#fbd5cb] flex items-start gap-3 text-sm text-[#c13515]">
+          <div className="mb-6 p-4 rounded-[8px] bg-error-bg border border-error-border flex items-start gap-3 text-sm text-error-text">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-6 p-4 rounded-[8px] bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-sm text-emerald-800">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+          <div className="mb-6 p-4 rounded-[8px] bg-success-bg border border-success-border flex items-start gap-3 text-sm text-success-text">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-success-dot" />
             <span>{successMessage}</span>
           </div>
         )}
 
         {/* Empty State */}
         {drafts.length === 0 && !extracting && (
-          <div className="text-center py-12 px-4 rounded-[12px] bg-[#f7f7f7] border border-dashed border-[#dddddd]">
-            <Layers className="w-10 h-10 text-[#6a6a6a] mx-auto mb-3" />
-            <h4 className="text-sm font-semibold text-[#222222]">No Deliverables Staged Yet</h4>
-            <p className="text-xs text-[#6a6a6a] max-w-md mx-auto mt-1 mb-4">
+          <div className="text-center py-12 px-4 rounded-[12px] bg-surface-inset border border-dashed border-border">
+            <Layers className="w-10 h-10 text-ink-muted mx-auto mb-3" />
+            <h4 className="text-sm font-semibold text-ink">No Deliverables Staged Yet</h4>
+            <p className="text-xs text-ink-muted max-w-md mx-auto mt-1 mb-4">
               {hasTranscript
                 ? "Your discovery call transcript is ready. Click 'Extract Scope with Gemini' above to parse commitments into structured tasks."
                 : "Record your Google Meet discovery call above to generate a diarized transcript for AI scope extraction."}
@@ -546,7 +546,7 @@ export function ScopeReviewSection({
               )}
               <button
                 onClick={() => setShowAddForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-white border border-[#dddddd] hover:bg-[#f7f7f7] text-xs font-semibold text-[#222222] cursor-pointer transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-surface-raised border border-border hover:bg-surface-inset text-xs font-semibold text-ink cursor-pointer transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Manual Task
@@ -559,7 +559,7 @@ export function ScopeReviewSection({
         {drafts.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 Staged Deliverables ({drafts.length})
               </span>
 
@@ -576,15 +576,15 @@ export function ScopeReviewSection({
             {showAddForm && (
               <form
                 onSubmit={handleAddManualTask}
-                className="p-5 rounded-[12px] bg-[#f7f7f7] border border-[#dddddd] space-y-4 animate-in fade-in duration-200"
+                className="p-5 rounded-[12px] bg-surface-inset border border-border space-y-4 animate-in fade-in duration-200"
               >
-                <div className="font-semibold text-sm text-[#222222] flex items-center gap-2">
+                <div className="font-semibold text-sm text-ink flex items-center gap-2">
                   <Plus className="w-4 h-4 text-[#ff385c]" />
                   Add Manual Deliverable
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#222222] mb-1">
+                  <label className="block text-xs font-medium text-ink mb-1">
                     Task Title *
                   </label>
                   <input
@@ -593,12 +593,12 @@ export function ScopeReviewSection({
                     placeholder="e.g. Implement webhook signature verification"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full h-10 px-3 rounded-[8px] border border-[#dddddd] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
+                    className="w-full h-10 px-3 rounded-[8px] border border-border bg-surface-raised text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#222222] mb-1">
+                  <label className="block text-xs font-medium text-ink mb-1">
                     Acceptance Criteria & Description
                   </label>
                   <textarea
@@ -606,19 +606,19 @@ export function ScopeReviewSection({
                     placeholder="Details, tests, and deliverables..."
                     value={newDescription}
                     onChange={(e) => setNewDescription(e.target.value)}
-                    className="w-full p-3 rounded-[8px] border border-[#dddddd] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
+                    className="w-full p-3 rounded-[8px] border border-border bg-surface-raised text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-[#222222] mb-1">
+                    <label className="block text-xs font-medium text-ink mb-1">
                       Priority
                     </label>
                     <select
                       value={newPriority}
                       onChange={(e) => setNewPriority(Number(e.target.value))}
-                      className="w-full h-10 px-3 rounded-[8px] border border-[#dddddd] bg-white text-xs font-medium text-[#222222] focus:outline-none focus:border-[#222222]"
+                      className="w-full h-10 px-3 rounded-[8px] border border-border bg-surface-raised text-xs font-medium text-ink focus:outline-none focus:border-ink"
                     >
                       <option value={1}>P1 Urgent</option>
                       <option value={2}>P2 High</option>
@@ -628,13 +628,13 @@ export function ScopeReviewSection({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-[#222222] mb-1">
+                    <label className="block text-xs font-medium text-ink mb-1">
                       Estimate (Story Points)
                     </label>
                     <select
                       value={newEstimate}
                       onChange={(e) => setNewEstimate(Number(e.target.value))}
-                      className="w-full h-10 px-3 rounded-[8px] border border-[#dddddd] bg-white text-xs font-medium text-[#222222] focus:outline-none focus:border-[#222222]"
+                      className="w-full h-10 px-3 rounded-[8px] border border-border bg-surface-raised text-xs font-medium text-ink focus:outline-none focus:border-ink"
                     >
                       <option value={1}>1 pt (Simple)</option>
                       <option value={2}>2 pts (Standard)</option>
@@ -649,7 +649,7 @@ export function ScopeReviewSection({
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="px-4 py-2 rounded-[8px] border border-[#dddddd] bg-white text-xs font-medium text-[#222222] hover:bg-[#f7f7f7] cursor-pointer"
+                    className="px-4 py-2 rounded-[8px] border border-border bg-surface-raised text-xs font-medium text-ink hover:bg-surface-inset cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -673,41 +673,41 @@ export function ScopeReviewSection({
                 return (
                   <div
                     key={draft.id}
-                    className="p-5 rounded-[12px] border-2 border-[#222222] bg-white space-y-3"
+                    className="p-5 rounded-[12px] border-2 border-border-strong bg-surface-raised space-y-3"
                   >
                     <div>
-                      <label className="block text-xs font-medium text-[#222222] mb-1">
+                      <label className="block text-xs font-medium text-ink mb-1">
                         Title
                       </label>
                       <input
                         type="text"
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        className="w-full h-10 px-3 rounded-[8px] border border-[#dddddd] text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
+                        className="w-full h-10 px-3 rounded-[8px] border border-border bg-surface-inset text-sm text-ink focus:outline-none focus:border-ink"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-[#222222] mb-1">
+                      <label className="block text-xs font-medium text-ink mb-1">
                         Acceptance Criteria
                       </label>
                       <textarea
                         rows={3}
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
-                        className="w-full p-3 rounded-[8px] border border-[#dddddd] text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
+                        className="w-full p-3 rounded-[8px] border border-border bg-surface-inset text-sm text-ink focus:outline-none focus:border-ink"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-[#222222] mb-1">
+                        <label className="block text-xs font-medium text-ink mb-1">
                           Priority
                         </label>
                         <select
                           value={editPriority}
                           onChange={(e) => setEditPriority(Number(e.target.value))}
-                          className="w-full h-10 px-3 rounded-[8px] border border-[#dddddd] text-xs font-medium text-[#222222]"
+                          className="w-full h-10 px-3 rounded-[8px] border border-border bg-surface-inset text-xs font-medium text-ink"
                         >
                           <option value={1}>P1 Urgent</option>
                           <option value={2}>P2 High</option>
@@ -717,13 +717,13 @@ export function ScopeReviewSection({
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-[#222222] mb-1">
+                        <label className="block text-xs font-medium text-ink mb-1">
                           Estimate
                         </label>
                         <select
                           value={editEstimate}
                           onChange={(e) => setEditEstimate(Number(e.target.value))}
-                          className="w-full h-10 px-3 rounded-[8px] border border-[#dddddd] text-xs font-medium text-[#222222]"
+                          className="w-full h-10 px-3 rounded-[8px] border border-border bg-surface-inset text-xs font-medium text-ink"
                         >
                           <option value={1}>1 pt</option>
                           <option value={2}>2 pts</option>
@@ -738,7 +738,7 @@ export function ScopeReviewSection({
                       <button
                         type="button"
                         onClick={cancelEditing}
-                        className="px-3.5 py-1.5 rounded-[8px] border border-[#dddddd] text-xs font-medium text-[#222222] hover:bg-[#f7f7f7] cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-[8px] border border-border text-xs font-medium text-ink hover:bg-surface-inset cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -746,7 +746,7 @@ export function ScopeReviewSection({
                         type="button"
                         onClick={() => handleSaveEdit(draft.id)}
                         disabled={savingId === draft.id}
-                        className="px-4 py-1.5 rounded-[8px] bg-[#222222] hover:bg-black text-white text-xs font-semibold cursor-pointer shadow-sm disabled:opacity-50"
+                        className="px-4 py-1.5 rounded-[8px] bg-ink hover:opacity-90 text-canvas text-xs font-semibold cursor-pointer shadow-sm disabled:opacity-50"
                       >
                         {savingId === draft.id ? "Saving..." : "Save Changes"}
                       </button>
@@ -760,8 +760,8 @@ export function ScopeReviewSection({
                   key={draft.id}
                   className={`p-5 rounded-[12px] border transition-all ${
                     isApproved
-                      ? "border-emerald-300 bg-emerald-50/20"
-                      : "border-[#dddddd] bg-[#ffffff] hover:border-[#b0b0b0]"
+                      ? "border-success-border bg-success-bg/20"
+                      : "border-border bg-surface-raised hover:border-border-strong"
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -772,7 +772,7 @@ export function ScopeReviewSection({
                         {getPriorityBadge(draft.priority)}
 
                         {draft.estimate && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-[#f7f7f7] text-[#6a6a6a] border border-[#dddddd]">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-surface-inset text-ink-muted border border-border">
                             <Clock className="w-3 h-3 mr-1" />
                             {draft.estimate} pts
                           </span>
@@ -783,34 +783,34 @@ export function ScopeReviewSection({
                             href={draft.linearIssueUrl || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rausch-bg text-rausch-text border border-rausch-border hover:opacity-80 transition-opacity"
                           >
-                            <Layers className="w-3 h-3 text-violet-600" />
+                            <Layers className="w-3 h-3 text-rausch-text" />
                             {draft.linearIssueKey || "Linear Issue"}
                             <ExternalLink className="w-2.5 h-2.5 opacity-70" />
                           </a>
                         ) : isApproved ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text border border-success-border">
+                            <CheckCircle2 className="w-3 h-3 text-success-dot" />
                             Approved
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#f7f7f7] text-[#6a6a6a] border border-[#dddddd]">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-inset text-ink-muted border border-border">
                             Staged Draft
                           </span>
                         )}
                       </div>
 
-                      <h4 className="text-sm font-semibold text-[#222222]">{draft.title}</h4>
+                      <h4 className="text-sm font-semibold text-ink">{draft.title}</h4>
                       {draft.description && (
-                        <p className="text-xs text-[#6a6a6a] leading-relaxed whitespace-pre-wrap">
+                        <p className="text-xs text-ink-muted leading-relaxed whitespace-pre-wrap">
                           {draft.description}
                         </p>
                       )}
 
                       {draft.evidence && (
-                        <div className="bg-[#f7f7f7] border-l-2 border-[#ff385c] p-2.5 rounded-r-[6px] text-xs text-[#6a6a6a] italic mt-2">
-                          <span className="font-semibold text-[#222222] not-italic mr-1.5">Transcript Quote:</span>
+                        <div className="bg-surface-inset border-l-2 border-[#ff385c] p-2.5 rounded-r-[6px] text-xs text-ink-muted italic mt-2">
+                          <span className="font-semibold text-ink not-italic mr-1.5">Transcript Quote:</span>
                           &ldquo;{draft.evidence}&rdquo;
                         </div>
                       )}
@@ -819,7 +819,7 @@ export function ScopeReviewSection({
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-start">
                       <button
                         onClick={() => startEditing(draft)}
-                        className="p-1.5 rounded-[6px] hover:bg-[#f7f7f7] text-[#6a6a6a] hover:text-[#222222] transition-colors cursor-pointer"
+                        className="p-1.5 rounded-[6px] hover:bg-surface-inset text-ink-muted hover:text-ink transition-colors cursor-pointer"
                         title="Edit Deliverable"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -827,7 +827,7 @@ export function ScopeReviewSection({
 
                       <button
                         onClick={() => handleDeleteDraft(draft.id)}
-                        className="p-1.5 rounded-[6px] hover:bg-[#fff8f6] text-[#6a6a6a] hover:text-[#c13515] transition-colors cursor-pointer"
+                        className="p-1.5 rounded-[6px] hover:bg-error-bg text-ink-muted hover:text-error-text transition-colors cursor-pointer"
                         title="Delete Deliverable"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -839,15 +839,15 @@ export function ScopeReviewSection({
             })}
 
             {/* Scope Approval & Linear Publish Bottom Action Bar */}
-            <div className="mt-8 pt-6 border-t border-[#dddddd] flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#f7f7f7] -mx-6 -mb-6 md:-mx-8 md:-mb-8 p-6 rounded-b-[14px]">
+            <div className="mt-8 pt-6 border-t border-border-soft flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-inset -mx-6 -mb-6 md:-mx-8 md:-mb-8 p-6 rounded-b-[14px]">
               {linearProjectUrl ? (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                   <div>
-                    <div className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <div className="text-xs font-semibold text-success-text flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-success-dot" />
                       Active Linear Project & Stakeholders Notified
                     </div>
-                    <p className="text-xs text-[#6a6a6a] mt-0.5">
+                    <p className="text-xs text-ink-muted mt-0.5">
                       Deliverables are live on Linear. Resend notification email was dispatched to both client and freelancer.
                     </p>
                   </div>
@@ -856,7 +856,7 @@ export function ScopeReviewSection({
                     href={linearProjectUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#222222] hover:bg-black text-white text-xs font-semibold cursor-pointer shadow-sm transition-all"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-[8px] bg-ink hover:opacity-90 text-canvas text-xs font-semibold cursor-pointer shadow-sm transition-all"
                   >
                     <Layers className="w-3.5 h-3.5 text-[#ff385c]" />
                     Open Linear Project
@@ -866,11 +866,11 @@ export function ScopeReviewSection({
               ) : allApproved ? (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                   <div>
-                    <div className="text-xs font-semibold text-[#222222] flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <div className="text-xs font-semibold text-ink flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-success-dot" />
                       Scope Approved & Ready to Publish
                     </div>
-                    <p className="text-xs text-[#6a6a6a] mt-0.5">
+                    <p className="text-xs text-ink-muted mt-0.5">
                       Create a Linear project and publish all {drafts.length} issues in one click.
                     </p>
                   </div>
@@ -889,7 +889,7 @@ export function ScopeReviewSection({
                         <select
                           value={selectedTeamId}
                           onChange={(e) => setSelectedTeamId(e.target.value)}
-                          className="h-10 px-3 rounded-[8px] border border-[#dddddd] bg-white text-xs font-medium text-[#222222]"
+                          className="h-10 px-3 rounded-[8px] border border-border bg-surface-raised text-xs font-medium text-ink"
                         >
                           {linearTeams.map((team) => (
                             <option key={team.id} value={team.id}>
@@ -922,11 +922,11 @@ export function ScopeReviewSection({
               ) : (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                   <div>
-                    <div className="text-xs font-semibold text-[#222222] flex items-center gap-1.5">
+                    <div className="text-xs font-semibold text-ink flex items-center gap-1.5">
                       <Clock className="w-4 h-4 text-[#ff385c]" />
                       Pre-Publish Gate
                     </div>
-                    <p className="text-xs text-[#6a6a6a] mt-0.5">
+                    <p className="text-xs text-ink-muted mt-0.5">
                       Review deliverables above. Approving scope locks requirements and readies issues for Linear sync.
                     </p>
                   </div>
@@ -934,7 +934,7 @@ export function ScopeReviewSection({
                   <button
                     onClick={handleApproveAll}
                     disabled={approving || drafts.length === 0}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-[8px] bg-[#222222] hover:bg-black text-white text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-[8px] bg-ink hover:opacity-90 text-canvas text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
                   >
                     {approving ? (
                       <>
