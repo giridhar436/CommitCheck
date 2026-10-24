@@ -61,6 +61,7 @@ export interface LinearProjectIssue {
 export interface LinearService {
   getAuthorizationUrl(redirectUri: string, state?: string): string;
   exchangeCodeForToken(code: string, redirectUri: string): Promise<LinearOAuthTokenResponse>;
+  refreshToken(refreshToken: string): Promise<LinearOAuthTokenResponse>;
   getViewerWorkspace(accessToken: string): Promise<LinearWorkspace>;
   listTeams(accessToken: string): Promise<LinearTeam[]>;
   createProject(accessToken: string, input: CreateLinearProjectInput): Promise<LinearCreatedProject>;

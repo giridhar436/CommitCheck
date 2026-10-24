@@ -12,15 +12,62 @@ import {
   VerifiedTaskItem,
 } from "./types";
 
+export function isMockOrPlaceholderToken(token?: string | null): boolean {
+  if (!token) return true;
+  const t = token.trim();
+  return (
+    t === "" ||
+    t === "mock_token" ||
+    t === "test-token" ||
+    t === "demo-token" ||
+    t === "fake-token" ||
+    t.startsWith("mock_") ||
+    t.startsWith("gh_mock") ||
+    t.startsWith("fake_") ||
+    t.startsWith("test_")
+  );
+}
+
+export class GitHubVerificationError extends Error {
+  code = "GITHUB_VERIFICATION_UNAVAILABLE";
+  constructor(message: string) {
+    super(message);
+    this.name = "GitHubVerificationError";
+  }
+}
+
 export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
+  async verifyRepoAccess(
+    accessToken: string,
+    repoFullName: string
+  ): Promise<boolean> {
+    if (!accessToken || isMockOrPlaceholderToken(accessToken)) {
+      return false;
+    }
+    try {
+      const res = await fetch(`https://api.github.com/repos/${repoFullName}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "CommitCheck-App",
+        },
+      });
+      return res.status === 200;
+    } catch {
+      return false;
+    }
+  }
+
   async fetchRecentCommits(
     accessToken: string,
     repoFullName: string,
     limit = 30,
     since?: string
   ): Promise<CommitInfo[]> {
-    if (!accessToken || accessToken.startsWith("mock_") || accessToken.startsWith("gh_mock")) {
-      return this.fallbackCommits(repoFullName);
+    if (!accessToken || isMockOrPlaceholderToken(accessToken)) {
+      throw new GitHubVerificationError(
+        "GitHub verification unavailable: Missing or invalid GitHub credentials."
+      );
     }
 
     try {
@@ -32,20 +79,38 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             Accept: "application/vnd.github.v3+json",
+            "User-Agent": "CommitCheck-App",
           },
         }
       );
 
+      if (commitsRes.status === 401) {
+        throw new GitHubVerificationError(
+          "GitHub verification unavailable: Unauthorized or expired GitHub credentials."
+        );
+      }
+
+      if (commitsRes.status === 404) {
+        throw new GitHubVerificationError(
+          `GitHub verification unavailable: Repository '${repoFullName}' not found or access denied.`
+        );
+      }
+
       if (!commitsRes.ok) {
-        return this.fallbackCommits(repoFullName);
+        throw new GitHubVerificationError(
+          `GitHub verification unavailable: GitHub API error (${commitsRes.status}).`
+        );
       }
 
       const commitsJson = await commitsRes.json();
       if (!Array.isArray(commitsJson)) {
-        return this.fallbackCommits(repoFullName);
+        throw new GitHubVerificationError(
+          "GitHub verification unavailable: Unexpected response format from GitHub API."
+        );
       }
 
-      // 2. Fetch branches for branch association
+
+              // 2. Fetch branches for branch association
       const branchMap = new Map<string, string>(); // sha -> branchName
       try {
         const branches = await this.fetchRepoBranches(accessToken, repoFullName);
@@ -54,15 +119,14 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
         // non-blocking
       }
 
-      // 3. For top commits (up to 10), fetch diff snippet to facilitate Tier 2 semantic analysis
-      const commits: CommitInfo[] = [];
+      // 3. For top commits (up to 10), fetch diff snippet concurrently to facilitate Tier 2 semantic analysis
       const detailedLimit = Math.min(commitsJson.length, 10);
+      const diffResults = await Promise.all(
+        commitsJson.slice(0, detailedLimit).map(async (item: any) => {
 
-      for (let i = 0; i < commitsJson.length; i++) {
-        const item = commitsJson[i];
-        let diffSnippet: string | undefined;
-
-        if (i < detailedLimit) {
+      const detailedLimit = Math.min(commitsJson.length, 10);
+      const diffResults = await Promise.all(
+        commitsJson.slice(0, detailedLimit).map(async (item: any) => {
           try {
             const detailRes = await fetch(
               `https://api.github.com/repos/${repoFullName}/commits/${item.sha}`,
@@ -70,38 +134,50 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
                   Accept: "application/vnd.github.v3+json",
+                  "User-Agent": "CommitCheck-App",
                 },
               }
             );
             if (detailRes.ok) {
               const detailJson = await detailRes.json();
               if (detailJson.files && Array.isArray(detailJson.files)) {
-                diffSnippet = detailJson.files
+                const diffSnippet = detailJson.files
                   .slice(0, 5)
                   .map((f: any) => `[${f.filename}]: ${f.patch || ""}`)
                   .join("\n")
                   .slice(0, 2500);
+                return { sha: item.sha, diffSnippet };
               }
             }
           } catch {
-            // diff fetch error fallback
+            // diff fetch error fallback (individual diff is non-blocking)
           }
-        }
+          return { sha: item.sha, diffSnippet: undefined };
+        })
+      );
 
-        commits.push({
-          sha: item.sha,
-          message: item.commit?.message || "",
-          author: item.commit?.author?.name || item.author?.login || "Unknown",
-          date: item.commit?.author?.date || new Date().toISOString(),
-          url: item.html_url,
-          diffSnippet,
-          branchName: branchMap.get(item.sha),
-        });
-      }
+      const diffMap = new Map<string, string | undefined>(
+        diffResults.map((d) => [d.sha, d.diffSnippet])
+      );
+
+      const commits: CommitInfo[] = commitsJson.map((item: any) => ({
+        sha: item.sha,
+        message: item.commit?.message || "",
+        author: item.commit?.author?.name || item.author?.login || "Unknown",
+        date: item.commit?.author?.date || new Date().toISOString(),
+        url: item.html_url,
+        diffSnippet: diffMap.get(item.sha),
+        branchName: undefined,
+      }));
 
       return commits;
-    } catch {
-      return this.fallbackCommits(repoFullName);
+    } catch (err: any) {
+      if (err instanceof GitHubVerificationError || err?.code === "GITHUB_VERIFICATION_UNAVAILABLE") {
+        throw err;
+      }
+      throw new GitHubVerificationError(
+        `GitHub verification unavailable: ${err?.message || "Failed to reach GitHub API"}`
+      );
     }
   }
 
@@ -109,8 +185,8 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
     accessToken: string,
     repoFullName: string
   ): Promise<string[]> {
-    if (!accessToken || accessToken.startsWith("mock_") || accessToken.startsWith("gh_mock")) {
-      return ["main", "feature/VAR-101-stripe-ui", "feature/auth-biometrics"];
+    if (!accessToken || isMockOrPlaceholderToken(accessToken)) {
+      return [];
     }
 
     try {
@@ -120,49 +196,21 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             Accept: "application/vnd.github.v3+json",
+            "User-Agent": "CommitCheck-App",
           },
         }
       );
 
       if (!res.ok) {
-        return ["main"];
+        return [];
       }
 
       const json = await res.json();
-      if (!Array.isArray(json)) return ["main"];
+      if (!Array.isArray(json)) return [];
       return json.map((b: any) => b.name);
     } catch {
-      return ["main"];
+      return [];
     }
-  }
-
-  private fallbackCommits(repo: string): CommitInfo[] {
-    return [
-      {
-        sha: "e1f2a3b4c5d1001",
-        message: "feat(VAR-101): implement Stripe Elements UI with payment sheet and webhook handlers",
-        author: "Alex Dev",
-        date: new Date().toISOString(),
-        diffSnippet: "[src/components/Checkout.tsx]: +import { CardElement } from '@stripe/react-stripe-js';",
-        branchName: "feature/VAR-101-stripe-ui",
-      },
-      {
-        sha: "f2a3b4c5d6e1002",
-        message: "fix: resolve navigation layout mobile responsive overflow",
-        author: "Alex Dev",
-        date: new Date(Date.now() - 3600000).toISOString(),
-        diffSnippet: "[src/styles/nav.css]: -width: 100vw; +max-width: 100%; overflow-x: hidden;",
-        branchName: "main",
-      },
-      {
-        sha: "a3b4c5d6e7f1003",
-        message: "feat: add biometric authentication service for face id login",
-        author: "Alex Dev",
-        date: new Date(Date.now() - 7200000).toISOString(),
-        diffSnippet: "[src/auth/biometrics.ts]: +export async function authenticateWithBiometrics() { ... }",
-        branchName: "feature/auth-biometrics",
-      },
-    ];
   }
 }
 
@@ -190,6 +238,13 @@ export class MockGitHubCommitFetcher implements GitHubCommitFetcher {
       },
     ];
     this.branches = customBranches || ["main", "feature/VAR-101-stripe"];
+  }
+
+  async verifyRepoAccess(
+    _accessToken: string,
+    _repoFullName: string
+  ): Promise<boolean> {
+    return true;
   }
 
   async fetchRecentCommits(
@@ -322,6 +377,10 @@ export class GeminiSemanticDiffAnalyzer implements SemanticDiffAnalyzer {
       !this.apiKey.startsWith("offline") &&
       this.apiKey !== "test_key"
     ) {
+      const abortController = new AbortController();
+      const timeoutMs = 10000;
+      const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+
       try {
         const ai = this.getAiClient();
         const commitSummaries = commits
@@ -352,17 +411,26 @@ Respond ONLY with valid JSON in this schema:
 }
 `;
 
-        const response = await ai.models.generateContent({
+        const geminiPromise = ai.models.generateContent({
           model: this.model,
           contents: prompt,
           config: {
             systemInstruction:
               "You are an expert code auditor verifying git commit history and diffs against contracted software deliverables.",
             responseMimeType: "application/json",
+            abortSignal: abortController.signal,
           },
         });
 
-        const rawText = response.text;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          abortController.signal.addEventListener("abort", () => {
+            reject(new Error("Gemini semantic analysis timed out after 10000ms"));
+          });
+        });
+
+        const response: any = await Promise.race([geminiPromise, timeoutPromise]);
+
+        const rawText = response?.text;
         if (rawText) {
           const parsed = JSON.parse(rawText);
           const matchedCommits = commits.filter((c) =>
@@ -380,8 +448,26 @@ Respond ONLY with valid JSON in this schema:
             matchedCommits,
           };
         }
-      } catch (err) {
-        // Fall back to deterministic heuristic analyzer below
+
+        return {
+          isVerified: false,
+          confidence: 0,
+          reasoning: `Semantic diff analysis unavailable: Gemini returned an empty or unparseable response for "${task.title}". Deliverable marked unresolved.`,
+          matchedCommits: [],
+        };
+      } catch (err: any) {
+        // Critical safety rule: If live Gemini fails or times out, never fabricate or fall back to heuristic verification!
+        const isTimeout = err?.message?.includes("timed out") || abortController.signal.aborted;
+        return {
+          isVerified: false,
+          confidence: 0,
+          reasoning: isTimeout
+            ? `Semantic diff analysis unavailable: Gemini request timed out (10s threshold) for "${task.title}". Deliverable marked unresolved.`
+            : `Semantic diff analysis unavailable: Gemini API error (${err?.message || "unknown"}) for "${task.title}". Deliverable marked unresolved.`,
+          matchedCommits: [],
+        };
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
@@ -449,7 +535,6 @@ export async function runDualTierVerification(
   input: VerificationEngineInput
 ): Promise<VerificationEngineOutput> {
   const { tasks, commits, analyzer, repoBranches = [], baselineDate } = input;
-  const verifiedTasks: VerifiedTaskItem[] = [];
   const discrepancies: Discrepancy[] = [];
   const allMatchedShaSet = new Set<string>();
 
@@ -464,9 +549,12 @@ export async function runDualTierVerification(
         })
       : commits;
 
-  for (const task of tasks) {
-    // 1. Tier 1: Syntactic Matcher (Explicit ticket key in commit message OR branch names)
-    // Matches ticket keys like VAR-101, DEV-202, etc. with word boundary
+  const results: (VerifiedTaskItem | null)[] = new Array(tasks.length).fill(null);
+  const pendingTier2: { task: TaskToVerify; index: number }[] = [];
+
+  // Pass 1: Tier 1 Syntactic Matcher (Explicit ticket key in commit message OR branch names)
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
     const keyPattern = new RegExp(`\\b${task.key}\\b`, "i");
 
     const syntacticMatches = eligibleCommits.filter((c) => {
@@ -476,7 +564,6 @@ export async function runDualTierVerification(
       return false;
     });
 
-    // Also check if any repository branch references this task key
     const matchingRepoBranch = repoBranches.find((b) => keyPattern.test(b));
 
     if (syntacticMatches.length > 0) {
@@ -484,7 +571,7 @@ export async function runDualTierVerification(
       const matchSource = syntacticMatches.some((c) => keyPattern.test(c.message))
         ? "commit message(s)"
         : "branch name";
-      verifiedTasks.push({
+      results[i] = {
         taskId: task.id,
         issueKey: task.key,
         title: task.title,
@@ -494,16 +581,14 @@ export async function runDualTierVerification(
         confidence: 1.0,
         reasoning: `Syntactic match: Found ${syntacticMatches.length} commit(s) referencing ticket ${task.key} via ${matchSource}.`,
         matchedCommits: syntacticMatches,
-      });
-      continue;
+      };
     } else if (matchingRepoBranch && eligibleCommits.length > 0) {
-      // Branch exists in repository referencing task
       const branchCommits = eligibleCommits.filter(
         (c) => c.branchName === matchingRepoBranch || (c.branches && c.branches.includes(matchingRepoBranch))
       );
       const targetCommits = branchCommits.length > 0 ? branchCommits : [eligibleCommits[0]];
       targetCommits.forEach((c) => allMatchedShaSet.add(c.sha));
-      verifiedTasks.push({
+      results[i] = {
         taskId: task.id,
         issueKey: task.key,
         title: task.title,
@@ -513,58 +598,90 @@ export async function runDualTierVerification(
         confidence: 1.0,
         reasoning: `Syntactic match: Verified via dedicated Git branch "${matchingRepoBranch}" for ${task.key}.`,
         matchedCommits: targetCommits,
-      });
-      continue;
+      };
+    } else {
+      pendingTier2.push({ task, index: i });
     }
+  }
 
-    // 2. Tier 2: Semantic Diff Analysis
-    const semanticResult = await analyzer.analyzeTaskCommitAlignment(task, eligibleCommits);
-    if (semanticResult.isVerified) {
-      semanticResult.matchedCommits.forEach((c) => allMatchedShaSet.add(c.sha));
-      verifiedTasks.push({
-        taskId: task.id,
-        issueKey: task.key,
-        title: task.title,
-        status: task.status,
-        isVerified: true,
-        tier: "SEMANTIC",
-        confidence: semanticResult.confidence,
-        reasoning: semanticResult.reasoning,
-        matchedCommits: semanticResult.matchedCommits,
-      });
-      continue;
-    }
+  // Pass 2: Tier 2 Semantic Diff Analysis with controlled concurrency (3 at a time)
+  const CONCURRENCY_LIMIT = 3;
+  for (let i = 0; i < pendingTier2.length; i += CONCURRENCY_LIMIT) {
+    const chunk = pendingTier2.slice(i, i + CONCURRENCY_LIMIT);
+    await Promise.all(
+      chunk.map(async ({ task, index }) => {
+        try {
+          const semanticResult = await analyzer.analyzeTaskCommitAlignment(task, eligibleCommits);
+          if (semanticResult.isVerified) {
+            semanticResult.matchedCommits.forEach((c) => allMatchedShaSet.add(c.sha));
+            results[index] = {
+              taskId: task.id,
+              issueKey: task.key,
+              title: task.title,
+              status: task.status,
+              isVerified: true,
+              tier: "SEMANTIC",
+              confidence: semanticResult.confidence,
+              reasoning: semanticResult.reasoning,
+              matchedCommits: semanticResult.matchedCommits,
+            };
+          } else {
+            results[index] = {
+              taskId: task.id,
+              issueKey: task.key,
+              title: task.title,
+              status: task.status,
+              isVerified: false,
+              tier: "NONE",
+              confidence: 0,
+              reasoning:
+                semanticResult.reasoning ||
+                "No syntactic or semantic commit activity found backing this deliverable.",
+              matchedCommits: [],
+            };
+          }
+        } catch {
+          results[index] = {
+            taskId: task.id,
+            issueKey: task.key,
+            title: task.title,
+            status: task.status,
+            isVerified: false,
+            tier: "NONE",
+            confidence: 0,
+            reasoning:
+              "Semantic diff analysis unavailable: Analysis failed. Deliverable marked unresolved.",
+            matchedCommits: [],
+          };
+        }
+      })
+    );
+  }
 
-    // 3. Unverified Task
-    verifiedTasks.push({
-      taskId: task.id,
-      issueKey: task.key,
-      title: task.title,
-      status: task.status,
-      isVerified: false,
-      tier: "NONE",
-      confidence: 0,
-      reasoning: "No syntactic or semantic commit activity found backing this deliverable.",
-      matchedCommits: [],
-    });
+  const verifiedTasks: VerifiedTaskItem[] = results as VerifiedTaskItem[];
 
-    // 4. Ghost Completion Detection
-    const isMarkedCompleted =
-      task.status.toLowerCase() === "done" ||
-      task.status.toLowerCase() === "completed" ||
-      task.status.toLowerCase() === "closed" ||
-      task.statusType === "completed";
+  // Ghost Completion Detection
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
+    const item = results[i]!;
+    if (!item.isVerified) {
+      const isMarkedCompleted =
+        task.status.toLowerCase() === "done" ||
+        task.status.toLowerCase() === "completed" ||
+        task.status.toLowerCase() === "closed" ||
+        task.statusType === "completed";
 
-    if (isMarkedCompleted) {
-      discrepancies.push({
-        id: `disc_ghost_${task.id}`,
-        type: "GHOST_COMPLETION",
-        severity: "HIGH",
-        issueKey: task.key,
-        title: `Ghost Completion: ${task.key} - ${task.title}`,
-        description: `This task is marked "${task.status}" in Linear, but no code diffs or commit history were detected in the bound repository.`,
-        suggestedRemediation: `Push the supporting commits referencing ${task.key} or revert the task status in Linear until code is delivered.`,
-      });
+      if (isMarkedCompleted) {
+        discrepancies.push({
+          id: `disc_ghost_${task.id}`,
+          type: "GHOST_COMPLETION",
+          severity: "HIGH",
+          issueKey: task.key,
+          title: `Ghost Completion: ${task.key} - ${task.title}`,
+          description: `This task is marked "${task.status}" in Linear, but no code diffs or commit history were detected in the bound repository.`,
+          suggestedRemediation: `Push the supporting commits referencing ${task.key} or revert the task status in Linear until code is delivered.`,
+        });
+      }
     }
   }
 

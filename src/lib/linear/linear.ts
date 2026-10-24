@@ -59,6 +59,40 @@ export class LiveLinearService implements LinearService {
     return res.json();
   }
 
+  async refreshToken(refreshToken: string): Promise<LinearOAuthTokenResponse> {
+    const clientId = process.env.LINEAR_CLIENT_ID;
+    const clientSecret = process.env.LINEAR_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret || clientId.startsWith("mock_")) {
+      return {
+        access_token: `lin_mock_token_refreshed_${Date.now()}`,
+        token_type: "Bearer",
+        scope: ["read", "write", "issues:create"],
+        refresh_token: `lin_mock_refresh_${Date.now()}`,
+      };
+    }
+
+    const res = await fetch("https://api.linear.app/oauth/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Linear token refresh error (${res.status}): ${errText}`);
+    }
+
+    return res.json();
+  }
+
   async getViewerWorkspace(accessToken: string): Promise<LinearWorkspace> {
     if (!accessToken || accessToken.startsWith("lin_mock_")) {
       return {
@@ -421,6 +455,21 @@ export class MockLinearService implements LinearService {
       token_type: "Bearer",
       scope: ["read", "write", "issues:create"],
       refresh_token: `lin_refresh_${code}`,
+    };
+  }
+
+  async refreshToken(refreshToken: string): Promise<LinearOAuthTokenResponse> {
+    if (this.simulateGraphQLError) {
+      throw new Error(`Mock Linear refresh error: ${this.simulateGraphQLError}`);
+    }
+    if (refreshToken === "invalid_refresh_token") {
+      throw new Error("Linear token refresh error (401): Invalid refresh token");
+    }
+    return {
+      access_token: `lin_refreshed_token_${refreshToken}`,
+      token_type: "Bearer",
+      scope: ["read", "write", "issues:create"],
+      refresh_token: `lin_refreshed_refresh_${refreshToken}`,
     };
   }
 

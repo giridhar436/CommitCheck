@@ -99,6 +99,10 @@ export interface GitHubCommitFetcher {
     accessToken: string,
     repoFullName: string
   ): Promise<string[]>;
+  verifyRepoAccess?(
+    accessToken: string,
+    repoFullName: string
+  ): Promise<boolean>;
 }
 
 export interface LinearIssueFetcher {

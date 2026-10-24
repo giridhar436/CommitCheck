@@ -43,7 +43,8 @@ export async function GET(
 
     return NextResponse.json(result);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const code = err.code || "GITHUB_VERIFICATION_UNAVAILABLE";
+    return NextResponse.json({ error: err.message, code }, { status: 400 });
   }
 }
 
@@ -81,6 +82,7 @@ export async function POST(
 
     return NextResponse.json(result, { status: 201 });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const code = err.code || "GITHUB_VERIFICATION_UNAVAILABLE";
+    return NextResponse.json({ error: err.message, code }, { status: 400 });
   }
 }

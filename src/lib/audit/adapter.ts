@@ -7,6 +7,26 @@ import {
   VerifiedTaskItem,
 } from "./types";
 
+export const KNOWN_FALLBACK_COMMIT_SHAS = new Set([
+  "e1f2a3b4c5d1001",
+  "f2a3b4c5d6e1002",
+  "a3b4c5d6e7f1003",
+]);
+
+export function isReportFromFallbackData(report: AuditReportData): boolean {
+  if (report.latestCommitSha && KNOWN_FALLBACK_COMMIT_SHAS.has(report.latestCommitSha)) {
+    return true;
+  }
+  for (const t of report.verifiedTasks || []) {
+    for (const c of t.matchedCommits || []) {
+      if (c.sha && KNOWN_FALLBACK_COMMIT_SHAS.has(c.sha)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export class PrismaAuditRepository implements AuditRepository {
   async createAuditReport(data: {
     projectId: string;
@@ -40,12 +60,20 @@ export class PrismaAuditRepository implements AuditRepository {
   }
 
   async findLatestReportForProject(projectId: string): Promise<AuditReportData | null> {
-    const raw = await prisma.auditReport.findFirst({
+    const records = await prisma.auditReport.findMany({
       where: { projectId },
       orderBy: { createdAt: "desc" },
+      take: 10,
     });
 
-    return raw ? this.mapToAuditReport(raw) : null;
+    for (const raw of records) {
+      const report = this.mapToAuditReport(raw);
+      if (!isReportFromFallbackData(report)) {
+        return report;
+      }
+    }
+
+    return null;
   }
 
   async listReportsForProject(projectId: string): Promise<AuditReportData[]> {
@@ -54,7 +82,9 @@ export class PrismaAuditRepository implements AuditRepository {
       orderBy: { createdAt: "desc" },
     });
 
-    return records.map(this.mapToAuditReport);
+    return records
+      .map(this.mapToAuditReport)
+      .filter((r) => !isReportFromFallbackData(r));
   }
 
   private mapToAuditReport(raw: any): AuditReportData {
@@ -131,7 +161,7 @@ export class InMemoryAuditRepository implements AuditRepository {
 
   async findLatestReportForProject(projectId: string): Promise<AuditReportData | null> {
     const projectReports = Array.from(this.reports.values())
-      .filter((r) => r.projectId === projectId)
+      .filter((r) => r.projectId === projectId && !isReportFromFallbackData(r))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     return projectReports[0] ? { ...projectReports[0] } : null;
@@ -139,7 +169,7 @@ export class InMemoryAuditRepository implements AuditRepository {
 
   async listReportsForProject(projectId: string): Promise<AuditReportData[]> {
     return Array.from(this.reports.values())
-      .filter((r) => r.projectId === projectId)
+      .filter((r) => r.projectId === projectId && !isReportFromFallbackData(r))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .map((r) => ({ ...r }));
   }
@@ -147,6 +177,34 @@ export class InMemoryAuditRepository implements AuditRepository {
   clear() {
     this.reports.clear();
   }
+}
+
+export async function invalidateProjectFallbackReports(projectId: string): Promise<number> {
+  const records = await prisma.auditReport.findMany({
+    where: { projectId },
+  });
+
+  const fallbackIds = records
+    .filter((r) => {
+      if (r.latestCommitSha && KNOWN_FALLBACK_COMMIT_SHAS.has(r.latestCommitSha)) return true;
+      try {
+        const tasks = JSON.parse(r.verifiedTasksJson || "[]");
+        return tasks.some((t: any) =>
+          (t.matchedCommits || []).some((c: any) => KNOWN_FALLBACK_COMMIT_SHAS.has(c.sha))
+        );
+      } catch {
+        return false;
+      }
+    })
+    .map((r) => r.id);
+
+  if (fallbackIds.length > 0) {
+    await prisma.auditReport.deleteMany({
+      where: { id: { in: fallbackIds } },
+    });
+  }
+
+  return fallbackIds.length;
 }
 
 export const defaultAuditRepository = new PrismaAuditRepository();
