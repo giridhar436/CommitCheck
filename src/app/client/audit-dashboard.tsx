@@ -197,21 +197,21 @@ export function ExecutiveAuditDashboard({
   return (
     <div className="space-y-8">
       {/* Verification Action Hero */}
-      <div className="p-8 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="p-8 rounded-[14px] border border-border bg-surface-raised saas-card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c] flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[#ff385c]" />
               Dual-Tier AI Verification Engine
             </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f4f4f5] text-[#71717a] border border-[#e4e4e7]">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface-inset text-ink-muted border border-border">
               AST Semantic Diff
             </span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-[#18181b]">
+          <h2 className="text-2xl font-bold tracking-tight text-ink">
             {project.title}
           </h2>
-          <p className="text-xs text-[#71717a] mt-1.5 max-w-xl leading-relaxed">
+          <p className="text-xs text-ink-muted mt-1.5 max-w-xl leading-relaxed">
             Reconciles Linear board issues with real GitHub commit diffs. Discovers whether tasks marked completed are truly implemented in code.
           </p>
         </div>
@@ -239,8 +239,8 @@ export function ExecutiveAuditDashboard({
 
       {/* Real-Time Stepper Progress */}
       {verifying && (
-        <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-shadow animate-in fade-in duration-300">
-          <div className="text-xs font-bold text-[#18181b] mb-4 flex items-center gap-2">
+        <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-shadow animate-in fade-in duration-300">
+          <div className="text-xs font-bold text-ink mb-4 flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin text-[#ff385c]" />
             Running Dual-Tier Audit Pipeline...
           </div>
@@ -251,19 +251,19 @@ export function ExecutiveAuditDashboard({
               return (
                 <div key={idx} className="flex items-center gap-3 text-xs">
                   {isPast ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-success-dot shrink-0" />
                   ) : isCurrent ? (
                     <div className="w-4 h-4 rounded-full border-2 border-[#ff385c] border-t-transparent animate-spin shrink-0" />
                   ) : (
-                    <div className="w-4 h-4 rounded-full border border-[#e4e4e7] bg-[#f4f4f5] shrink-0" />
+                    <div className="w-4 h-4 rounded-full border border-border bg-surface-inset shrink-0" />
                   )}
                   <span
                     className={`${
                       isPast
-                        ? "text-[#18181b] font-medium"
+                        ? "text-ink font-medium"
                         : isCurrent
                         ? "text-[#ff385c] font-semibold"
-                        : "text-[#a1a1aa]"
+                        : "text-ink-faint"
                     }`}
                   >
                     {s}
@@ -277,7 +277,7 @@ export function ExecutiveAuditDashboard({
 
       {/* Error Alert */}
       {error && (
-        <div className="p-4 rounded-[8px] bg-[#fff8f6] border border-[#fbd5cb] flex items-start gap-3 text-sm text-[#c13515]">
+        <div className="p-4 rounded-[8px] bg-error-bg border border-error-border flex items-start gap-3 text-sm text-error-text">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -285,21 +285,21 @@ export function ExecutiveAuditDashboard({
 
       {/* Ghost Completion Alert Banner */}
       {hasGhost && report && (
-        <div className="p-6 rounded-[14px] bg-[#fff8f6] border border-[#fbd5cb] flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in shadow-xs">
+        <div className="p-6 rounded-[14px] bg-error-bg border border-error-border flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in shadow-xs">
           <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-[#fbd5cb] flex items-center justify-center shrink-0 text-[#c13515]">
-              <AlertOctagon className="w-5 h-5 text-[#c13515]" />
+            <div className="w-10 h-10 rounded-full bg-error-border flex items-center justify-center shrink-0 text-error-text">
+              <AlertOctagon className="w-5 h-5 text-error-text" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-[#c13515]">
+                <span className="text-sm font-bold text-error-text">
                   High Discrepancy: {report.ghostCompletions} Ghost Completion(s) Detected
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#c13515] text-white">
                   URGENT
                 </span>
               </div>
-              <p className="text-xs text-[#71717a] mt-1 max-w-2xl leading-relaxed">
+              <p className="text-xs text-ink-muted mt-1 max-w-2xl leading-relaxed">
                 One or more tasks are marked as completed in Linear, but CommitCheck found zero matching code commits or diffs in the GitHub repository.
               </p>
             </div>
@@ -322,22 +322,22 @@ export function ExecutiveAuditDashboard({
       {report && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Progress Card */}
-          <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-hover flex flex-col justify-between">
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#71717a]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 Verified Code Progress
               </span>
               <div className="flex items-baseline gap-2 my-2">
-                <span className="text-3xl font-bold tracking-tight text-[#18181b]">
+                <span className="text-3xl font-bold tracking-tight text-ink">
                   {verifiedPercent}%
                 </span>
                 <span
                   className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                     isHealthy
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      ? "bg-success-bg text-success-text border border-success-border"
                       : hasGhost
-                      ? "bg-rose-50 text-rose-700 border border-rose-200"
-                      : "bg-sky-50 text-sky-700 border border-sky-200"
+                      ? "bg-error-bg text-error-text border border-error-border"
+                      : "bg-info-bg text-info-text border border-info-border"
                   }`}
                 >
                   {isHealthy ? "Healthy" : hasGhost ? "At Risk" : "In Progress"}
@@ -345,7 +345,7 @@ export function ExecutiveAuditDashboard({
               </div>
             </div>
             {/* Progress Bar */}
-            <div className="w-full bg-[#f4f4f5] h-2 rounded-full overflow-hidden border border-[#e4e4e7] mt-3">
+            <div className="w-full bg-surface-inset h-2 rounded-full overflow-hidden border border-border mt-3">
               <div
                 className={`h-full transition-all duration-500 ${
                   isHealthy ? "bg-emerald-500" : hasGhost ? "bg-[#ff385c]" : "bg-sky-500"
@@ -356,50 +356,50 @@ export function ExecutiveAuditDashboard({
           </div>
 
           {/* Deliverables In Scope */}
-          <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-hover flex flex-col justify-between">
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#71717a]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 Verified Deliverables
               </span>
-              <div className="text-3xl font-bold tracking-tight text-[#18181b] my-2">
+              <div className="text-3xl font-bold tracking-tight text-ink my-2">
                 {tasks.filter((t) => t.isVerified).length} / {tasks.length}
               </div>
             </div>
-            <p className="text-xs text-[#71717a]">
+            <p className="text-xs text-ink-muted">
               Tasks backed by verifiable commit diffs in GitHub.
             </p>
           </div>
 
           {/* Ghost Completions */}
-          <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-hover flex flex-col justify-between">
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#71717a]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 Ghost Completions
               </span>
               <div
                 className={`text-3xl font-bold tracking-tight my-2 ${
-                  report.ghostCompletions > 0 ? "text-[#c13515]" : "text-[#18181b]"
+                  report.ghostCompletions > 0 ? "text-error-text" : "text-ink"
                 }`}
               >
                 {report.ghostCompletions}
               </div>
             </div>
-            <p className="text-xs text-[#71717a]">
+            <p className="text-xs text-ink-muted">
               Marked Done without matching code commits.
             </p>
           </div>
 
           {/* Untracked Work */}
-          <div className="p-6 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-hover flex flex-col justify-between">
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised saas-card-hover flex flex-col justify-between">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#71717a]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 Untracked Work
               </span>
-              <div className="text-3xl font-bold tracking-tight text-[#18181b] my-2">
+              <div className="text-3xl font-bold tracking-tight text-ink my-2">
                 {report.untrackedCommits}
               </div>
             </div>
-            <p className="text-xs text-[#71717a]">
+            <p className="text-xs text-ink-muted">
               Commits outside agreed Linear milestones.
             </p>
           </div>
@@ -408,13 +408,13 @@ export function ExecutiveAuditDashboard({
 
       {/* Task-By-Task Verification Breakdown */}
       {report && (
-        <div className="p-6 md:p-8 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-shadow space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#e4e4e7] gap-4">
+        <div className="p-6 md:p-8 rounded-[14px] border border-border bg-surface-raised saas-card-shadow space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border-soft gap-4">
             <div>
-              <h3 className="text-lg font-bold text-[#18181b]">
+              <h3 className="text-lg font-bold text-ink">
                 Deliverable Verification Breakdown
               </h3>
-              <p className="text-xs text-[#71717a] mt-0.5">
+              <p className="text-xs text-ink-muted mt-0.5">
                 Inspect commit links and AI reasoning backing each milestone deliverable.
               </p>
             </div>
@@ -425,8 +425,8 @@ export function ExecutiveAuditDashboard({
                 onClick={() => setFilter("ALL")}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   filter === "ALL"
-                    ? "bg-[#18181b] text-white shadow-xs"
-                    : "bg-[#f4f4f5] text-[#71717a] hover:text-[#18181b]"
+                    ? "bg-ink text-canvas shadow-xs"
+                    : "bg-surface-inset text-ink-muted hover:text-ink"
                 }`}
               >
                 All ({tasks.length})
@@ -435,8 +435,8 @@ export function ExecutiveAuditDashboard({
                 onClick={() => setFilter("VERIFIED")}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   filter === "VERIFIED"
-                    ? "bg-[#18181b] text-white shadow-xs"
-                    : "bg-[#f4f4f5] text-[#71717a] hover:text-[#18181b]"
+                    ? "bg-ink text-canvas shadow-xs"
+                    : "bg-surface-inset text-ink-muted hover:text-ink"
                 }`}
               >
                 Verified ({tasks.filter((t) => t.isVerified).length})
@@ -445,8 +445,8 @@ export function ExecutiveAuditDashboard({
                 onClick={() => setFilter("DISCREPANCY")}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   filter === "DISCREPANCY"
-                    ? "bg-[#18181b] text-white shadow-xs"
-                    : "bg-[#f4f4f5] text-[#71717a] hover:text-[#18181b]"
+                    ? "bg-ink text-canvas shadow-xs"
+                    : "bg-surface-inset text-ink-muted hover:text-ink"
                 }`}
               >
                 Unverified ({tasks.filter((t) => !t.isVerified).length})
@@ -457,7 +457,7 @@ export function ExecutiveAuditDashboard({
           {/* Task List */}
           <div className="space-y-3.5">
             {filteredTasks.length === 0 ? (
-              <div className="text-center py-10 text-xs text-[#71717a]">
+              <div className="text-center py-10 text-xs text-ink-muted">
                 No deliverables match this filter.
               </div>
             ) : (
@@ -468,44 +468,44 @@ export function ExecutiveAuditDashboard({
                     key={t.taskId}
                     className={`p-5 rounded-[12px] border transition-all ${
                       isGhost
-                        ? "bg-[#fff8f6] border-[#fbd5cb]"
+                        ? "bg-error-bg border-error-border"
                         : t.isVerified
-                        ? "bg-white border-[#e4e4e7] hover:border-[#d4d4d8]"
-                        : "bg-[#fafafa] border-[#e4e4e7]"
+                        ? "bg-surface-raised border-border hover:border-border-strong"
+                        : "bg-surface-inset border-border"
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div className="space-y-1.5 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-[#f4f4f5] text-[#18181b] border border-[#e4e4e7]">
+                          <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-inset text-ink border border-border">
                             {t.issueKey}
                           </span>
 
                           {t.isVerified ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text border border-success-border">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-success-dot" />
                               Verified in Code ({t.tier.toLowerCase()})
                             </span>
                           ) : isGhost ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error-bg text-error-text border border-error-border">
+                              <AlertTriangle className="w-3.5 h-3.5 text-error-text" />
                               Ghost Completion
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
-                              <Clock className="w-3.5 h-3.5 text-sky-600" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-info-bg text-info-text border border-info-border">
+                              <Clock className="w-3.5 h-3.5 text-info-text" />
                               In Progress
                             </span>
                           )}
                         </div>
 
-                        <h4 className="text-sm font-bold text-[#18181b]">{t.title}</h4>
-                        <p className="text-xs text-[#71717a] leading-relaxed">{t.reasoning}</p>
+                        <h4 className="text-sm font-bold text-ink">{t.title}</h4>
+                        <p className="text-xs text-ink-muted leading-relaxed">{t.reasoning}</p>
 
                         {/* Matching Commits */}
                         {t.matchedCommits.length > 0 && (
                           <div className="pt-2 flex items-center gap-2 flex-wrap">
-                            <span className="text-[11px] font-semibold text-[#71717a] uppercase tracking-wider">
+                            <span className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
                               Backing Commits:
                             </span>
                             {t.matchedCommits.map((c) => (
@@ -514,11 +514,11 @@ export function ExecutiveAuditDashboard({
                                 href={c.url || `https://github.com/${project.githubRepo}/commit/${c.sha}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#f4f4f5] border border-[#e4e4e7] font-mono text-[11px] text-[#18181b] hover:bg-white hover:border-[#18181b] transition-colors"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-surface-inset border border-border font-mono text-[11px] text-ink hover:bg-surface-raised hover:border-border-strong transition-colors"
                               >
-                                <GitBranch className="w-3 h-3 text-[#71717a]" />
+                                <GitBranch className="w-3 h-3 text-ink-muted" />
                                 {c.sha.substring(0, 7)}
-                                <ExternalLink className="w-2.5 h-2.5 text-[#71717a]" />
+                                <ExternalLink className="w-2.5 h-2.5 text-ink-muted" />
                               </a>
                             ))}
                           </div>
@@ -530,7 +530,7 @@ export function ExecutiveAuditDashboard({
                         {isGhost || !t.isVerified ? (
                           <button
                             onClick={() => setClarifyTask(t)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-white border border-[#e4e4e7] hover:bg-[#f4f4f5] text-xs font-semibold text-[#18181b] cursor-pointer shadow-xs transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-surface-raised border border-border hover:bg-surface-inset text-xs font-semibold text-ink cursor-pointer shadow-xs transition-all"
                           >
                             <MessageSquare className="w-3.5 h-3.5 text-[#ff385c]" />
                             Request Clarification
@@ -548,39 +548,39 @@ export function ExecutiveAuditDashboard({
 
       {/* Historical Audit Log */}
       {auditHistory.length > 0 && (
-        <div className="p-6 md:p-8 rounded-[14px] border border-[#e4e4e7] bg-white saas-card-shadow space-y-4">
+        <div className="p-6 md:p-8 rounded-[14px] border border-border bg-surface-raised saas-card-shadow space-y-4">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-[#ff385c]" />
-            <h3 className="text-base font-bold text-[#18181b]">
+            <h3 className="text-base font-bold text-ink">
               Audit Execution History
             </h3>
           </div>
 
-          <div className="divide-y divide-[#e4e4e7]">
+          <div className="divide-y divide-border-soft">
             {auditHistory.map((h) => (
               <div
                 key={h.id}
                 className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2"
               >
                 <div className="flex items-center gap-3">
-                  <span className="font-bold text-sm text-[#18181b]">
+                  <span className="font-bold text-sm text-ink">
                     {h.verifiedPercentage}% Verified
                   </span>
                   <span
                     className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
                       h.auditorRole === "CLIENT"
-                        ? "bg-purple-50 text-purple-700 border border-purple-200"
-                        : "bg-blue-50 text-blue-700 border border-blue-200"
+                        ? "bg-rausch-bg text-rausch-text border border-rausch-border"
+                        : "bg-info-bg text-info-text border border-info-border"
                     }`}
                   >
                     {h.auditorRole === "CLIENT" ? "Client Audit" : "Freelancer Self-Check"}
                   </span>
-                  <span className="text-[#71717a]">
+                  <span className="text-ink-muted">
                     {new Date(h.createdAt).toLocaleString()}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 font-mono text-[#71717a]">
+                <div className="flex items-center gap-2 font-mono text-ink-muted">
                   <FileCode2 className="w-3.5 h-3.5" />
                   SHA: {h.latestCommitSha?.substring(0, 7) || "HEAD"}
                 </div>
@@ -592,41 +592,41 @@ export function ExecutiveAuditDashboard({
 
       {/* Request Clarification Modal */}
       {clarifyTask && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[14px] border border-[#e4e4e7] max-w-lg w-full p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-[#e4e4e7]">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface-raised rounded-[14px] border border-border max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-border-soft">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-[#ff385c]" />
-                <h4 className="text-base font-bold text-[#18181b]">
+                <h4 className="text-base font-bold text-ink">
                   Request Clarification from Freelancer
                 </h4>
               </div>
               <button
                 onClick={() => setClarifyTask(null)}
-                className="p-1 rounded-full hover:bg-[#f4f4f5] text-[#71717a] hover:text-[#18181b] cursor-pointer"
+                className="p-1 rounded-full hover:bg-surface-inset text-ink-muted hover:text-ink cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div>
-              <span className="text-xs font-semibold text-[#71717a] uppercase tracking-wider">Regarding Deliverable</span>
-              <div className="font-bold text-sm text-[#18181b] mt-0.5">
+              <span className="text-xs font-semibold text-ink-muted uppercase tracking-wider">Regarding Deliverable</span>
+              <div className="font-bold text-sm text-ink mt-0.5">
                 {(clarifyTask as any).issueKey ? `[${(clarifyTask as any).issueKey}] ` : ""}
                 {clarifyTask.title}
               </div>
             </div>
 
             {clarifySuccess && (
-              <div className="p-3 rounded-[8px] bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="p-3 rounded-[8px] bg-success-bg border border-success-border text-xs text-success-text flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-success-dot" />
                 {clarifySuccess}
               </div>
             )}
 
             <form onSubmit={handleSendClarification} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#18181b] mb-1.5">
+                <label className="block text-xs font-semibold text-ink mb-1.5">
                   Your Question or Request *
                 </label>
                 <textarea
@@ -635,7 +635,7 @@ export function ExecutiveAuditDashboard({
                   placeholder="e.g. I noticed this task is marked Done on Linear, but I couldn't find the matching code commits. Could you point me to the relevant branch or PR?"
                   value={clarifyQuestion}
                   onChange={(e) => setClarifyQuestion(e.target.value)}
-                  className="w-full p-3 rounded-[8px] border border-[#e4e4e7] text-sm text-[#18181b] focus:outline-none focus:ring-2 focus:ring-[#ff385c]/20 focus:border-[#ff385c] transition-all"
+                  className="w-full p-3 rounded-[8px] border border-border bg-surface-inset text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-[#ff385c]/20 focus:border-[#ff385c] transition-all"
                 />
               </div>
 
@@ -643,7 +643,7 @@ export function ExecutiveAuditDashboard({
                 <button
                   type="button"
                   onClick={() => setClarifyTask(null)}
-                  className="px-4 py-2 rounded-[8px] border border-[#e4e4e7] text-xs font-semibold text-[#18181b] hover:bg-[#f4f4f5] cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-[8px] border border-border text-xs font-semibold text-ink hover:bg-surface-inset cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>

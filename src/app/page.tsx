@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Check,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Official vector logos for high-trust toolchain
 function GitHubLogo({ className = "w-4 h-4" }: { className?: string }) {
@@ -69,26 +70,27 @@ export default async function HomePage({
   const params = await searchParams;
 
   return (
-    <div className="min-h-screen bg-white text-[#222222] flex flex-col font-sans selection:bg-[#ff385c] selection:text-white">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans selection:bg-[#ff385c] selection:text-white">
       {/* Top Navigation */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#ebebeb]">
+      <header className="sticky top-0 z-50 bg-canvas/90 backdrop-blur-md border-b border-border">
         <div className="max-w-[1280px] mx-auto px-6 h-18 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-[8px] bg-[#ff385c] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-4.5 h-4.5" />
             </div>
-            <span className="font-semibold text-[17px] tracking-tight text-[#18181b]">
+            <span className="font-semibold text-[17px] tracking-tight text-ink">
               CommitCheck
             </span>
           </Link>
 
           <nav className="flex items-center gap-3">
+            <ThemeToggle />
             {session ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-[#18181b]">
+                <span className="text-sm font-medium text-ink">
                   {session.name || session.email}
                 </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#f4f4f5] text-[#18181b] border border-[#e4e4e7]">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-inset text-ink border border-border">
                   {session.role}
                 </span>
                 <Link
@@ -99,7 +101,7 @@ export default async function HomePage({
                 </Link>
                 <a
                   href="/api/auth/logout"
-                  className="px-3 py-2 text-sm text-[#71717a] hover:text-[#18181b] transition-colors"
+                  className="px-3 py-2 text-sm text-ink-muted hover:text-ink transition-colors"
                 >
                   Sign out
                 </a>
@@ -108,9 +110,9 @@ export default async function HomePage({
               <div className="flex items-center gap-2.5">
                 <a
                   href="/api/auth/github"
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-[#18181b] bg-white hover:bg-[#f4f4f5] rounded-[8px] border border-[#dddddd] transition-all"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-ink bg-surface-raised hover:bg-surface-inset rounded-[8px] border border-border transition-all"
                 >
-                  <GitHubLogo className="w-3.5 h-3.5 text-[#18181b]" />
+                  <GitHubLogo className="w-3.5 h-3.5 text-ink" />
                   Freelancer Login
                 </a>
                 <a
@@ -128,8 +130,8 @@ export default async function HomePage({
 
       {/* Role Alert / Error Messages */}
       {params.error && (
-        <div className="bg-[#fff8f6] border-b border-[#fbd5cb] px-6 py-3">
-          <div className="max-w-[1280px] mx-auto flex items-center gap-2 text-sm text-[#c13515] font-medium">
+        <div className="bg-error-bg border-b border-error-border px-6 py-3">
+          <div className="max-w-[1280px] mx-auto flex items-center gap-2 text-sm text-error-text font-medium">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{params.error}</span>
           </div>
@@ -137,8 +139,8 @@ export default async function HomePage({
       )}
 
       {params.auth === "required" && (
-        <div className="bg-[#fafafa] border-b border-[#ebebeb] px-6 py-3.5">
-          <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between text-sm text-[#18181b] gap-3">
+        <div className="bg-surface border-b border-border px-6 py-3.5">
+          <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between text-sm text-ink gap-3">
             <span>
               Please authenticate as a <strong>{params.role}</strong> to access that workspace.
             </span>
@@ -154,7 +156,7 @@ export default async function HomePage({
                 <>
                   <a
                     href="/api/auth/github"
-                    className="text-xs px-3 py-1.5 bg-white border border-[#dddddd] rounded-full font-medium text-[#18181b] hover:border-[#18181b] transition-colors"
+                    className="text-xs px-3 py-1.5 bg-surface-raised border border-border rounded-full font-medium text-ink hover:border-border-strong transition-colors"
                   >
                     Sign in with GitHub
                   </a>
@@ -176,17 +178,17 @@ export default async function HomePage({
         {/* ========================================================================= */}
         {/* 1. HERO SECTION                                                           */}
         {/* ========================================================================= */}
-        <section className="relative overflow-hidden saas-hero-glow border-b border-[#ebebeb] pt-12 pb-16 md:pt-20 md:pb-24">
+        <section className="relative overflow-hidden saas-hero-glow border-b border-border-soft pt-12 pb-16 md:pt-20 md:pb-24">
           <div className="max-w-[1280px] mx-auto px-6">
             <div className="max-w-3xl flex flex-col items-start text-left">
               {/* Micro Announcement Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fafafa] border border-[#e4e4e7] text-xs font-medium text-[#18181b] shadow-xs mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-border text-xs font-medium text-ink shadow-xs mb-6">
                 <span className="w-2 h-2 rounded-full bg-[#ff385c] animate-pulse"></span>
-                <span className="font-semibold text-[#18181b]">Continuous Freelance Delivery</span>
+                <span className="font-semibold text-ink">Continuous Freelance Delivery</span>
               </div>
 
               {/* Editorial Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-bold tracking-[-0.035em] text-[#18181b] leading-[1.08] mb-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-bold tracking-[-0.035em] text-ink leading-[1.08] mb-6">
                 From discovery calls to shipped commits.{" "}
                 <span className="text-[#ff385c] inline-block">
                   Verifiably synchronized.
@@ -194,7 +196,7 @@ export default async function HomePage({
               </h1>
 
               {/* Supporting Editorial Paragraph */}
-              <p className="text-lg md:text-[19px] text-[#52525b] leading-relaxed mb-8 max-w-[620px]">
+              <p className="text-lg md:text-[19px] text-ink-secondary leading-relaxed mb-8 max-w-[620px]">
                 CommitCheck bridges Google Meet discovery agreements, Linear milestone tracking, and GitHub commit syntax trees. 
                 Clients get verified progress transparency; Freelancers lock agreed scope and prevent unbilled creep.
               </p>
@@ -214,11 +216,11 @@ export default async function HomePage({
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-10">
                   <a
                     href="/api/auth/github"
-                    className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm group"
+                    className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-[8px] bg-ink text-canvas hover:opacity-90 font-medium text-sm transition-all shadow-sm group"
                   >
-                    <GitHubLogo className="w-4 h-4 text-white" />
+                    <GitHubLogo className="w-4 h-4 text-canvas" />
                     <span>Freelancer Sign-in</span>
-                    <span className="text-xs text-[#a1a1aa] font-mono group-hover:text-white transition-colors">
+                    <span className="text-xs text-ink-faint font-mono group-hover:text-canvas transition-colors">
                       (GitHub)
                     </span>
                   </a>
@@ -235,13 +237,13 @@ export default async function HomePage({
               )}
 
               {/* Precision Toolchain Trust Indicators */}
-              <div className="pt-6 border-t border-[#ebebeb] w-full max-w-[620px]">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#71717a] mb-3">
+              <div className="pt-6 border-t border-border-soft w-full max-w-[620px]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted mb-3">
                   Native verification pipeline across your stack
                 </p>
-                <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-medium text-[#52525b]">
+                <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-medium text-ink-secondary">
                   <div className="flex items-center gap-2">
-                    <GitHubLogo className="w-4 h-4 text-[#18181b]" />
+                    <GitHubLogo className="w-4 h-4 text-ink" />
                     <span>GitHub AST Analysis</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -265,7 +267,7 @@ export default async function HomePage({
         {/* ========================================================================= */}
         {/* 2. DUAL-ROLE ARCHITECTURE (Freelancers vs Clients Portal Cards)            */}
         {/* ========================================================================= */}
-        <section className="py-20 md:py-28 border-b border-[#ebebeb]">
+        <section className="py-20 md:py-28 border-b border-border-soft">
           <div className="max-w-[1280px] mx-auto px-6">
             
             {/* Section Header */}
@@ -273,10 +275,10 @@ export default async function HomePage({
               <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c] mb-2 block">
                 Two Portals &middot; One Source of Truth
               </span>
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#18181b] mb-4">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink mb-4">
                 Engineered for both sides of high-stakes software contracts.
               </h2>
-              <p className="text-[#52525b] text-base leading-relaxed">
+              <p className="text-ink-secondary text-base leading-relaxed">
                 Freelancers protect their compensation against scope creep. Clients get guaranteed proof that their budget produced working, verified code.
               </p>
             </div>
@@ -285,39 +287,39 @@ export default async function HomePage({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
               
               {/* FREELANCER WORKFLOW (6 cols) */}
-              <div className="lg:col-span-6 bg-white rounded-[14px] border border-[#dddddd] p-8 md:p-10 flex flex-col justify-between saas-card-hover relative">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-[#18181b] rounded-t-[14px]"></div>
+              <div className="lg:col-span-6 bg-surface-raised rounded-[14px] border border-border p-8 md:p-10 flex flex-col justify-between saas-card-hover relative">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-ink rounded-t-[14px]"></div>
                 
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[#71717a]">
+                    <span className="text-xs font-mono font-semibold uppercase tracking-wider text-ink-muted">
                       DEVELOPER FLOW
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f4f4f5] text-[#18181b] border border-[#e4e4e7]">
-                      <GitHubLogo className="w-3.5 h-3.5 text-[#18181b]" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-inset text-ink border border-border">
+                      <GitHubLogo className="w-3.5 h-3.5 text-ink" />
                       Freelancer Portal
                     </span>
                   </div>
 
-                  <h3 className="text-2xl font-bold tracking-tight text-[#18181b] mb-3">
+                  <h3 className="text-2xl font-bold tracking-tight text-ink mb-3">
                     Automate scope freeze. Stop working for free.
                   </h3>
                   
-                  <p className="text-sm text-[#52525b] leading-relaxed mb-6">
+                  <p className="text-sm text-ink-secondary leading-relaxed mb-6">
                     Discovery calls are full of spoken promises that get forgotten or morphed into unpaid scope creep. CommitCheck deploys an autonomous Recall bot into your call, structures every agreement into testable deliverables, and holds clients to signed milestones.
                   </p>
 
-                  <ul className="space-y-3 mb-8 text-sm text-[#3f3f46]">
+                  <ul className="space-y-3 mb-8 text-sm text-ink-secondary">
                     <li className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-[#18181b] shrink-0" />
+                      <Check className="w-4 h-4 text-ink shrink-0" />
                       <span>One-click sync to your personal or client Linear team</span>
                     </li>
                     <li className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-[#18181b] shrink-0" />
+                      <Check className="w-4 h-4 text-ink shrink-0" />
                       <span>AST diff proves your implementation conforms to spec</span>
                     </li>
                     <li className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-[#18181b] shrink-0" />
+                      <Check className="w-4 h-4 text-ink shrink-0" />
                       <span>Never face payment disputes over &quot;unmet expectations&quot;</span>
                     </li>
                   </ul>
@@ -327,7 +329,7 @@ export default async function HomePage({
                   <div>
                     <Link
                       href="/freelancer"
-                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm group"
+                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-ink text-canvas hover:opacity-90 font-medium text-sm transition-all shadow-sm group"
                     >
                       <span>Go to Dashboard</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -337,12 +339,12 @@ export default async function HomePage({
                   <div>
                     <a
                       href="/api/auth/github"
-                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm"
+                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-ink text-canvas hover:opacity-90 font-medium text-sm transition-all shadow-sm"
                     >
-                      <GitHubLogo className="w-4 h-4 text-white" />
+                      <GitHubLogo className="w-4 h-4 text-canvas" />
                       Sign in with GitHub
                     </a>
-                    <p className="text-[11px] text-[#71717a] text-center mt-2.5">
+                    <p className="text-[11px] text-ink-muted text-center mt-2.5">
                       Read-only repository access to map your commit trees to tickets.
                     </p>
                   </div>
@@ -350,7 +352,7 @@ export default async function HomePage({
               </div>
 
               {/* CLIENT WORKFLOW (6 cols) */}
-              <div className="lg:col-span-6 bg-white rounded-[14px] border border-[#ffd1da] p-8 md:p-10 flex flex-col justify-between saas-card-hover relative shadow-[0_4px_24px_rgba(255,56,92,0.06)]">
+              <div className="lg:col-span-6 bg-surface-raised rounded-[14px] border border-rausch-border p-8 md:p-10 flex flex-col justify-between saas-card-hover relative shadow-[0_4px_24px_rgba(255,56,92,0.06)] dark:shadow-[0_4px_24px_rgba(255,56,92,0.1)]">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-[#ff385c] rounded-t-[14px]"></div>
                 
                 <div>
@@ -358,21 +360,21 @@ export default async function HomePage({
                     <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[#ff385c]">
                       EXECUTIVE AUDIT
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#fff0f3] text-[#ff385c] border border-[#ffd1da]">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rausch-bg text-rausch-text border border-rausch-border">
                       <GoogleLogo className="w-3.5 h-3.5" />
                       Client Portal
                     </span>
                   </div>
 
-                  <h3 className="text-2xl font-bold tracking-tight text-[#18181b] mb-3">
+                  <h3 className="text-2xl font-bold tracking-tight text-ink mb-3">
                     Verify deliverables in real code. Not status slides.
                   </h3>
                   
-                  <p className="text-sm text-[#52525b] leading-relaxed mb-6">
+                  <p className="text-sm text-ink-secondary leading-relaxed mb-6">
                     Non-technical founders and executives frequently get burned by freelance developers marking Jira tasks &quot;Done&quot; without shipping real code. CommitCheck uses Gemini 2.5 and AST analysis to audit actual git commits against stated milestones.
                   </p>
 
-                  <ul className="space-y-3 mb-8 text-sm text-[#3f3f46]">
+                  <ul className="space-y-3 mb-8 text-sm text-ink-secondary">
                     <li className="flex items-center gap-2.5">
                       <Check className="w-4 h-4 text-[#ff385c] shrink-0" />
                       <span>Continuous syntactic AST comparison on every git push</span>
@@ -408,7 +410,7 @@ export default async function HomePage({
                       Sign in with Google
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
-                    <p className="text-[11px] text-[#71717a] text-center mt-2.5">
+                    <p className="text-[11px] text-ink-muted text-center mt-2.5">
                       Friction-free Google workspace login for project sponsors and clients.
                     </p>
                   </div>
@@ -422,21 +424,21 @@ export default async function HomePage({
         {/* ========================================================================= */}
         {/* 3. HIGH-IMPACT EDITORIAL CTA                                              */}
         {/* ========================================================================= */}
-        <section className="py-20 md:py-28 bg-white">
+        <section className="py-20 md:py-28 bg-canvas">
           <div className="max-w-[1280px] mx-auto px-6">
-            <div className="rounded-[16px] border border-[#dddddd] bg-[#fafafa] p-10 md:p-16 text-center max-w-4xl mx-auto airbnb-shadow relative overflow-hidden">
+            <div className="rounded-[16px] border border-border bg-surface p-10 md:p-16 text-center max-w-4xl mx-auto airbnb-shadow relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#ff385c]/10 to-transparent rounded-bl-full pointer-events-none"></div>
               
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#dddddd] text-xs font-medium text-[#18181b] mb-6 shadow-xs">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-raised border border-border text-xs font-medium text-ink mb-6 shadow-xs">
                 <ShieldCheck className="w-4 h-4 text-[#ff385c]" />
                 Zero unverified code. Zero scope creep.
               </div>
 
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#18181b] mb-4">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-ink mb-4">
                 Ready for verified software delivery?
               </h2>
 
-              <p className="text-base sm:text-lg text-[#52525b] max-w-xl mx-auto mb-8 leading-relaxed">
+              <p className="text-base sm:text-lg text-ink-secondary max-w-xl mx-auto mb-8 leading-relaxed">
                 Connect your GitHub repository and Google account to experience verifiable freelance audits today.
               </p>
 
@@ -454,9 +456,9 @@ export default async function HomePage({
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a
                     href="/api/auth/github"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-[8px] bg-ink text-canvas hover:opacity-90 font-medium text-sm transition-all shadow-sm"
                   >
-                    <GitHubLogo className="w-4 h-4 text-white" />
+                    <GitHubLogo className="w-4 h-4 text-canvas" />
                     Sign in with GitHub (Freelancer)
                   </a>
                   <a
@@ -470,17 +472,17 @@ export default async function HomePage({
                 </div>
               )}
 
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-[#71717a]">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-ink-muted">
                 <span className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <Check className="w-3.5 h-3.5 text-success-text" />
                   No credit card required
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <Check className="w-3.5 h-3.5 text-success-text" />
                   Free 14-day discovery pilot
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <Check className="w-3.5 h-3.5 text-success-text" />
                   SOC2 compliant audit logging
                 </span>
               </div>
@@ -492,7 +494,7 @@ export default async function HomePage({
       {/* ========================================================================= */}
       {/* 4. CLEAN FOOTER (Per DESIGN.md specification)                             */}
       {/* ========================================================================= */}
-      <footer className="border-t border-[#ebebeb] bg-white pt-12 pb-10">
+      <footer className="border-t border-border-soft bg-canvas pt-12 pb-10">
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div>
@@ -500,84 +502,84 @@ export default async function HomePage({
                 <div className="w-6 h-6 rounded-[6px] bg-[#ff385c] flex items-center justify-center text-white font-bold text-xs">
                   <ShieldCheck className="w-3.5 h-3.5" />
                 </div>
-                <span className="font-semibold text-sm text-[#18181b]">CommitCheck</span>
+                <span className="font-semibold text-sm text-ink">CommitCheck</span>
               </div>
-              <p className="text-xs text-[#71717a] leading-relaxed max-w-[200px]">
+              <p className="text-xs text-ink-muted leading-relaxed max-w-[200px]">
                 Continuous freelance delivery verification from Google Meet discovery to shipped GitHub commits.
               </p>
             </div>
 
             <div>
-              <div className="font-semibold text-xs uppercase tracking-wider text-[#18181b] mb-3">
+              <div className="font-semibold text-xs uppercase tracking-wider text-ink mb-3">
                 Platform
               </div>
-              <ul className="space-y-2 text-xs text-[#52525b]">
+              <ul className="space-y-2 text-xs text-ink-secondary">
                 {session?.role === "FREELANCER" ? (
                   <li>
-                    <Link href="/freelancer" className="hover:text-[#18181b] transition-colors">
+                    <Link href="/freelancer" className="hover:text-ink transition-colors">
                       Freelancer Dashboard
                     </Link>
                   </li>
                 ) : session?.role === "CLIENT" ? (
                   <li>
-                    <Link href="/client" className="hover:text-[#18181b] transition-colors">
+                    <Link href="/client" className="hover:text-ink transition-colors">
                       Client Dashboard
                     </Link>
                   </li>
                 ) : (
                   <>
                     <li>
-                      <a href="/api/auth/github" className="hover:text-[#18181b] transition-colors">
+                      <a href="/api/auth/github" className="hover:text-ink transition-colors">
                         Freelancer Portal
                       </a>
                     </li>
                     <li>
-                      <a href="/api/auth/google" className="hover:text-[#18181b] transition-colors">
+                      <a href="/api/auth/google" className="hover:text-ink transition-colors">
                         Client Audit Portal
                       </a>
                     </li>
                   </>
                 )}
-                <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">AST Semantic Verification</span></li>
-                <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">Recall.ai Meeting Bot</span></li>
+                <li><span className="hover:text-ink cursor-pointer transition-colors">AST Semantic Verification</span></li>
+                <li><span className="hover:text-ink cursor-pointer transition-colors">Recall.ai Meeting Bot</span></li>
               </ul>
             </div>
 
             <div>
-              <div className="font-semibold text-xs uppercase tracking-wider text-[#18181b] mb-3">
+              <div className="font-semibold text-xs uppercase tracking-wider text-ink mb-3">
                 Integrations
               </div>
-              <ul className="space-y-2 text-xs text-[#52525b]">
-                <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">GitHub Commits & PRs</span></li>
-                <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">Linear Workspaces</span></li>
-                <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">Google Meet Discovery</span></li>
-                <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">Gemini 2.5 AI Pipeline</span></li>
+              <ul className="space-y-2 text-xs text-ink-secondary">
+                <li><span className="hover:text-ink cursor-pointer transition-colors">GitHub Commits & PRs</span></li>
+                <li><span className="hover:text-ink cursor-pointer transition-colors">Linear Workspaces</span></li>
+                <li><span className="hover:text-ink cursor-pointer transition-colors">Google Meet Discovery</span></li>
+                <li><span className="hover:text-ink cursor-pointer transition-colors">Gemini 2.5 AI Pipeline</span></li>
               </ul>
             </div>
 
             <div>
-              <div className="font-semibold text-xs uppercase tracking-wider text-[#18181b] mb-3">
+              <div className="font-semibold text-xs uppercase tracking-wider text-ink mb-3">
                 System Status
               </div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#f4f4f5] border border-[#e4e4e7] text-xs text-[#18181b] mb-3">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-inset border border-border text-xs text-ink mb-3">
+                <span className="w-2 h-2 rounded-full bg-success-dot animate-pulse"></span>
                 <span>All engines operational</span>
               </div>
-              <div className="text-[11px] text-[#71717a]">
+              <div className="text-[11px] text-ink-muted">
                 AST verification latency: 640ms avg
               </div>
             </div>
           </div>
 
-          <div className="border-t border-[#ebebeb] pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#71717a] gap-4">
+          <div className="border-t border-border-soft pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-ink-muted gap-4">
             <div>
               &copy; {new Date().getFullYear()} CommitCheck, Inc. All rights reserved.
             </div>
             <div className="flex items-center gap-6">
-              <span className="hover:text-[#18181b] cursor-pointer transition-colors">Privacy Policy</span>
-              <span className="hover:text-[#18181b] cursor-pointer transition-colors">Terms of Service</span>
-              <span className="hover:text-[#18181b] cursor-pointer transition-colors">Security Standards</span>
-              <span className="hover:text-[#18181b] cursor-pointer transition-colors">Documentation</span>
+              <span className="hover:text-ink cursor-pointer transition-colors">Privacy Policy</span>
+              <span className="hover:text-ink cursor-pointer transition-colors">Terms of Service</span>
+              <span className="hover:text-ink cursor-pointer transition-colors">Security Standards</span>
+              <span className="hover:text-ink cursor-pointer transition-colors">Documentation</span>
             </div>
           </div>
         </div>

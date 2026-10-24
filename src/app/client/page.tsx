@@ -5,7 +5,8 @@ import { defaultProjectRepository } from "@/lib/projects";
 import { defaultAuditRepository } from "@/lib/audit";
 import { defaultTaskDraftRepository } from "@/lib/scope";
 import { ExecutiveAuditDashboard } from "./audit-dashboard";
-import { ShieldCheck, LogOut, CheckCircle2, AlertCircle, ArrowRight, Activity, HelpCircle } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ShieldCheck, LogOut, CheckCircle2, ArrowRight, HelpCircle } from "lucide-react";
 
 export default async function ClientDashboardPage() {
   const session = await getCurrentSession();
@@ -50,9 +51,9 @@ export default async function ClientDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] text-[#18181b] flex flex-col font-sans selection:bg-[#ff385c] selection:text-white">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans selection:bg-[#ff385c] selection:text-white">
       {/* Top Bar */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#e4e4e7]">
+      <header className="sticky top-0 z-50 bg-canvas/90 backdrop-blur-md border-b border-border">
         <div className="max-w-[1280px] mx-auto px-6 h-18 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
@@ -60,13 +61,13 @@ export default async function ClientDashboardPage() {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold text-lg tracking-tight text-[#18181b] flex items-center gap-2">
+                <span className="font-semibold text-lg tracking-tight text-ink flex items-center gap-2">
                   CommitCheck
-                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#fff0f3] text-[#ff385c] border border-[#ffd1da]">
+                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-rausch-bg text-rausch-text border border-rausch-border">
                     Client Audit
                   </span>
                 </span>
-                <span className="text-[11px] font-medium text-[#71717a] tracking-wider uppercase -mt-0.5">
+                <span className="text-[11px] font-medium text-ink-muted tracking-wider uppercase -mt-0.5">
                   Executive Verification Portal
                 </span>
               </div>
@@ -74,34 +75,36 @@ export default async function ClientDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-full border border-[#e4e4e7] shadow-xs">
+            <ThemeToggle />
+
+            <div className="flex items-center gap-3 bg-surface-raised px-3 py-1.5 rounded-full border border-border shadow-xs">
               {session.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={session.avatarUrl}
                   alt={session.name || "Client Avatar"}
-                  className="w-7 h-7 rounded-full object-cover border border-[#e4e4e7]"
+                  className="w-7 h-7 rounded-full object-cover border border-border"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-[#fff0f3] border border-[#ffd1da] flex items-center justify-center text-xs font-bold text-[#ff385c]">
+                <div className="w-7 h-7 rounded-full bg-rausch-bg border border-rausch-border flex items-center justify-center text-xs font-bold text-rausch-text">
                   {(session.name || session.email).substring(0, 2).toUpperCase()}
                 </div>
               )}
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-semibold text-[#18181b] leading-tight">
+                <span className="text-xs font-semibold text-ink leading-tight">
                   {session.name || session.email}
                 </span>
-                <span className="text-[10px] text-[#71717a]">{session.email}</span>
+                <span className="text-[10px] text-ink-muted">{session.email}</span>
               </div>
             </div>
 
-            <span className="hidden md:inline-flex px-2.5 py-1 text-[11px] font-semibold rounded-full bg-[#fff0f3] text-[#ff385c] border border-[#ffd1da]">
+            <span className="hidden md:inline-flex px-2.5 py-1 text-[11px] font-semibold rounded-full bg-rausch-bg text-rausch-text border border-rausch-border">
               CLIENT
             </span>
 
             <a
               href="/api/auth/logout"
-              className="p-2 text-[#71717a] hover:text-[#18181b] transition-colors rounded-full hover:bg-[#f4f4f5] border border-transparent hover:border-[#e4e4e7]"
+              className="p-2 text-ink-muted hover:text-ink transition-colors rounded-full hover:bg-surface-inset border border-transparent hover:border-border"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" />
@@ -113,22 +116,22 @@ export default async function ClientDashboardPage() {
       {/* Main Content */}
       <main className="flex-1 max-w-[1280px] mx-auto px-6 py-10 w-full">
         {/* Header */}
-        <div className="pb-8 mb-8 border-b border-[#e4e4e7] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="pb-8 mb-8 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="w-2 h-2 rounded-full bg-[#ff385c] animate-pulse"></span>
               <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c]">
                 Continuous Delivery Verification
               </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success-text bg-success-bg px-2 py-0.5 rounded-full border border-success-border">
+                <CheckCircle2 className="w-3 h-3 text-success-dot" />
                 Authenticated Session
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#18181b]">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">
               Deliverable Verification & Code Audits
             </h1>
-            <p className="text-sm text-[#71717a] mt-1 max-w-2xl leading-relaxed">
+            <p className="text-sm text-ink-muted mt-1 max-w-2xl leading-relaxed">
               Verify whether deliverables claimed complete in Linear are backed by verifiable code commits in GitHub.
             </p>
           </div>
@@ -136,19 +139,19 @@ export default async function ClientDashboardPage() {
 
         {/* Pending Scope Confirmation Alert Banner */}
         {activeProject && pendingScopeCount > 0 && (
-          <div className="mb-8 p-6 rounded-[14px] bg-[#fffbeb] border border-[#fef08a] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="mb-8 p-6 rounded-[14px] bg-warning-bg border border-warning-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-[#fef3c7] text-[#b45309] font-bold text-base flex items-center justify-center shrink-0 border border-[#fde68a]">
-                <HelpCircle className="w-5 h-5 text-[#b45309]" />
+              <div className="w-10 h-10 rounded-full bg-warning-bg text-warning-text font-bold text-base flex items-center justify-center shrink-0 border border-warning-border">
+                <HelpCircle className="w-5 h-5 text-warning-text" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#92400e] flex items-center gap-2">
+                <h3 className="text-sm font-bold text-warning-text flex items-center gap-2">
                   Scope Confirmation Required
-                  <span className="px-2 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e] text-[11px] font-semibold border border-[#fde68a]">
+                  <span className="px-2 py-0.5 rounded-full bg-surface-raised text-warning-text text-[11px] font-semibold border border-warning-border">
                     {pendingScopeCount} Pending {pendingScopeCount === 1 ? "Item" : "Items"}
                   </span>
                 </h3>
-                <p className="text-xs text-[#a16207] mt-1 leading-relaxed max-w-2xl">
+                <p className="text-xs text-ink-muted mt-1 leading-relaxed max-w-2xl">
                   Your freelancer staged tentative or suggested deliverables from your recent call.
                   Review and confirm them before they enter approved development scope.
                 </p>
@@ -183,19 +186,19 @@ export default async function ClientDashboardPage() {
           />
         ) : (
           /* Empty / Initial State */
-          <div className="rounded-[14px] border border-dashed border-[#e4e4e7] bg-white p-12 md:p-16 text-center shadow-xs">
+          <div className="rounded-[14px] border border-dashed border-border bg-surface-raised p-12 md:p-16 text-center shadow-xs">
             <div className="max-w-md mx-auto">
-              <div className="w-14 h-14 rounded-full bg-[#fff0f3] border border-[#ffd1da] flex items-center justify-center mx-auto mb-4 text-[#ff385c] shadow-xs">
-                <ShieldCheck className="w-7 h-7 text-[#ff385c]" />
+              <div className="w-14 h-14 rounded-full bg-rausch-bg border border-rausch-border flex items-center justify-center mx-auto mb-4 text-rausch-text shadow-xs">
+                <ShieldCheck className="w-7 h-7 text-rausch-text" />
               </div>
-              <h3 className="text-xl font-bold text-[#18181b] mb-2">
+              <h3 className="text-xl font-bold text-ink mb-2">
                 No Active Projects Assigned Yet
               </h3>
-              <p className="text-sm text-[#71717a] mb-6 leading-relaxed">
-                When your freelancer binds this email (<span className="font-medium text-[#18181b]">{session.email}</span>) to an active engagement, real-time code verification and discrepancy audits will appear here automatically.
+              <p className="text-sm text-ink-muted mb-6 leading-relaxed">
+                When your freelancer binds this email (<span className="font-medium text-ink">{session.email}</span>) to an active engagement, real-time code verification and discrepancy audits will appear here automatically.
               </p>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f4f4f5] border border-[#e4e4e7] text-xs font-semibold text-[#18181b]">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-inset border border-border text-xs font-semibold text-ink">
+                <span className="w-2 h-2 rounded-full bg-success-dot animate-pulse"></span>
                 Client Verification Portal Active
               </div>
             </div>
