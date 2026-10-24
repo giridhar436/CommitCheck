@@ -1,24 +1,10 @@
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/auth";
 import {
-  CheckCircle2,
   ShieldCheck,
-  GitBranch,
   ArrowRight,
-  Video,
-  Sparkles,
   AlertTriangle,
-  Code2,
-  Layers,
   Check,
-  Activity,
-  Terminal,
-  FileCheck,
-  ChevronRight,
-  GitCommit,
-  GitPullRequest,
-  Lock,
-  Zap,
 } from "lucide-react";
 
 // Official vector logos for high-trust toolchain
@@ -87,19 +73,14 @@ export default async function HomePage({
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#ebebeb]">
         <div className="max-w-[1280px] mx-auto px-6 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[8px] bg-[#ff385c] flex items-center justify-center text-white shadow-xs">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-[8px] bg-[#ff385c] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-4.5 h-4.5" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-[17px] tracking-tight text-[#18181b]">
-                CommitCheck
-              </span>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[#f4f4f5] text-[#71717a] border border-[#e4e4e7]">
-                AST Engine v1.0
-              </span>
-            </div>
-          </div>
+            <span className="font-semibold text-[17px] tracking-tight text-[#18181b]">
+              CommitCheck
+            </span>
+          </Link>
 
           <nav className="flex items-center gap-3">
             {session ? (
@@ -162,18 +143,29 @@ export default async function HomePage({
               Please authenticate as a <strong>{params.role}</strong> to access that workspace.
             </span>
             <div className="flex gap-2.5">
-              <a
-                href="/api/auth/github"
-                className="text-xs px-3 py-1.5 bg-white border border-[#dddddd] rounded-full font-medium text-[#18181b] hover:border-[#18181b] transition-colors"
-              >
-                Sign in with GitHub
-              </a>
-              <a
-                href="/api/auth/google"
-                className="text-xs px-3 py-1.5 bg-[#ff385c] text-white rounded-full font-medium hover:bg-[#e00b41] transition-colors"
-              >
-                Sign in with Google
-              </a>
+              {session ? (
+                <Link
+                  href={session.role === "FREELANCER" ? "/freelancer" : "/client"}
+                  className="text-xs px-3.5 py-1.5 bg-[#ff385c] text-white rounded-full font-medium hover:bg-[#e00b41] transition-colors"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <a
+                    href="/api/auth/github"
+                    className="text-xs px-3 py-1.5 bg-white border border-[#dddddd] rounded-full font-medium text-[#18181b] hover:border-[#18181b] transition-colors"
+                  >
+                    Sign in with GitHub
+                  </a>
+                  <a
+                    href="/api/auth/google"
+                    className="text-xs px-3 py-1.5 bg-[#ff385c] text-white rounded-full font-medium hover:bg-[#e00b41] transition-colors"
+                  >
+                    Sign in with Google
+                  </a>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -182,37 +174,43 @@ export default async function HomePage({
       {/* Main Content Area */}
       <main className="flex-1 w-full">
         {/* ========================================================================= */}
-        {/* 1. ASYMMETRICAL EDITORIAL HERO (60% Left Narrative / 40% Right Product UI) */}
+        {/* 1. HERO SECTION                                                           */}
         {/* ========================================================================= */}
         <section className="relative overflow-hidden saas-hero-glow border-b border-[#ebebeb] pt-12 pb-16 md:pt-20 md:pb-24">
           <div className="max-w-[1280px] mx-auto px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-center">
-              
-              {/* LEFT COLUMN: ~60% (7 of 12 columns) Editorial Hierarchy */}
-              <div className="lg:col-span-7 flex flex-col items-start text-left">
-                {/* Micro Announcement Badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fafafa] border border-[#e4e4e7] text-xs font-medium text-[#18181b] shadow-xs mb-6">
-                  <span className="w-2 h-2 rounded-full bg-[#ff385c] animate-pulse"></span>
-                  <span className="font-semibold text-[#18181b]">Continuous Freelance Delivery</span>
-                  <span className="text-[#a1a1aa]">&middot;</span>
-                  <span className="text-[#71717a]">Dual-Tier AST Engine</span>
+            <div className="max-w-3xl flex flex-col items-start text-left">
+              {/* Micro Announcement Badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fafafa] border border-[#e4e4e7] text-xs font-medium text-[#18181b] shadow-xs mb-6">
+                <span className="w-2 h-2 rounded-full bg-[#ff385c] animate-pulse"></span>
+                <span className="font-semibold text-[#18181b]">Continuous Freelance Delivery</span>
+              </div>
+
+              {/* Editorial Headline */}
+              <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-bold tracking-[-0.035em] text-[#18181b] leading-[1.08] mb-6">
+                From discovery calls to shipped commits.{" "}
+                <span className="text-[#ff385c] inline-block">
+                  Verifiably synchronized.
+                </span>
+              </h1>
+
+              {/* Supporting Editorial Paragraph */}
+              <p className="text-lg md:text-[19px] text-[#52525b] leading-relaxed mb-8 max-w-[620px]">
+                CommitCheck bridges Google Meet discovery agreements, Linear milestone tracking, and GitHub commit syntax trees. 
+                Clients get verified progress transparency; Freelancers lock agreed scope and prevent unbilled creep.
+              </p>
+
+              {/* Action Gateway */}
+              {session ? (
+                <div className="flex items-center gap-3 w-full sm:w-auto mb-10">
+                  <Link
+                    href={session.role === "FREELANCER" ? "/freelancer" : "/client"}
+                    className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-[8px] bg-[#ff385c] text-white hover:bg-[#e00b41] font-medium text-sm transition-all shadow-sm group"
+                  >
+                    <span>Go to Dashboard</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
                 </div>
-
-                {/* Editorial Headline */}
-                <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-bold tracking-[-0.035em] text-[#18181b] leading-[1.08] mb-6">
-                  From discovery calls to shipped commits.{" "}
-                  <span className="text-[#ff385c] inline-block">
-                    Verifiably synchronized.
-                  </span>
-                </h1>
-
-                {/* Supporting Editorial Paragraph */}
-                <p className="text-lg md:text-[19px] text-[#52525b] leading-relaxed mb-8 max-w-[580px]">
-                  CommitCheck bridges Google Meet discovery agreements, Linear milestone tracking, and GitHub commit syntax trees. 
-                  Clients get verified progress transparency; Freelancers lock agreed scope and prevent unbilled creep.
-                </p>
-
-                {/* Dual-Path Action Gateway */}
+              ) : (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-10">
                   <a
                     href="/api/auth/github"
@@ -234,208 +232,30 @@ export default async function HomePage({
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </a>
                 </div>
+              )}
 
-                {/* Precision Toolchain Trust Indicators */}
-                <div className="pt-6 border-t border-[#ebebeb] w-full max-w-[580px]">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#71717a] mb-3">
-                    Native verification pipeline across your stack
-                  </p>
-                  <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-medium text-[#52525b]">
-                    <div className="flex items-center gap-2">
-                      <GitHubLogo className="w-4 h-4 text-[#18181b]" />
-                      <span>GitHub AST Analysis</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <LinearLogo className="w-4 h-4 text-[#5e6ad2]" />
-                      <span>Linear Workspace Sync</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RecallLogo className="w-4 h-4 text-[#ff385c]" />
-                      <span>Recall.ai Transcription</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <GoogleLogo className="w-4 h-4" />
-                      <span>Google Meet Capture</span>
-                    </div>
+              {/* Precision Toolchain Trust Indicators */}
+              <div className="pt-6 border-t border-[#ebebeb] w-full max-w-[620px]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#71717a] mb-3">
+                  Native verification pipeline across your stack
+                </p>
+                <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-medium text-[#52525b]">
+                  <div className="flex items-center gap-2">
+                    <GitHubLogo className="w-4 h-4 text-[#18181b]" />
+                    <span>GitHub AST Analysis</span>
                   </div>
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN: ~40% (5 of 12 columns) Layered Product Visualization */}
-              <div className="lg:col-span-5 relative mt-6 lg:mt-0">
-                <div className="relative mx-auto max-w-[460px] lg:max-w-none">
-                  
-                  {/* Subtle Ambient Rausch Depth Glow */}
-                  <div className="absolute -inset-4 bg-gradient-to-tr from-[#ff385c]/10 via-[#ff385c]/5 to-transparent rounded-[24px] blur-2xl -z-10 pointer-events-none"></div>
-
-                  {/* LAYER 1: Core Live Audit Dashboard Window */}
-                  <div className="bg-white rounded-[14px] border border-[#dddddd] airbnb-shadow overflow-hidden">
-                    {/* Window Header */}
-                    <div className="bg-[#fafafa] border-b border-[#ebebeb] px-4 py-3 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#dddddd]"></span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#dddddd]"></span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#dddddd]"></span>
-                        <span className="ml-2 font-mono text-[11px] text-[#71717a]">
-                          audit.live // engagement-alpha
-                        </span>
-                      </div>
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        AST SYNCHRONIZED
-                      </span>
-                    </div>
-
-                    {/* Window Body: Target Milestone & Verification Metric */}
-                    <div className="p-4 sm:p-5 space-y-3.5">
-                      {/* Ticket Context */}
-                      <div className="flex items-center justify-between border-b border-[#f4f4f5] pb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded bg-[#f4f4f5] text-[11px] font-mono font-semibold text-[#18181b] border border-[#e4e4e7]">
-                            ENG-108
-                          </span>
-                          <span className="text-xs font-semibold text-[#18181b] truncate max-w-[190px] sm:max-w-[220px]">
-                            Stripe Webhook Idempotency Check
-                          </span>
-                        </div>
-                        <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
-                          100% Match
-                        </span>
-                      </div>
-
-                      {/* Real AST Code Verification Preview */}
-                      <div className="rounded-[8px] bg-[#18181b] p-3 text-white font-mono text-[11px] leading-relaxed overflow-hidden">
-                        <div className="flex items-center justify-between text-[10px] text-[#71717a] mb-2 border-b border-[#27272a] pb-1">
-                          <span className="flex items-center gap-1.5">
-                            <GitCommit className="w-3 h-3 text-[#ff385c]" />
-                            commit 8f9c21d
-                          </span>
-                          <span>src/lib/webhooks.ts</span>
-                        </div>
-                        <div className="text-[#a1a1aa] space-y-0.5">
-                          <div className="text-emerald-400">
-                            + async function verifyWebhook(eventId: string) &#123;
-                          </div>
-                          <div className="text-emerald-400 pl-3">
-                            + const exists = await redis.get(`evt:$&#123;eventId&#125;`);
-                          </div>
-                          <div className="text-emerald-400 pl-3">
-                            + if (exists) return &#123; duplicate: true &#125;;
-                          </div>
-                          <div className="text-emerald-400 pl-3">
-                            + await recordAuditLog(eventId, &quot;PROCESSED&quot;);
-                          </div>
-                          <div className="text-[#71717a]">&#125;</div>
-                        </div>
-                      </div>
-
-                      {/* Verification Telemetry Grid */}
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
-                        <div className="p-2.5 rounded-[8px] bg-[#fafafa] border border-[#ebebeb]">
-                          <div className="text-[#71717a] text-[10px]">AST Confidence</div>
-                          <div className="font-semibold text-[#18181b] mt-0.5 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            99.4% Semantic Match
-                          </div>
-                        </div>
-                        <div className="p-2.5 rounded-[8px] bg-[#fafafa] border border-[#ebebeb]">
-                          <div className="text-[#71717a] text-[10px]">Ghost Commit Check</div>
-                          <div className="font-semibold text-emerald-700 mt-0.5 flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                            Zero Untracked Diffs
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <LinearLogo className="w-4 h-4 text-[#5e6ad2]" />
+                    <span>Linear Workspace Sync</span>
                   </div>
-
-                  {/* LAYER 2: Floating Foreground Dialogue-to-Scope Artifact */}
-                  <div className="floating-layer mt-3 sm:mt-0 sm:absolute sm:-bottom-6 sm:-left-6 w-full sm:w-[94%] bg-white/95 backdrop-blur-md rounded-[12px] border border-[#dddddd] shadow-lg p-3.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <Video className="w-3.5 h-3.5 text-[#ff385c]" />
-                        <span className="text-[11px] font-semibold text-[#18181b]">
-                          Discovery Call Transcript
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono text-[#71717a]">
-                        00:14:22 &middot; Google Meet
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-[#3f3f46] italic bg-[#fafafa] p-2 rounded border border-[#ebebeb] mb-2 leading-relaxed">
-                      &ldquo;We need a webhook handler with idempotency verification before Stripe payouts trigger.&rdquo;
-                    </p>
-
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="inline-flex items-center gap-1 font-medium text-[#18181b]">
-                        <Sparkles className="w-3 h-3 text-[#ff385c]" />
-                        Mapped to <strong className="font-mono">ENG-108</strong>
-                      </span>
-                      <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Signed off
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <RecallLogo className="w-4 h-4 text-[#ff385c]" />
+                    <span>Recall.ai Transcription</span>
                   </div>
-
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* 2. RESTRAINED METRICS RIBBON (Typography First, Zero Generic Box Clutter)  */}
-        {/* ========================================================================= */}
-        <section className="border-b border-[#ebebeb] bg-[#fafafa]/50 py-10">
-          <div className="max-w-[1280px] mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-              <div>
-                <div className="text-3xl lg:text-4xl font-bold tracking-tight text-[#18181b] font-sans">
-                  100%
-                </div>
-                <div className="text-xs font-semibold text-[#18181b] mt-1">
-                  Semantic AST Verification
-                </div>
-                <div className="text-xs text-[#71717a] mt-0.5">
-                  Full syntax tree inspection, not just text diffs
-                </div>
-              </div>
-
-              <div>
-                <div className="text-3xl lg:text-4xl font-bold tracking-tight text-[#18181b] font-sans">
-                  &lt; 800ms
-                </div>
-                <div className="text-xs font-semibold text-[#18181b] mt-1">
-                  Commit-to-Audit Latency
-                </div>
-                <div className="text-xs text-[#71717a] mt-0.5">
-                  Instant webhook validation on git push
-                </div>
-              </div>
-
-              <div>
-                <div className="text-3xl lg:text-4xl font-bold tracking-tight text-[#18181b] font-sans">
-                  Zero
-                </div>
-                <div className="text-xs font-semibold text-[#18181b] mt-1">
-                  Ghost Completions Allowed
-                </div>
-                <div className="text-xs text-[#71717a] mt-0.5">
-                  Empty PRs or dummy comments fail audit automatically
-                </div>
-              </div>
-
-              <div>
-                <div className="text-3xl lg:text-4xl font-bold tracking-tight text-[#18181b] font-sans">
-                  Autonomous
-                </div>
-                <div className="text-xs font-semibold text-[#18181b] mt-1">
-                  Call Scope Extraction
-                </div>
-                <div className="text-xs text-[#71717a] mt-0.5">
-                  Recall.ai bot converts audio into approved Linear tasks
+                  <div className="flex items-center gap-2">
+                    <GoogleLogo className="w-4 h-4" />
+                    <span>Google Meet Capture</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -443,7 +263,7 @@ export default async function HomePage({
         </section>
 
         {/* ========================================================================= */}
-        {/* 3. ASYMMETRICAL DUAL-ROLE ARCHITECTURE (Freelancers vs Clients)            */}
+        {/* 2. DUAL-ROLE ARCHITECTURE (Freelancers vs Clients Portal Cards)            */}
         {/* ========================================================================= */}
         <section className="py-20 md:py-28 border-b border-[#ebebeb]">
           <div className="max-w-[1280px] mx-auto px-6">
@@ -461,7 +281,7 @@ export default async function HomePage({
               </p>
             </div>
 
-            {/* Asymmetric Split: Column 1 (Freelancer) vs Column 2 (Client) */}
+            {/* Split: Column 1 (Freelancer) vs Column 2 (Client) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
               
               {/* FREELANCER WORKFLOW (6 cols) */}
@@ -487,26 +307,6 @@ export default async function HomePage({
                     Discovery calls are full of spoken promises that get forgotten or morphed into unpaid scope creep. CommitCheck deploys an autonomous Recall bot into your call, structures every agreement into testable deliverables, and holds clients to signed milestones.
                   </p>
 
-                  {/* Mini-workflow preview inside Freelancer side */}
-                  <div className="rounded-[8px] bg-[#fafafa] border border-[#ebebeb] p-4 mb-8 text-xs space-y-2.5">
-                    <div className="font-semibold text-[#18181b] flex items-center justify-between">
-                      <span>Live Scope Staging Gate</span>
-                      <span className="text-[10px] text-[#ff385c] font-mono">3 Tasks Pending Approval</span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded border border-[#ebebeb] flex items-start gap-2 text-[#3f3f46]">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#18181b] mt-0.5 shrink-0" />
-                      <div>
-                        <span className="font-semibold text-[#18181b]">ENG-108:</span> Stripe webhook idempotency check
-                      </div>
-                    </div>
-                    <div className="bg-white p-2.5 rounded border border-[#ebebeb] flex items-start gap-2 text-[#3f3f46]">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#18181b] mt-0.5 shrink-0" />
-                      <div>
-                        <span className="font-semibold text-[#18181b]">ENG-109:</span> Redis sliding window rate limiter
-                      </div>
-                    </div>
-                  </div>
-
                   <ul className="space-y-3 mb-8 text-sm text-[#3f3f46]">
                     <li className="flex items-center gap-2.5">
                       <Check className="w-4 h-4 text-[#18181b] shrink-0" />
@@ -523,18 +323,30 @@ export default async function HomePage({
                   </ul>
                 </div>
 
-                <div>
-                  <a
-                    href="/api/auth/github"
-                    className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm"
-                  >
-                    <GitHubLogo className="w-4 h-4 text-white" />
-                    Sign in with GitHub
-                  </a>
-                  <p className="text-[11px] text-[#71717a] text-center mt-2.5">
-                    Read-only repository access to map your commit trees to tickets.
-                  </p>
-                </div>
+                {session?.role === "FREELANCER" ? (
+                  <div>
+                    <Link
+                      href="/freelancer"
+                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm group"
+                    >
+                      <span>Go to Dashboard</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  </div>
+                ) : !session ? (
+                  <div>
+                    <a
+                      href="/api/auth/github"
+                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm"
+                    >
+                      <GitHubLogo className="w-4 h-4 text-white" />
+                      Sign in with GitHub
+                    </a>
+                    <p className="text-[11px] text-[#71717a] text-center mt-2.5">
+                      Read-only repository access to map your commit trees to tickets.
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               {/* CLIENT WORKFLOW (6 cols) */}
@@ -560,27 +372,6 @@ export default async function HomePage({
                     Non-technical founders and executives frequently get burned by freelance developers marking Jira tasks &quot;Done&quot; without shipping real code. CommitCheck uses Gemini 2.5 and AST analysis to audit actual git commits against stated milestones.
                   </p>
 
-                  {/* Mini-workflow preview inside Client side */}
-                  <div className="rounded-[8px] bg-[#fff8f9] border border-[#ffd1da] p-4 mb-8 text-xs space-y-2.5">
-                    <div className="font-semibold text-[#18181b] flex items-center justify-between">
-                      <span>Executive Milestone Audit</span>
-                      <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        VERIFIED IN CODE
-                      </span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded border border-[#fbd5cb] flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold text-[#18181b]">Milestone 2: Payment Pipeline</div>
-                        <div className="text-[11px] text-[#71717a]">4 commits &middot; 382 insertions &middot; 100% test pass</div>
-                      </div>
-                      <span className="text-xs font-semibold text-emerald-700">Audit Passed</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#52525b] pt-1">
-                      <span>Ghost PR detection: <strong className="text-emerald-700">0 anomalies</strong></span>
-                      <span className="text-[#ff385c] font-medium">Ready for payout release</span>
-                    </div>
-                  </div>
-
                   <ul className="space-y-3 mb-8 text-sm text-[#3f3f46]">
                     <li className="flex items-center gap-2.5">
                       <Check className="w-4 h-4 text-[#ff385c] shrink-0" />
@@ -597,190 +388,39 @@ export default async function HomePage({
                   </ul>
                 </div>
 
-                <div>
-                  <a
-                    href="/api/auth/google"
-                    className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#ff385c] text-white hover:bg-[#e00b41] font-medium text-sm transition-all shadow-sm group"
-                  >
-                    <GoogleLogo className="w-4 h-4" />
-                    Sign in with Google
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </a>
-                  <p className="text-[11px] text-[#71717a] text-center mt-2.5">
-                    Friction-free Google workspace login for project sponsors and clients.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* 4. ALTERNATING EDITORIAL DEEP-DIVES (Visual Rhythm, No Generic Card Duplication) */}
-        {/* ========================================================================= */}
-        <section className="py-20 md:py-28 bg-[#fafafa]/50 border-b border-[#ebebeb]">
-          <div className="max-w-[1280px] mx-auto px-6 space-y-24">
-            
-            {/* Deep-Dive 1: Left Visual / Right Editorial Narrative */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              
-              {/* Left Artifact: Dialogue Extraction & Linear Sync Visual */}
-              <div className="lg:col-span-6 bg-white rounded-[14px] border border-[#dddddd] airbnb-shadow p-6 sm:p-8">
-                <div className="flex items-center justify-between pb-4 border-b border-[#ebebeb] mb-6">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#ff385c]"></div>
-                    <span className="font-mono text-xs font-semibold text-[#18181b]">
-                      RECALL.BOT // RECORDING
-                    </span>
+                {session?.role === "CLIENT" ? (
+                  <div>
+                    <Link
+                      href="/client"
+                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#ff385c] text-white hover:bg-[#e00b41] font-medium text-sm transition-all shadow-sm group"
+                    >
+                      <span>Go to Dashboard</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
                   </div>
-                  <span className="text-xs text-[#71717a] font-mono">google-meet/0942-dx</span>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Spoken dialogue excerpt */}
-                  <div className="p-4 rounded-[8px] bg-[#f4f4f5] border border-[#e4e4e7]">
-                    <div className="flex items-center justify-between text-[11px] text-[#71717a] mb-1.5">
-                      <span className="font-semibold text-[#18181b]">Elena (Lead Client)</span>
-                      <span>12:04 PM</span>
-                    </div>
-                    <p className="text-xs text-[#27272a] leading-relaxed">
-                      &ldquo;The rate limiter must allow 100 requests per minute per IP, and send a 429 response with a Retry-After header.&rdquo;
+                ) : !session ? (
+                  <div>
+                    <a
+                      href="/api/auth/google"
+                      className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[8px] bg-[#ff385c] text-white hover:bg-[#e00b41] font-medium text-sm transition-all shadow-sm group"
+                    >
+                      <GoogleLogo className="w-4 h-4" />
+                      Sign in with Google
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </a>
+                    <p className="text-[11px] text-[#71717a] text-center mt-2.5">
+                      Friction-free Google workspace login for project sponsors and clients.
                     </p>
                   </div>
-
-                  {/* AI Extraction Arrow */}
-                  <div className="flex items-center justify-center gap-2 text-xs font-medium text-[#71717a]">
-                    <Sparkles className="w-3.5 h-3.5 text-[#ff385c]" />
-                    <span>Gemini 2.5 AST Spec Extractor</span>
-                  </div>
-
-                  {/* Generated Linear Issue */}
-                  <div className="p-4 rounded-[8px] bg-white border border-[#dddddd] shadow-xs">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="font-mono font-semibold text-[#5e6ad2] flex items-center gap-1.5">
-                        <LinearLogo className="w-3.5 h-3.5" />
-                        ENG-109
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#fff0f3] text-[#ff385c]">
-                        CONFIRMED SCOPE
-                      </span>
-                    </div>
-                    <div className="font-semibold text-xs text-[#18181b] mb-1">
-                      Implement sliding window IP rate limiter (100 req/min)
-                    </div>
-                    <div className="text-[11px] text-[#71717a]">
-                      Acceptance: 429 status code + Retry-After header present in AST test harness
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Narrative */}
-              <div className="lg:col-span-6 flex flex-col justify-center">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c] mb-2 block">
-                  PHASE 01: SCOPE CAPTURE
-                </span>
-                <h3 className="text-3xl font-bold tracking-tight text-[#18181b] mb-4">
-                  Spoken commitments turned into immutable Linear tickets.
-                </h3>
-                <p className="text-[#52525b] text-base leading-relaxed mb-6">
-                  Freelance contracts fail at the kickoff meeting. Clients mention features in passing; freelancers write code that wasn&apos;t fully spec&apos;d.
-                </p>
-                <p className="text-[#52525b] text-base leading-relaxed mb-6">
-                  CommitCheck solves this at the root. The Recall.ai bot records discovery calls with stakeholder consent, isolates requirements, drafts Linear tasks, and presents a review gate so both parties sign off on the exact definition of done.
-                </p>
-                <div className="flex items-center gap-6 text-sm font-medium text-[#18181b]">
-                  <span className="flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-600" /> Verbatim dialogue audio stamps
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-600" /> Pre-publish review gate
-                  </span>
-                </div>
+                ) : null}
               </div>
 
             </div>
-
-            {/* Deep-Dive 2: Left Narrative / Right Visual (Inverted Rhythm) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              
-              {/* Left Narrative */}
-              <div className="lg:col-span-6 flex flex-col justify-center order-2 lg:order-1">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#ff385c] mb-2 block">
-                  PHASE 02: CODE VERIFICATION
-                </span>
-                <h3 className="text-3xl font-bold tracking-tight text-[#18181b] mb-4">
-                  Dual-tier AST analysis beats superficial git diffs.
-                </h3>
-                <p className="text-[#52525b] text-base leading-relaxed mb-6">
-                  Traditional CI checks if a build passes, but cannot determine if a developer actually built what the client paid for. A commit with 500 lines of modified comments or boilerplate can easily fool a non-technical audit.
-                </p>
-                <p className="text-[#52525b] text-base leading-relaxed mb-6">
-                  CommitCheck decomposes every commit into its Abstract Syntax Tree (AST). It parses functions, imports, logic branches, and test assertions to confirm semantic parity with the Linear deliverable.
-                </p>
-                <div className="flex items-center gap-6 text-sm font-medium text-[#18181b]">
-                  <span className="flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-600" /> Real syntax tree validation
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-600" /> Flags ghost commits & empty PRs
-                  </span>
-                </div>
-              </div>
-
-              {/* Right Artifact: Code AST Visual */}
-              <div className="lg:col-span-6 bg-[#18181b] text-white rounded-[14px] border border-[#27272a] shadow-xl p-6 sm:p-8 order-1 lg:order-2">
-                <div className="flex items-center justify-between pb-4 border-b border-[#27272a] mb-5">
-                  <div className="flex items-center gap-2">
-                    <Code2 className="w-4 h-4 text-[#ff385c]" />
-                    <span className="font-mono text-xs font-semibold text-[#f4f4f5]">
-                      AST PARSER // SYNTAX TREE
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono text-emerald-400">STATUS: MATCHED</span>
-                </div>
-
-                <div className="font-mono text-xs space-y-3">
-                  <div className="p-3 rounded bg-[#27272a]/60 border border-[#3f3f46]">
-                    <div className="text-[10px] text-[#a1a1aa] uppercase mb-1">Target Ticket Requirement</div>
-                    <div className="text-[#e4e4e7]">&ldquo;SlidingWindowRateLimiter(windowSec: 60, maxHits: 100)&rdquo;</div>
-                  </div>
-
-                  <div className="space-y-1.5 pl-3 border-l-2 border-[#ff385c]">
-                    <div className="text-[11px] text-[#71717a]">AST Node Identification:</div>
-                    <div className="text-emerald-400 flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>ClassDeclaration: RateLimiter</span>
-                    </div>
-                    <div className="text-emerald-400 flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>MethodDefinition: checkLimit(ipAddress)</span>
-                    </div>
-                    <div className="text-emerald-400 flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>BinaryExpression: hitCount &gt; maxHits</span>
-                    </div>
-                    <div className="text-emerald-400 flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>CallExpression: res.setHeader(&apos;Retry-After&apos;)</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 text-[11px] text-[#a1a1aa] flex items-center justify-between border-t border-[#27272a]">
-                    <span>Semantic Confidence: <strong>100%</strong></span>
-                    <span className="text-[#ff385c]">0 Unlinked Diffs</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 5. HIGH-IMPACT EDITORIAL CTA                                              */}
+        {/* 3. HIGH-IMPACT EDITORIAL CTA                                              */}
         {/* ========================================================================= */}
         <section className="py-20 md:py-28 bg-white">
           <div className="max-w-[1280px] mx-auto px-6">
@@ -800,23 +440,35 @@ export default async function HomePage({
                 Connect your GitHub repository and Google account to experience verifiable freelance audits today.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <a
-                  href="/api/auth/github"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm"
-                >
-                  <GitHubLogo className="w-4 h-4 text-white" />
-                  Sign in with GitHub (Freelancer)
-                </a>
-                <a
-                  href="/api/auth/google"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-[8px] bg-[#ff385c] text-white hover:bg-[#e00b41] font-medium text-sm transition-all shadow-sm"
-                >
-                  <GoogleLogo className="w-4 h-4" />
-                  Enter Client Portal
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
+              {session ? (
+                <div className="flex justify-center">
+                  <Link
+                    href={session.role === "FREELANCER" ? "/freelancer" : "/client"}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-[8px] bg-[#ff385c] text-white hover:bg-[#e00b41] font-medium text-sm transition-all shadow-sm group"
+                  >
+                    <span>Go to Dashboard</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <a
+                    href="/api/auth/github"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-[8px] bg-[#18181b] text-white hover:bg-black font-medium text-sm transition-all shadow-sm"
+                  >
+                    <GitHubLogo className="w-4 h-4 text-white" />
+                    Sign in with GitHub (Freelancer)
+                  </a>
+                  <a
+                    href="/api/auth/google"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-[8px] bg-[#ff385c] text-white hover:bg-[#e00b41] font-medium text-sm transition-all shadow-sm group"
+                  >
+                    <GoogleLogo className="w-4 h-4" />
+                    Enter Client Portal
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </a>
+                </div>
+              )}
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-[#71717a]">
                 <span className="flex items-center gap-1.5">
@@ -838,7 +490,7 @@ export default async function HomePage({
       </main>
 
       {/* ========================================================================= */}
-      {/* 6. CLEAN FOOTER (Per DESIGN.md specification)                             */}
+      {/* 4. CLEAN FOOTER (Per DESIGN.md specification)                             */}
       {/* ========================================================================= */}
       <footer className="border-t border-[#ebebeb] bg-white pt-12 pb-10">
         <div className="max-w-[1280px] mx-auto px-6">
@@ -860,8 +512,32 @@ export default async function HomePage({
                 Platform
               </div>
               <ul className="space-y-2 text-xs text-[#52525b]">
-                <li><a href="/api/auth/github" className="hover:text-[#18181b] transition-colors">Freelancer Portal</a></li>
-                <li><a href="/api/auth/google" className="hover:text-[#18181b] transition-colors">Client Audit Portal</a></li>
+                {session?.role === "FREELANCER" ? (
+                  <li>
+                    <Link href="/freelancer" className="hover:text-[#18181b] transition-colors">
+                      Freelancer Dashboard
+                    </Link>
+                  </li>
+                ) : session?.role === "CLIENT" ? (
+                  <li>
+                    <Link href="/client" className="hover:text-[#18181b] transition-colors">
+                      Client Dashboard
+                    </Link>
+                  </li>
+                ) : (
+                  <>
+                    <li>
+                      <a href="/api/auth/github" className="hover:text-[#18181b] transition-colors">
+                        Freelancer Portal
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/api/auth/google" className="hover:text-[#18181b] transition-colors">
+                        Client Audit Portal
+                      </a>
+                    </li>
+                  </>
+                )}
                 <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">AST Semantic Verification</span></li>
                 <li><span className="hover:text-[#18181b] cursor-pointer transition-colors">Recall.ai Meeting Bot</span></li>
               </ul>
