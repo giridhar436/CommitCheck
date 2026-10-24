@@ -110,7 +110,7 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
       }
 
 
-              // 2. Fetch branches for branch association
+      // 2. Fetch branches for branch association
       const branchMap = new Map<string, string>(); // sha -> branchName
       try {
         const branches = await this.fetchRepoBranches(accessToken, repoFullName);
@@ -120,9 +120,7 @@ export class LiveGitHubCommitFetcher implements GitHubCommitFetcher {
       }
 
       // 3. For top commits (up to 10), fetch diff snippet concurrently to facilitate Tier 2 semantic analysis
-      const detailedLimit = Math.min(commitsJson.length, 10);
-      const diffResults = await Promise.all(
-        commitsJson.slice(0, detailedLimit).map(async (item: any) => {
+
 
       const detailedLimit = Math.min(commitsJson.length, 10);
       const diffResults = await Promise.all(
@@ -273,7 +271,7 @@ export class MockGitHubCommitFetcher implements GitHubCommitFetcher {
 }
 
 export class LiveLinearIssueFetcher implements LinearIssueFetcher {
-  constructor(private linearService: LinearService = defaultLinearService) {}
+  constructor(private linearService: LinearService = defaultLinearService) { }
 
   async fetchProjectTasks(
     accessToken: string,
@@ -298,7 +296,7 @@ export class LiveLinearIssueFetcher implements LinearIssueFetcher {
 }
 
 export class MockLinearIssueFetcher implements LinearIssueFetcher {
-  constructor(private mockTasks: TaskToVerify[] = []) {}
+  constructor(private mockTasks: TaskToVerify[] = []) { }
 
   async fetchProjectTasks(
     _accessToken: string,
@@ -386,8 +384,7 @@ export class GeminiSemanticDiffAnalyzer implements SemanticDiffAnalyzer {
         const commitSummaries = commits
           .map(
             (c) =>
-              `SHA: ${c.sha}\nMessage: ${c.message}\nBranch: ${c.branchName || "N/A"}\nDiff Snippet: ${
-                c.diffSnippet || "N/A"
+              `SHA: ${c.sha}\nMessage: ${c.message}\nBranch: ${c.branchName || "N/A"}\nDiff Snippet: ${c.diffSnippet || "N/A"
               }`
           )
           .join("\n---\n");
@@ -543,10 +540,10 @@ export async function runDualTierVerification(
   const eligibleCommits =
     baselineTime !== null && !isNaN(baselineTime)
       ? commits.filter((c) => {
-          if (!c.date) return false;
-          const commitTime = new Date(c.date).getTime();
-          return !isNaN(commitTime) && commitTime >= (baselineTime - 1000);
-        })
+        if (!c.date) return false;
+        const commitTime = new Date(c.date).getTime();
+        return !isNaN(commitTime) && commitTime >= (baselineTime - 1000);
+      })
       : commits;
 
   const results: (VerifiedTaskItem | null)[] = new Array(tasks.length).fill(null);
