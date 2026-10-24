@@ -103,6 +103,7 @@ describe("CommitCheck Project Creation & GitHub Binding (VAR-7)", () => {
       fullName: "dev/lms-core",
       owner: "dev",
       isPrivate: false,
+      description: null,
       defaultBranch: "main",
       htmlUrl: "https://github.com/dev/lms-core",
     });
@@ -112,6 +113,7 @@ describe("CommitCheck Project Creation & GitHub Binding (VAR-7)", () => {
       fullName: "dev/test2-repo",
       owner: "dev",
       isPrivate: false,
+      description: null,
       defaultBranch: "main",
       htmlUrl: "https://github.com/dev/test2-repo",
     });
@@ -121,6 +123,7 @@ describe("CommitCheck Project Creation & GitHub Binding (VAR-7)", () => {
       fullName: "dev/enterprise-app",
       owner: "dev",
       isPrivate: false,
+      description: null,
       defaultBranch: "main",
       htmlUrl: "https://github.com/dev/enterprise-app",
     });
