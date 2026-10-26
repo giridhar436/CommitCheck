@@ -1,6 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { validateEnvironment } from "./env";
+import { validateEnvironment, getAppBaseUrl } from "./env";
+import { getRecallWebhookUrl } from "./meetings/recall";
+import { getGitHubCallbackUrl, getGoogleCallbackUrl, getLinearCallbackUrl } from "./auth/service";
 
 describe("CommitCheck Environment Validation & Diagnostics (VAR-21)", () => {
   it("correctly identifies fully configured live services without leaking secrets", () => {
@@ -104,5 +106,55 @@ describe("CommitCheck Environment Validation & Diagnostics (VAR-21)", () => {
     assert.equal(report.services.recall.mode, "live");
     assert.equal(report.services.recall.status, "warning");
     assert.ok(report.services.recall.details.includes("whsec"));
+  });
+});
+
+describe("Production Base URL & URL Constructors", () => {
+  const origEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...origEnv };
+  });
+
+  it("resolves to NEXT_PUBLIC_APP_URL when configured and trims trailing slash", () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://commitcheck-ind.vercel.app/";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    assert.equal(getAppBaseUrl(), "https://commitcheck-ind.vercel.app");
+  });
+
+  it("constructs production Recall webhook URL from NEXT_PUBLIC_APP_URL", () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://commitcheck-ind.vercel.app";
+    assert.equal(getRecallWebhookUrl(), "https://commitcheck-ind.vercel.app/api/webhooks/recall");
+  });
+
+  it("constructs production OAuth callback URLs from NEXT_PUBLIC_APP_URL", () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://commitcheck-ind.vercel.app";
+    assert.equal(getGitHubCallbackUrl(), "https://commitcheck-ind.vercel.app/api/auth/github");
+    assert.equal(getGoogleCallbackUrl(), "https://commitcheck-ind.vercel.app/api/auth/google");
+    assert.equal(getLinearCallbackUrl(), "https://commitcheck-ind.vercel.app/api/auth/linear/callback");
+  });
+
+  it("throws clear error in production if NEXT_PUBLIC_APP_URL is missing and origin is localhost", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    assert.throws(
+      () => getAppBaseUrl("http://localhost:3000"),
+      /Production configuration error/
+    );
+  });
+
+  it("throws clear error in production if NEXT_PUBLIC_APP_URL is missing and no origin given", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    assert.throws(
+      () => getAppBaseUrl(),
+      /Production configuration error/
+    );
+  });
+
+  it("falls back to localhost:3000 in development/test when unconfigured", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    (process.env as Record<string, string | undefined>).NODE_ENV = "development";
+    assert.equal(getAppBaseUrl(), "http://localhost:3000");
   });
 });

@@ -4,6 +4,7 @@ import { defaultProjectRepository } from "@/lib/projects";
 import { defaultTaskDraftRepository } from "@/lib/scope";
 import { defaultLinearService, publishProjectToLinear } from "@/lib/linear";
 import { defaultEmailService } from "@/lib/notifications";
+import { getAppBaseUrl } from "@/lib/env";
 
 export async function POST(
   request: NextRequest,
@@ -48,7 +49,7 @@ export async function POST(
         projectId,
         freelancerId: session.userId,
         teamId: body.teamId,
-        appBaseUrl: request.nextUrl.origin,
+        appBaseUrl: getAppBaseUrl(request.nextUrl.origin),
       },
       defaultUserRepository,
       defaultProjectRepository,

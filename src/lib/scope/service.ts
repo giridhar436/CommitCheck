@@ -3,6 +3,7 @@ import { MeetingRepository } from "../meetings/types";
 import { ProjectRepository } from "../projects/types";
 import { EmailNotificationService } from "../notifications/types";
 import { LinearService } from "../linear/types";
+import { getAppBaseUrl } from "../env";
 import {
   ClassifiedScopeItem,
   ComprehensiveScopeAnalysis,
@@ -98,7 +99,7 @@ export async function requestClientScopeConfirmation(
   projectRepo: ProjectRepository,
   draftRepo: TaskDraftRepository,
   emailService: EmailNotificationService,
-  appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  appBaseUrl?: string
 ): Promise<{ requestedCount: number; emailSent: boolean; message: string }> {
   // 1. Verify user & project ownership
   const user = await userRepo.findById(freelancerId);
@@ -133,7 +134,8 @@ export async function requestClientScopeConfirmation(
   }
 
   // 3. Dispatch confirmation email via Resend
-  const confirmationUrl = `${appBaseUrl}/client/projects/${projectId}/scope-confirmation`;
+  const resolvedBaseUrl = getAppBaseUrl(appBaseUrl);
+  const confirmationUrl = `${resolvedBaseUrl}/client/projects/${projectId}/scope-confirmation`;
   const emailResult = await emailService.sendScopeConfirmationEmail({
     to: project.clientEmail,
     projectName: project.title || project.name,

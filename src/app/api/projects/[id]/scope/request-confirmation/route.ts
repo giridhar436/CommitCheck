@@ -6,6 +6,7 @@ import {
   defaultTaskDraftRepository,
 } from "@/lib/scope";
 import { defaultEmailService } from "@/lib/notifications";
+import { getAppBaseUrl } from "@/lib/env";
 
 export async function POST(
   request: NextRequest,
@@ -19,10 +20,7 @@ export async function POST(
   const { id: projectId } = await params;
 
   try {
-    const origin =
-      request.nextUrl.origin ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+    const origin = getAppBaseUrl(request.nextUrl.origin);
 
     const result = await requestClientScopeConfirmation(
       projectId,

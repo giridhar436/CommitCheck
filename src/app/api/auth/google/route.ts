@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultUserRepository, handleOAuthCallback, OAuthProfile, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { getAppBaseUrl } from "@/lib/env";
 
 const OAUTH_STATE_COOKIE = "oauth_state";
 
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const isMock = searchParams.get("mock") === "true";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const appUrl = getAppBaseUrl(request.nextUrl.origin);
 
   // Development/Mock sign-in bypass for testing when live OAuth credentials are not provided
   if (isMock || (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID.startsWith("mock_"))) {

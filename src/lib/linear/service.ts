@@ -3,6 +3,7 @@ import { LinearService, LinearTeam, LinearWorkspace } from "./types";
 import { ProjectRepository } from "../projects/types";
 import { TaskDraftRepository } from "../scope/types";
 import { EmailNotificationService } from "../notifications/types";
+import { getAppBaseUrl } from "../env";
 
 export interface ConnectLinearResult {
   workspace: LinearWorkspace;
@@ -215,7 +216,7 @@ export async function publishProjectToLinear(
   });
 
   // 9. Dispatch Resend notification email
-  const baseUrl = input.appBaseUrl || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = getAppBaseUrl(input.appBaseUrl || process.env.NEXTAUTH_URL);
   const portalUrl = `${baseUrl}/client`;
   const recipients: string[] = [];
   if (project.clientEmail) recipients.push(project.clientEmail);

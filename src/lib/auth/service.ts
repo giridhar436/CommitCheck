@@ -99,16 +99,46 @@ export function checkRouteAccess(
   return { allowed: true };
 }
 
+import { getAppBaseUrl } from "../env";
+
+/**
+ * Returns the canonical callback URL for GitHub OAuth.
+ */
+export function getGitHubCallbackUrl(baseUrl?: string): string {
+  const base = baseUrl ? baseUrl.replace(/\/+$/, "") : getAppBaseUrl();
+  return `${base}/api/auth/github`;
+}
+
+/**
+ * Returns the canonical callback URL for Google OAuth.
+ */
+export function getGoogleCallbackUrl(baseUrl?: string): string {
+  const base = baseUrl ? baseUrl.replace(/\/+$/, "") : getAppBaseUrl();
+  return `${base}/api/auth/google`;
+}
+
+/**
+ * Returns the canonical callback URL for Linear OAuth.
+ */
+export function getLinearCallbackUrl(baseUrl?: string): string {
+  const base = baseUrl ? baseUrl.replace(/\/+$/, "") : getAppBaseUrl();
+  return `${base}/api/auth/linear/callback`;
+}
+
 export function getOAuthAuthorizationUrl(
   provider: OAuthProvider,
-  redirectUri: string,
+  redirectUri?: string,
   state?: string
 ): string {
+  const resolvedRedirectUri =
+    redirectUri ||
+    (provider === "github" ? getGitHubCallbackUrl() : getGoogleCallbackUrl());
+
   if (provider === "github") {
     const clientId = process.env.GITHUB_CLIENT_ID || "";
     const params = new URLSearchParams({
       client_id: clientId,
-      redirect_uri: redirectUri,
+      redirect_uri: resolvedRedirectUri,
       scope: "read:user user:email repo",
       ...(state ? { state } : {}),
     });
@@ -119,7 +149,7 @@ export function getOAuthAuthorizationUrl(
     const clientId = process.env.GOOGLE_CLIENT_ID || "";
     const params = new URLSearchParams({
       client_id: clientId,
-      redirect_uri: redirectUri,
+      redirect_uri: resolvedRedirectUri,
       response_type: "code",
       scope: "openid profile email",
       access_type: "online",

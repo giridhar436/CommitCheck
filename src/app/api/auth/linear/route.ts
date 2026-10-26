@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
+import { getAppBaseUrl } from "@/lib/env";
 import {
   defaultLinearService,
   connectLinearWorkspace,
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/?auth=required&role=FREELANCER", request.url));
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const appUrl = getAppBaseUrl(request.nextUrl.origin);
   const redirectUri = `${appUrl}/api/auth/linear/callback`;
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");

@@ -37,6 +37,56 @@ function maskSecret(val: string | undefined, prefixLen = 4, suffixLen = 4): stri
   return `${prefix}...${suffix}`;
 }
 
+/**
+ * Resolves the application's canonical base URL in a production-safe manner.
+ *
+ * Rules:
+ * 1. If NEXT_PUBLIC_APP_URL is explicitly set and non-empty, use it (trimmed of trailing slashes).
+ * 2. If a non-empty fallbackOrigin is provided (e.g. from request.nextUrl.origin):
+ *    - In production, accept it only if it is NOT a localhost/loopback address. If it is localhost, throw an error.
+ *    - In development/testing, accept it.
+ * 3. In production:
+ *    - Throw an Error if no valid public URL is available, failing fast and preventing broken localhost URLs in OAuth & emails.
+ * 4. In development/testing:
+ *    - Fall back to http://localhost:3000.
+ */
+export function getAppBaseUrl(fallbackOrigin?: string): string {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, "");
+  }
+
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (fallbackOrigin && fallbackOrigin.trim()) {
+    const origin = fallbackOrigin.trim().replace(/\/+$/, "");
+    const isLocalhost =
+      origin.includes("localhost") ||
+      origin.includes("127.0.0.1") ||
+      origin.includes("0.0.0.0") ||
+      origin.startsWith("http://127.") ||
+      origin.startsWith("http://localhost");
+
+    if (isProduction) {
+      if (!isLocalhost) {
+        return origin;
+      }
+      throw new Error(
+        "Production configuration error: NEXT_PUBLIC_APP_URL is not configured and the fallback origin is localhost. Set NEXT_PUBLIC_APP_URL=https://commitcheck-ind.vercel.app in production."
+      );
+    }
+    return origin;
+  }
+
+  if (isProduction) {
+    throw new Error(
+      "Production configuration error: NEXT_PUBLIC_APP_URL is not configured. A valid production application URL (e.g., https://commitcheck-ind.vercel.app) is required in production."
+    );
+  }
+
+  return "http://localhost:3000";
+}
+
 export function validateEnvironment(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env
 ): EnvironmentValidationReport {
@@ -84,7 +134,8 @@ export function validateEnvironment(
 
   // 2. Authentication & Session Security
   const authSecret = env.AUTH_SECRET;
-  const appUrl = env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const isProduction = (env.NODE_ENV || process.env.NODE_ENV) === "production";
+  const appUrl = env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "") || (isProduction ? "" : "http://localhost:3000");
   if (!authSecret) {
     services.auth = {
       service: "auth",

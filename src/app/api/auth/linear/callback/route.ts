@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
+import { getAppBaseUrl } from "@/lib/env";
 import { defaultLinearService, connectLinearWorkspace } from "@/lib/linear";
 import { LINEAR_STATE_COOKIE } from "../route";
 
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  const appUrl = getAppBaseUrl(request.nextUrl.origin);
   const redirectUri = `${appUrl}/api/auth/linear/callback`;
 
   try {

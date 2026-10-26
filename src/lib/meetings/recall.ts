@@ -1,5 +1,15 @@
 import { BotStatusResult, MeetingBotService, MeetingStatus, TranscriptSegment } from "./types";
 import { Webhook } from "svix";
+import { getAppBaseUrl } from "../env";
+
+/**
+ * Returns the canonical webhook URL for Recall.ai status updates and transcript notifications.
+ * Constructible from the application base URL (e.g. https://commitcheck-ind.vercel.app/api/webhooks/recall).
+ */
+export function getRecallWebhookUrl(appBaseUrl?: string): string {
+  const base = appBaseUrl ? appBaseUrl.replace(/\/+$/, "") : getAppBaseUrl();
+  return `${base}/api/webhooks/recall`;
+}
 
 export class RecallAiBotService implements MeetingBotService {
   private apiKey: string;
