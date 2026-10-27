@@ -273,3 +273,26 @@ body {
 .hairline-l {
   border-left: 1px solid var(--cc-border-soft);
 }
+
+/* PWA Standalone & Mobile Safe-Area Utilities */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+  .safe-left {
+    padding-left: max(env(safe-area-inset-left), 0px);
+  }
+  .safe-right {
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+}
+
+@media all and (display-mode: standalone) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+    user-select: auto;
+  }
+}

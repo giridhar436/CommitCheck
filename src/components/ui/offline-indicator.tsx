@@ -24,20 +24,23 @@ export function OfflineIndicator() {
   const isOnline = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const isOffline = !isOnline;
   const [showReconnected, setShowReconnected] = useState(false);
-  const [wasOffline, setWasOffline] = useState(false);
 
   useEffect(() => {
-    if (isOffline) {
-      setWasOffline(true);
-    } else if (wasOffline) {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const handleOnline = () => {
       setShowReconnected(true);
-      const timer = setTimeout(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
         setShowReconnected(false);
-        setWasOffline(false);
       }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [isOffline, wasOffline]);
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   if (!isOffline && !showReconnected) return null;
 
@@ -45,6 +48,7 @@ export function OfflineIndicator() {
     <aside
       aria-label="Network status"
       className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-96 z-50 transition-all duration-300 ease-in-out"
+      style={{ bottom: "max(1rem, env(safe-area-inset-bottom, 1rem))" }}
     >
       {isOffline ? (
         <div
