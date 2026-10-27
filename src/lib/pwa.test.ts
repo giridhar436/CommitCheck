@@ -17,16 +17,16 @@ describe("CommitCheck Progressive Web App (PWA) Verification Suite", () => {
       assert.equal(data.background_color, "#ffffff");
       assert.equal(data.theme_color, "#ffffff");
       assert.ok(Array.isArray(data.icons));
-      assert.ok(data.icons.length >= 4);
+      assert.ok(data.icons.length >= 3);
 
       // Verify required icon sizes are represented
       const iconSizes = data.icons.map((i) => i.sizes);
       assert.ok(iconSizes.includes("192x192"));
       assert.ok(iconSizes.includes("512x512"));
 
-      // Verify maskable icons exist
+      // Verify maskable icon exists
       const maskable = data.icons.filter((i) => i.purpose === "maskable");
-      assert.ok(maskable.length >= 2);
+      assert.ok(maskable.length >= 1);
 
       // Verify shortcuts
       assert.ok(Array.isArray(data.shortcuts));
@@ -47,12 +47,11 @@ describe("CommitCheck Progressive Web App (PWA) Verification Suite", () => {
 
   describe("Application Icons Verification", () => {
     const requiredIcons = [
-      "icon-192x192.png",
-      "icon-512x512.png",
-      "maskable-icon-192x192.png",
-      "maskable-icon-512x512.png",
-      "apple-touch-icon.png",
-      "icon.svg",
+      "logo-192x192.png",
+      "logo-512x512.png",
+      "logo-180x180.png",
+      "logo-1200x630.png",
+      "logo-maskable-512x512.png",
     ];
 
     for (const iconName of requiredIcons) {
@@ -71,6 +70,22 @@ describe("CommitCheck Progressive Web App (PWA) Verification Suite", () => {
           const pngMagic = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
           assert.ok(buf.equals(pngMagic), `${iconName} must have valid PNG magic bytes`);
         }
+      });
+    }
+
+    const brandingSvgs = [
+      "public/branding/logo-180x48.svg",
+      "public/branding/logo-360x96.svg",
+      "public/branding/logo-600x160.svg",
+      "src/app/favicon.svg",
+    ];
+
+    for (const svgPath of brandingSvgs) {
+      it(`verifies that ${svgPath} exists on disk with valid SVG content`, () => {
+        const resolvedPath = path.resolve(process.cwd(), svgPath);
+        assert.ok(fs.existsSync(resolvedPath), `Expected ${svgPath} to exist`);
+        const content = fs.readFileSync(resolvedPath, "utf8");
+        assert.ok(content.includes("<svg"), `Expected ${svgPath} to contain <svg tag`);
       });
     }
   });
