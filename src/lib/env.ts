@@ -72,7 +72,7 @@ export function getAppBaseUrl(fallbackOrigin?: string): string {
         return origin;
       }
       throw new Error(
-        "Production configuration error: NEXT_PUBLIC_APP_URL is not configured and the fallback origin is localhost. Set NEXT_PUBLIC_APP_URL=https://commitcheck-ind.vercel.app in production."
+        "Production configuration error: NEXT_PUBLIC_APP_URL is not configured and the fallback origin is localhost. Set NEXT_PUBLIC_APP_URL=https://commit-check.vercel.app in production."
       );
     }
     return origin;
@@ -80,7 +80,7 @@ export function getAppBaseUrl(fallbackOrigin?: string): string {
 
   if (isProduction) {
     throw new Error(
-      "Production configuration error: NEXT_PUBLIC_APP_URL is not configured. A valid production application URL (e.g., https://commitcheck-ind.vercel.app) is required in production."
+      "Production configuration error: NEXT_PUBLIC_APP_URL is not configured. A valid production application URL (e.g., https://commit-check.vercel.app) is required in production."
     );
   }
 
