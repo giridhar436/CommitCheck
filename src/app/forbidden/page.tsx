@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ShieldX, ArrowRight, Home, LogOut } from "lucide-react";
 import { getCurrentSession } from "@/lib/auth";
 
@@ -18,16 +19,22 @@ export default async function ForbiddenPage({
       {/* Header */}
       <header className="border-b border-[#dddddd] bg-white">
         <div className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#ff385c] flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              <ShieldX className="w-6 h-6" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-lg tracking-tight text-[#222222]">CommitCheck</span>
-              <span className="text-[11px] font-medium text-[#6a6a6a] tracking-wider uppercase -mt-1">
-                Access Restricted
-              </span>
-            </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-[#ff385c] rounded-[8px] p-1"
+            aria-label="CommitCheck Home"
+          >
+            <Image
+              src="/branding/logo-180x48.svg"
+              alt="CommitCheck"
+              width={180}
+              height={48}
+              className="h-8 w-auto"
+              priority
+            />
+            <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-[#fff8f6] text-[#c13515] border border-[#fbd5cb]">
+              Access Restricted
+            </span>
           </Link>
 
           <Link

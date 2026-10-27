@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getCurrentSession } from "@/lib/auth";
 import {
-  ShieldCheck,
   GitBranch,
   ArrowRight,
   Clock,
@@ -41,16 +41,19 @@ export default async function LoginPage({
       {/* Top Header */}
       <header className="border-b border-[#dddddd] bg-white">
         <div className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#ff385c] flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-lg tracking-tight text-[#222222]">CommitCheck</span>
-              <span className="text-[11px] font-medium text-[#6a6a6a] tracking-wider uppercase -mt-1">
-                Meeting-to-Code Verification
-              </span>
-            </div>
+          <Link
+            href="/"
+            className="flex items-center group focus:outline-none focus:ring-2 focus:ring-[#ff385c] rounded-[8px] p-1"
+            aria-label="CommitCheck Home"
+          >
+            <Image
+              src="/branding/logo-180x48.svg"
+              alt="CommitCheck"
+              width={180}
+              height={48}
+              className="h-9 w-auto"
+              priority
+            />
           </Link>
 
           <Link
@@ -106,6 +109,16 @@ export default async function LoginPage({
         )}
 
         <div className="text-center max-w-xl mb-10">
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/branding/logo-360x96.svg"
+              alt="CommitCheck"
+              width={360}
+              height={96}
+              className="h-14 sm:h-16 w-auto"
+              priority
+            />
+          </div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f7f7f7] border border-[#dddddd] text-xs font-semibold text-[#222222] mb-3">
             <Sparkles className="w-3.5 h-3.5 text-[#ff385c]" />
             Provider-Enforced Role Security (ADR 0001)

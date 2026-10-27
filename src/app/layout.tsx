@@ -24,6 +24,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://commitcheck.dev"),
   title: "CommitCheck | Meeting-to-Code Freelance Verification Platform",
   description:
     "Bridging freelance Google Meet discovery calls, Linear task tracking, and GitHub codebase activity.",
@@ -39,14 +40,37 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icons/icon.svg", type: "image/svg+xml" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/logo-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/logo-512x512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/icons/logo-180x180.png", sizes: "180x180", type: "image/png" },
     ],
+  },
+  openGraph: {
+    title: "CommitCheck | Meeting-to-Code Freelance Verification Platform",
+    description:
+      "Bridging freelance Google Meet discovery calls, Linear task tracking, and GitHub codebase activity.",
+    url: "/",
+    siteName: "CommitCheck",
+    images: [
+      {
+        url: "/icons/logo-1200x630.png",
+        width: 1200,
+        height: 630,
+        alt: "CommitCheck - Meeting-to-Code Freelance Verification Platform",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CommitCheck | Meeting-to-Code Freelance Verification Platform",
+    description:
+      "Bridging freelance Google Meet discovery calls, Linear task tracking, and GitHub codebase activity.",
+    images: ["/icons/logo-1200x630.png"],
   },
 };
 

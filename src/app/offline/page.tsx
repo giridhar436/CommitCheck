@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { WifiOff, RefreshCw, ShieldCheck, ArrowLeft, BookOpen, ExternalLink } from "lucide-react";
+import Image from "next/image";
+import { WifiOff, RefreshCw, ArrowLeft, BookOpen, ExternalLink } from "lucide-react";
 
 function subscribe(callback: () => void) {
   window.addEventListener("online", callback);
@@ -48,17 +49,17 @@ export default function OfflinePage() {
       <header className="border-b border-[#dddddd] px-6 py-4 bg-[#ffffff]/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#ff385c] flex items-center justify-center text-white shadow-xs">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="font-semibold text-base tracking-tight text-[#222222]">
-                CommitCheck
-              </span>
-              <span className="hidden sm:inline-block ml-2 text-xs text-[#6a6a6a]">
-                Offline Mode
-              </span>
-            </div>
+            <Image
+              src="/branding/logo-180x48.svg"
+              alt="CommitCheck"
+              width={180}
+              height={48}
+              className="h-8 w-auto"
+              priority
+            />
+            <span className="hidden sm:inline-block text-xs text-[#6a6a6a]">
+              Offline Mode
+            </span>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#f7f7f7] border border-[#dddddd] text-[#6a6a6a]">
             <span

@@ -17,13 +17,12 @@ const CACHE_PUBLIC_PAGES = `${CACHE_VERSION}-public-pages`;
 const PRECACHE_ASSETS = [
   "/offline",
   "/manifest.json",
-  "/favicon.ico",
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png",
-  "/icons/maskable-icon-192x192.png",
-  "/icons/maskable-icon-512x512.png",
-  "/icons/apple-touch-icon.png",
-  "/icons/icon.svg",
+  "/favicon.svg",
+  "/branding/logo-180x48.svg",
+  "/icons/logo-192x192.png",
+  "/icons/logo-512x512.png",
+  "/icons/logo-180x180.png",
+  "/icons/logo-1200x630.png",
 ];
 
 // Public pages that are safe for network-first offline reading (no user data)
@@ -128,8 +127,11 @@ self.addEventListener("fetch", (event) => {
   const isStaticAsset =
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
+    url.pathname.startsWith("/branding/") ||
     url.pathname === "/favicon.ico" ||
+    url.pathname === "/favicon.svg" ||
     url.pathname === "/manifest.json" ||
+    url.pathname === "/manifest.webmanifest" ||
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".svg") ||
     url.pathname.endsWith(".ico") ||

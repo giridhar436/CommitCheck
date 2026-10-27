@@ -75,15 +75,15 @@ Quick actions configured in manifest:
 
 ## 3. Application Icons
 
-Icons adhere strictly to CommitCheck branding (the Airbnb Rausch `#ff385c` circle emblem with the crisp white `ShieldCheck` icon, styled in compliance with `DESIGN.md`).
-
-Generated assets in `public/icons/`:
-- `icon-192x192.png`: 192×192 standard icon for desktop and mobile task switchers.
-- `icon-512x512.png`: 512×512 high-resolution icon for splash screens and store listings.
-- `maskable-icon-192x192.png`: 192×192 maskable icon with emblem centered inside the 80% safe zone for Android adaptive icons.
-- `maskable-icon-512x512.png`: 512×512 maskable icon with emblem centered inside the 80% safe zone.
-- `apple-touch-icon.png`: 180×180 icon with full bleed for iOS Safari home screen.
-- `icon.svg`: Master scalable vector icon.
+Assets in `public/icons/` and `public/branding/`:
+- `logo-192x192.png`: 192×192 standard PWA icon for desktop and mobile task switchers.
+- `logo-512x512.png`: 512×512 high-resolution PWA icon for splash screens and app stores.
+- `logo-180x180.png`: 180×180 Apple touch icon for iOS Safari home screen.
+- `logo-1200x630.png`: Open Graph and social sharing card image (1.91:1 ratio).
+- `favicon.svg`: Master scalable vector browser favicon in `src/app/` and `public/`.
+- `public/branding/logo-180x48.svg`: Main navigation bar logo.
+- `public/branding/logo-360x96.svg`: Landing page hero and login portal branding.
+- `public/branding/logo-600x160.svg`: High-resolution GitHub README banner branding.
 
 ---
 

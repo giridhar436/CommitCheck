@@ -11,7 +11,8 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/maintenance") &&
     !pathname.startsWith("/api/health") &&
     !pathname.startsWith("/_next") &&
-    !pathname.startsWith("/favicon.ico")
+    !pathname.startsWith("/favicon.ico") &&
+    !pathname.startsWith("/favicon.svg")
   ) {
     return NextResponse.redirect(new URL("/maintenance", request.url));
   }

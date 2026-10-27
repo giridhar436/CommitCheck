@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ShieldCheck, GitBranch, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { GitBranch, ArrowRight } from "lucide-react";
 import { getCurrentSession } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -9,16 +10,19 @@ export async function PublicHeader() {
   return (
     <header className="sticky top-0 z-50 bg-canvas/90 backdrop-blur-md border-b border-border">
       <div className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-[#ff385c] rounded-[8px] p-1">
-          <div className="w-10 h-10 rounded-full bg-[#ff385c] flex items-center justify-center text-white font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-lg tracking-tight text-ink">CommitCheck</span>
-            <span className="text-[11px] font-medium text-ink-muted tracking-wider uppercase -mt-1">
-              Meeting-to-Code Verification
-            </span>
-          </div>
+        <Link
+          href="/"
+          className="flex items-center group focus:outline-none focus:ring-2 focus:ring-[#ff385c] rounded-[8px] p-1"
+          aria-label="CommitCheck Home"
+        >
+          <Image
+            src="/branding/logo-180x48.svg"
+            alt="CommitCheck - Meeting-to-Code Verification"
+            width={180}
+            height={48}
+            className="h-9 w-auto"
+            priority
+          />
         </Link>
 
         <nav aria-label="Main Navigation" className="flex items-center gap-3 sm:gap-6">

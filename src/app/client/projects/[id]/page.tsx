@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getCurrentSession } from "@/lib/auth";
 import { defaultProjectRepository } from "@/lib/projects";
 import { defaultAuditRepository } from "@/lib/audit";
@@ -7,7 +8,6 @@ import { defaultTaskDraftRepository } from "@/lib/scope";
 import { ExecutiveAuditDashboard } from "@/app/client/audit-dashboard";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
-  ShieldCheck,
   LogOut,
   CheckCircle2,
   Settings,
@@ -80,21 +80,22 @@ export default async function ClientProjectAuditPage({
       <header className="sticky top-0 z-50 bg-canvas/90 backdrop-blur-md border-b border-border">
         <div className="max-w-[1280px] mx-auto px-6 h-18 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/client" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 rounded-full bg-[#ff385c] flex items-center justify-center text-white font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-semibold text-lg tracking-tight text-ink flex items-center gap-2">
-                  CommitCheck
-                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-rausch-bg text-rausch-text border border-rausch-border">
-                    Client Audit
-                  </span>
-                </span>
-                <span className="text-[11px] font-medium text-ink-muted tracking-wider uppercase -mt-0.5">
-                  Executive Verification Portal
-                </span>
-              </div>
+            <Link
+              href="/client"
+              className="flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-[#ff385c] rounded-[8px] p-1"
+              aria-label="CommitCheck Home"
+            >
+              <Image
+                src="/branding/logo-180x48.svg"
+                alt="CommitCheck"
+                width={180}
+                height={48}
+                className="h-8 w-auto"
+                priority
+              />
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-rausch-bg text-rausch-text border border-rausch-border">
+                Client Audit
+              </span>
             </Link>
           </div>
 

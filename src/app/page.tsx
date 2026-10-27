@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getCurrentSession } from "@/lib/auth";
 import {
   ShieldCheck,
@@ -76,13 +77,19 @@ export default async function HomePage({
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 bg-canvas/90 backdrop-blur-md border-b border-border">
         <div className="max-w-[1280px] mx-auto px-6 h-18 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-[8px] bg-[#ff385c] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-4.5 h-4.5" />
-            </div>
-            <span className="font-semibold text-[17px] tracking-tight text-ink">
-              CommitCheck
-            </span>
+          <Link
+            href="/"
+            className="flex items-center group focus:outline-none focus:ring-2 focus:ring-[#ff385c] rounded-[8px] p-1"
+            aria-label="CommitCheck Home"
+          >
+            <Image
+              src="/branding/logo-180x48.svg"
+              alt="CommitCheck"
+              width={180}
+              height={48}
+              className="h-8 w-auto"
+              priority
+            />
           </Link>
 
           <nav className="flex items-center gap-3 sm:gap-4">
@@ -201,6 +208,18 @@ export default async function HomePage({
         <section className="relative overflow-hidden saas-hero-glow border-b border-border-soft pt-12 pb-16 md:pt-20 md:pb-24">
           <div className="max-w-[1280px] mx-auto px-6">
             <div className="max-w-3xl flex flex-col items-start text-left">
+              {/* Branding */}
+              <div className="mb-6">
+                <Image
+                  src="/branding/logo-360x96.svg"
+                  alt="CommitCheck Platform"
+                  width={360}
+                  height={96}
+                  className="h-12 sm:h-14 w-auto"
+                  priority
+                />
+              </div>
+
               {/* Micro Announcement Badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-border text-xs font-medium text-ink shadow-xs mb-6">
                 <span className="w-2 h-2 rounded-full bg-[#ff385c] animate-pulse"></span>
