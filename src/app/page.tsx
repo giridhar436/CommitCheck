@@ -128,13 +128,7 @@ export default async function HomePage({
                 </a>
               </div>
             ) : (
-              <div className="flex items-center gap-2 sm:gap-2.5">
-                <Link
-                  href="/login"
-                  className="hidden sm:inline-flex items-center px-3 py-1.5 text-xs font-medium text-ink bg-surface-raised hover:bg-surface-inset rounded-[8px] border border-border transition-all"
-                >
-                  Sign In
-                </Link>
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <a
                   href="/api/auth/github"
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-ink bg-surface-raised hover:bg-surface-inset rounded-[8px] border border-border transition-all"

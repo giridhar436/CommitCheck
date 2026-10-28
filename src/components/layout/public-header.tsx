@@ -57,19 +57,13 @@ export async function PublicHeader() {
               </a>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-ink bg-surface-inset hover:bg-surface-raised rounded-[8px] border border-border transition-all focus:outline-none focus:ring-2 focus:ring-border-strong"
-              >
-                Sign In
-              </Link>
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <a
                 href="/api/auth/github"
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-canvas bg-ink hover:opacity-90 rounded-[8px] transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-ink"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-ink bg-surface-raised hover:bg-surface-inset rounded-[8px] border border-border transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-ink"
               >
                 <GitBranch className="w-3.5 h-3.5" />
-                Freelancer
+                Freelancer Login
               </a>
               <a
                 href="/api/auth/google"

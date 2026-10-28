@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentSession, defaultUserRepository } from "@/lib/auth";
 import { verifyLinearConnection, defaultLinearService } from "@/lib/linear";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DeleteAccountButton } from "@/components/delete-account-button";
 import {
   ArrowLeft,
   ShieldCheck,
@@ -12,7 +13,6 @@ import {
   ExternalLink,
   GitBranch,
   Download,
-  Trash2,
 } from "lucide-react";
 
 export default async function FreelancerSettingsPage({
@@ -219,59 +219,49 @@ export default async function FreelancerSettingsPage({
           </div>
 
           {/* Data Rights & Privacy Controls */}
-          <div className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover">
-            <div className="pb-4 mb-4 border-b border-[#f7f7f7]">
-              <h3 className="text-base font-semibold text-[#222222]">
+          <div className="p-6 rounded-[14px] border border-border bg-surface-raised airbnb-shadow-hover">
+            <div className="pb-4 mb-4 border-b border-border-soft">
+              <h3 className="text-base font-semibold text-ink">
                 Data Management & Privacy Rights
               </h3>
-              <p className="text-xs text-[#6a6a6a]">
+              <p className="text-xs text-ink-muted">
                 Export your project staging data or request account deletion
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[8px] bg-[#f7f7f7] border border-[#dddddd]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[8px] bg-surface-inset border border-border">
                 <div>
-                  <span className="text-sm font-semibold text-[#222222] block">
+                  <span className="text-sm font-semibold text-ink block">
                     Export My Projects & Audits
                   </span>
-                  <span className="text-xs text-[#6a6a6a]">
+                  <span className="text-xs text-ink-muted">
                     Download a comprehensive JSON archive of your projects, Linear mappings, and meetings.
                   </span>
                 </div>
                 <a
                   href="/api/account/export"
                   download
-                  className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-white border border-[#dddddd] hover:bg-[#ebebeb] text-xs font-medium text-[#222222] transition-colors shrink-0"
+                  className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-surface-raised border border-border hover:bg-surface-inset text-xs font-medium text-ink transition-colors shrink-0"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export JSON
                 </a>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[8px] bg-[#fff8f6] border border-[#fbd5cb]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[8px] bg-error-bg border border-error-border">
                 <div>
-                  <span className="text-sm font-semibold text-[#c13515] block">
+                  <span className="text-sm font-semibold text-error-text block">
                     Delete Account & Workspace
                   </span>
-                  <span className="text-xs text-[#6a6a6a]">
+                  <span className="text-xs text-ink-muted">
                     Permanently delete your user profile and all associated staged projects and draft tickets.
                   </span>
                 </div>
-                <form action="/api/account/delete" method="POST">
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-[#c13515] hover:bg-[#b32505] text-xs font-medium text-white transition-colors cursor-pointer shrink-0"
-                    onClick={(e) => {
-                      if (!confirm("Are you sure you want to delete your account? All projects and staged drafts will be permanently removed.")) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete Account
-                  </button>
-                </form>
+                <DeleteAccountButton
+                  label="Delete Account"
+                  confirmMessage="Are you sure you want to delete your account? All projects and staged drafts will be permanently removed."
+                />
               </div>
             </div>
           </div>

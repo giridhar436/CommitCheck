@@ -74,33 +74,33 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#222222] font-sans flex flex-col justify-between selection:bg-[#ff385c] selection:text-white">
+    <div className="min-h-screen bg-canvas text-ink font-sans flex flex-col justify-between selection:bg-[#ff385c] selection:text-white">
       <PublicHeader />
 
       <main className="max-w-[1000px] mx-auto px-6 py-12 md:py-16 w-full flex-1">
         {/* Header */}
         <div className="max-w-2xl mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f7f7f7] border border-[#dddddd] text-xs font-semibold text-[#222222] mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-inset border border-border text-xs font-semibold text-ink mb-4">
             <HelpCircle className="w-3.5 h-3.5 text-[#ff385c]" />
-            Support & Knowledge Center
+            Support &amp; Knowledge Center
           </div>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-[#222222] mb-4">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-ink mb-4">
             How can we help you?
           </h1>
-          <p className="text-base text-[#6a6a6a] leading-relaxed">
+          <p className="text-base text-ink-muted leading-relaxed">
             Find technical troubleshooting guides, system health checks, and verified support channels for CommitCheck&apos;s meeting bot, Linear sync, and code auditing tools.
           </p>
         </div>
 
         {/* Quick Diagnostic Status Bar */}
-        <div className="p-5 rounded-[14px] bg-[#f7f7f7] border border-[#dddddd] mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-5 rounded-[14px] bg-surface-inset border border-border mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white border border-[#dddddd] flex items-center justify-center text-emerald-600">
+            <div className="w-10 h-10 rounded-full bg-surface-raised border border-border flex items-center justify-center text-success-dot">
               <Activity className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#6a6a6a]">System Health</span>
-              <p className="text-sm font-semibold text-[#222222]">All verification engines operational</p>
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">System Health</span>
+              <p className="text-sm font-semibold text-ink">All verification engines operational</p>
             </div>
           </div>
 
@@ -109,10 +109,10 @@ export default function SupportPage() {
               href="/api/health"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-white border border-[#dddddd] hover:bg-[#ebebeb] text-xs font-medium text-[#222222] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-surface-raised border border-border hover:bg-surface-inset text-xs font-medium text-ink transition-colors"
             >
               Live Health JSON
-              <ExternalLink className="w-3 h-3 text-[#6a6a6a]" />
+              <ExternalLink className="w-3 h-3 text-ink-muted" />
             </a>
             <Link
               href="/docs"
@@ -126,7 +126,7 @@ export default function SupportPage() {
 
         {/* FAQ Grid */}
         <div className="space-y-10 mb-16">
-          <h2 className="text-xl font-semibold text-[#222222]">
+          <h2 className="text-xl font-semibold text-ink">
             Frequently Asked Questions
           </h2>
 
@@ -136,13 +136,13 @@ export default function SupportPage() {
               return (
                 <div
                   key={category.category}
-                  className="p-6 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow-hover"
+                  className="p-6 rounded-[14px] border border-border bg-surface-raised airbnb-shadow-hover"
                 >
-                  <div className="flex items-center gap-3 mb-5 pb-3 border-b border-[#f7f7f7]">
-                    <div className="w-8 h-8 rounded-full bg-[#f7f7f7] border border-[#dddddd] flex items-center justify-center text-[#ff385c]">
+                  <div className="flex items-center gap-3 mb-5 pb-3 border-b border-border-soft">
+                    <div className="w-8 h-8 rounded-full bg-surface-inset border border-border flex items-center justify-center text-[#ff385c]">
                       <Icon className="w-4 h-4" />
                     </div>
-                    <h3 className="text-base font-semibold text-[#222222]">
+                    <h3 className="text-base font-semibold text-ink">
                       {category.category}
                     </h3>
                   </div>
@@ -150,10 +150,10 @@ export default function SupportPage() {
                   <div className="space-y-4">
                     {category.items.map((item, idx) => (
                       <div key={idx} className="space-y-1">
-                        <h4 className="text-xs font-semibold text-[#222222]">
+                        <h4 className="text-xs font-semibold text-ink">
                           {item.q}
                         </h4>
-                        <p className="text-xs text-[#6a6a6a] leading-relaxed">
+                        <p className="text-xs text-ink-muted leading-relaxed">
                           {item.a}
                         </p>
                       </div>
@@ -166,21 +166,21 @@ export default function SupportPage() {
         </div>
 
         {/* Direct Contact Channels */}
-        <section aria-labelledby="contact-channels" className="p-8 rounded-[14px] border border-[#dddddd] bg-white airbnb-shadow">
-          <h2 id="contact-channels" className="text-xl font-semibold text-[#222222] mb-2">
-            Contact Support & Triage
+        <section aria-labelledby="contact-channels" className="p-8 rounded-[14px] border border-border bg-surface-raised airbnb-shadow">
+          <h2 id="contact-channels" className="text-xl font-semibold text-ink mb-2">
+            Contact Support &amp; Triage
           </h2>
-          <p className="text-xs text-[#6a6a6a] mb-6 leading-relaxed">
+          <p className="text-xs text-ink-muted mb-6 leading-relaxed">
             Can&apos;t resolve an integration issue? Our core engineering team reviews diagnostic logs and API trace correlations.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-[10px] bg-[#f7f7f7] border border-[#dddddd]">
-              <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-[#222222]">
+            <div className="p-4 rounded-[10px] bg-surface-inset border border-border">
+              <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-ink">
                 <Mail className="w-4 h-4 text-[#ff385c]" />
                 Email Support Inbox
               </div>
-              <p className="text-xs text-[#6a6a6a] mb-2">
+              <p className="text-xs text-ink-muted mb-2">
                 For account verification, data requests, or integration timeouts:
               </p>
               <a
@@ -191,17 +191,17 @@ export default function SupportPage() {
               </a>
             </div>
 
-            <div className="p-4 rounded-[10px] bg-[#f7f7f7] border border-[#dddddd]">
-              <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-[#222222]">
-                <ShieldCheck className="w-4 h-4 text-[#222222]" />
-                Security & Vulnerability Triage
+            <div className="p-4 rounded-[10px] bg-surface-inset border border-border">
+              <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-ink">
+                <ShieldCheck className="w-4 h-4 text-ink" />
+                Security &amp; Vulnerability Triage
               </div>
-              <p className="text-xs text-[#6a6a6a] mb-2">
+              <p className="text-xs text-ink-muted mb-2">
                 For security disclosures and confidential vulnerability reports:
               </p>
               <Link
                 href="/security#disclosure"
-                className="text-xs font-medium text-[#222222] hover:underline"
+                className="text-xs font-medium text-ink hover:underline"
               >
                 View Responsible Disclosure Policy &rarr;
               </Link>

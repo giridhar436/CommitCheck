@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import Image from "next/image";
 
 export function PublicFooter() {
   return (
@@ -8,12 +8,12 @@ export function PublicFooter() {
       <div className="max-w-[1280px] mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
         <div>
           <h4 className="font-semibold text-xs uppercase tracking-wider text-ink mb-3">
-            Product & Guides
+            Product &amp; Guides
           </h4>
           <ul className="space-y-2.5">
             <li>
               <Link href="/docs" className="hover:text-ink hover:underline transition-colors">
-                Documentation & Specs
+                Documentation &amp; Specs
               </Link>
             </li>
             <li>
@@ -23,7 +23,7 @@ export function PublicFooter() {
             </li>
             <li>
               <Link href="/support" className="hover:text-ink hover:underline transition-colors">
-                Support & Diagnostics
+                Support &amp; Diagnostics
               </Link>
             </li>
             <li>
@@ -36,7 +36,7 @@ export function PublicFooter() {
 
         <div>
           <h4 className="font-semibold text-xs uppercase tracking-wider text-ink mb-3">
-            Trust & Security
+            Trust &amp; Security
           </h4>
           <ul className="space-y-2.5">
             <li>
@@ -64,7 +64,7 @@ export function PublicFooter() {
 
         <div>
           <h4 className="font-semibold text-xs uppercase tracking-wider text-ink mb-3">
-            Legal & Policies
+            Legal &amp; Policies
           </h4>
           <ul className="space-y-2.5">
             <li>
@@ -89,7 +89,7 @@ export function PublicFooter() {
             </li>
             <li>
               <Link href="/disclaimer" className="hover:text-ink hover:underline transition-colors">
-                AI & Audit Disclaimer
+                AI &amp; Audit Disclaimer
               </Link>
             </li>
           </ul>
@@ -100,7 +100,7 @@ export function PublicFooter() {
             Platform Integrations
           </h4>
           <p className="text-xs text-ink-muted leading-relaxed mb-3">
-            Autonomous Google Meet bot diarization via Recall.ai, Linear issue sync, and GitHub AST & semantic commit verification via Gemini.
+            Autonomous Google Meet bot diarization via Recall.ai, Linear issue sync, and GitHub AST &amp; semantic commit verification via Gemini.
           </p>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-inset border border-border text-[11px] font-medium text-ink">
             <span className="w-2 h-2 rounded-full bg-success-dot"></span>
@@ -112,11 +112,14 @@ export function PublicFooter() {
       {/* Bottom Bar */}
       <div className="border-t border-border-soft py-6">
         <div className="max-w-[1280px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-[#ff385c] flex items-center justify-center text-white font-bold text-xs">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </div>
-            <span className="font-semibold text-ink">CommitCheck</span>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/branding/logo-180x48.svg"
+              alt="CommitCheck"
+              width={180}
+              height={48}
+              className="h-6 w-auto dark:invert"
+            />
             <span>&copy; {new Date().getFullYear()} CommitCheck. Meeting-to-Code Freelance Verification.</span>
           </div>
 
